@@ -17,7 +17,9 @@ Commands: `npm run dev`, `npm test`, `npm run test:sandbox`, `npm run typecheck`
 - Keep `src/sequencer.ts` free of the DOM, audio, and randomness.
 - Each note plays only on its own step, and only while that step is within the pattern
   length and the loop. A note recorded live skips its next pass because it already sounded.
-- Keep `src/live.ts` free of the DOM and audio.
+- Keep `src/live.ts` free of the DOM and audio. Live play and the loop are hidden behind
+  `LIVE_TOOLS` in `src/config.ts`; when turning them on, restore their README sections from
+  git history.
 - Keep `src/fx.ts` free of the DOM and audio. FX are applied on top of the theme and never change
   a theme's own values.
 - Themes change the sound only, never the pattern or the tempo.

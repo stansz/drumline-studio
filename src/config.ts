@@ -5,6 +5,10 @@ export const GRID_ROWS = 8;
 export const STEPS_PER_BAR = 16;
 export const MAX_STEPS = 32;
 
+// Live play (Paint/Live/Rec, keys A-K) and the step-light loop are hidden until they are
+// easier to use. Set to true to bring them back.
+export const LIVE_TOOLS = false;
+
 export const BPM = 120;
 export const stepSeconds = (bpm: number): number => 60 / bpm / 4;
 export const MIN_BPM = 40;

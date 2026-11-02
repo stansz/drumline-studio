@@ -166,9 +166,16 @@ body {
   display: grid;
   grid-template-columns: repeat(16, 1fr);
   gap: 0;
+}
+
+.steps.loopable {
   cursor: pointer;
   touch-action: none;
   padding-block: 4px;
+}
+
+.keys > [hidden] {
+  display: none;
 }
 
 .steps span {
@@ -300,7 +307,7 @@ body {
 
 .keys {
   display: grid;
-  grid-template-columns: repeat(9, 1fr);
+  grid-template-columns: repeat(8, 1fr);
   gap: 6px;
 }
 
@@ -549,12 +556,12 @@ body {
   }
 
   .keys {
-    grid-template-columns: repeat(10, 1fr);
+    grid-template-columns: repeat(8, 1fr);
   }
 
   .hw.go,
   .tempo {
-    grid-column: span 5;
+    grid-column: span 4;
   }
 
   .keys > .hw:not(.go) {

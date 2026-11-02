@@ -1,5 +1,5 @@
 import { Audio_, parseVolume } from './audio';
-import { GRID_COLS, GRID_ROWS, INSTRUMENT_INFO, parseBpm } from './config';
+import { LIVE_TOOLS, GRID_COLS, GRID_ROWS, INSTRUMENT_INFO, parseBpm } from './config';
 import { DEFAULT_FX, parseFx, type FxSettings } from './fx';
 import { liveRowForCode, nearestStep, nextLiveMode, type LiveMode } from './live';
 import { intensity, layerLevels, pickVoices } from './music';
@@ -488,6 +488,7 @@ canvas.addEventListener('pointerleave', () => {
 });
 
 stepsEl.addEventListener('pointerdown', (event) => {
+  if (!LIVE_TOOLS) return;
   const start = stripStep(event);
   if (start >= sequencer.length) return;
   loopDrag = start;
@@ -565,7 +566,7 @@ window.addEventListener('keydown', (event) => {
     return;
   }
   if (event.repeat) return;
-  if (!event.ctrlKey && !event.metaKey && !event.altKey) {
+  if (LIVE_TOOLS && !event.ctrlKey && !event.metaKey && !event.altKey) {
     const liveRow = liveRowForCode(event.code);
     if (liveRow !== null) {
       playLive(liveRow);
@@ -614,7 +615,7 @@ window.addEventListener('keydown', (event) => {
       cycleTheme();
       break;
     case 'v':
-      setLiveMode(nextLiveMode(liveMode));
+      if (LIVE_TOOLS) setLiveMode(nextLiveMode(liveMode));
       break;
     case 'x':
       toggleFxPanel();
@@ -676,8 +677,11 @@ setLength(16);
 updateHud();
 updateSelection();
 setLiveMode('paint');
-infoEl.textContent =
-  'Click or drag to paint. Click a note to remove it. Drag the step lights to loop.';
+liveButton.hidden = !LIVE_TOOLS;
+stepsEl.classList.toggle('loopable', LIVE_TOOLS);
+infoEl.textContent = LIVE_TOOLS
+  ? 'Click or drag to paint. Click a note to remove it. Drag the step lights to loop.'
+  : 'Click or drag to paint. Click a note to remove it. Higher rows play higher.';
 for (const name of INSTRUMENTS) {
   const button = byId<HTMLButtonElement>(`tool-${name}`);
   button.title = `${INSTRUMENT_INFO[name].name}: ${INSTRUMENT_INFO[name].description}`;
