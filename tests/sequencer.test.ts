@@ -25,7 +25,7 @@ describe('Sequencer', () => {
   it('returns false outside the grid', () => {
     const sequencer = new Sequencer();
     expect(sequencer.set('kick', -1, 0)).toBe(false);
-    expect(sequencer.set('kick', 16, 0)).toBe(false);
+    expect(sequencer.set('kick', 32, 0)).toBe(false);
     expect(sequencer.set('kick', 0, 8)).toBe(false);
     expect(sequencer.set('kick', 0.5, 0)).toBe(false);
     expect(sequencer.cells).toHaveLength(0);
@@ -71,11 +71,48 @@ describe('Sequencer', () => {
     ]);
   });
 
-  it('wraps the step index from 15 to 0', () => {
+  it('keeps columns up to 31 in the grid', () => {
     const sequencer = new Sequencer();
+    expect(sequencer.set('kick', 31, 0)).toBe(true);
+    expect(sequencer.set('kick', 32, 0)).toBe(false);
+  });
+
+  it('defaults to 16 steps and wraps from 15 to 0', () => {
+    const sequencer = new Sequencer();
+    expect(sequencer.length).toBe(16);
     for (let i = 0; i < 15; i += 1) sequencer.step();
     expect(sequencer.stepIndex).toBe(15);
     sequencer.step();
+    expect(sequencer.stepIndex).toBe(0);
+  });
+
+  it('plays 32 steps after setLength(32)', () => {
+    const sequencer = new Sequencer();
+    sequencer.setLength(32);
+    sequencer.set('hat', 20, 0);
+    for (let i = 0; i < 20; i += 1) sequencer.step();
+    expect(sequencer.stepIndex).toBe(20);
+    expect(sequencer.step()).toEqual([{ instrument: 'hat', col: 20, row: 0 }]);
+    for (let i = 21; i < 32; i += 1) sequencer.step();
+    expect(sequencer.stepIndex).toBe(0);
+  });
+
+  it('keeps notes past the length but does not play them', () => {
+    const sequencer = new Sequencer();
+    sequencer.set('hat', 20, 0);
+    expect(sequencer.activeCells()).toEqual([]);
+    expect(sequencer.cells).toHaveLength(1);
+    for (let i = 0; i < 32; i += 1) {
+      expect(sequencer.step().map((note) => note.col)).not.toContain(20);
+    }
+  });
+
+  it('resets the step index when the length shrinks below it', () => {
+    const sequencer = new Sequencer();
+    sequencer.setLength(32);
+    for (let i = 0; i < 20; i += 1) sequencer.step();
+    expect(sequencer.stepIndex).toBe(20);
+    sequencer.setLength(16);
     expect(sequencer.stepIndex).toBe(0);
   });
 

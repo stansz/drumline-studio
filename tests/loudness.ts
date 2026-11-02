@@ -12,7 +12,7 @@ const SAMPLE_RATE = 48000;
 const BARS = 8;
 const TAIL_SECONDS = 3;
 const CLIP_LEVEL = 1;
-const INSTRUMENTS: Instrument[] = ['kick', 'hat', 'synth'];
+const INSTRUMENTS: Instrument[] = ['kick', 'hat', 'synth', 'snare'];
 
 type Board = Array<[Instrument, number, number]>;
 
@@ -110,7 +110,7 @@ async function renderBoard(
     }
   }
 
-  const levels = layerLevels(intensity(sequencer.cells.length, 5));
+  const levels = layerLevels(intensity(sequencer.activeCells().length, 5));
   for (let musicStep = 0; musicStep < STEPS_PER_BAR * BARS; musicStep += 1) {
     const time = musicStep * duration;
     audio.playMusicStep(musicStep, time, duration, levels);

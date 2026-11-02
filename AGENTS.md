@@ -15,7 +15,8 @@ Commands: `npm run dev`, `npm test`, `npm run test:sandbox`, `npm run typecheck`
 ## Rules
 
 - Keep `src/sequencer.ts` free of the DOM, audio, and randomness.
-- Each note plays only on its own column's step.
+- Each note plays only on its own step, and only while that step is within the pattern
+  length.
 - Themes change the sound only, never the pattern or the tempo.
 - Wrap every `localStorage` call in `try`/`catch`, and make the game work without it.
 - Keep Neon's `space.trim` at 1. It is the loudness reference.

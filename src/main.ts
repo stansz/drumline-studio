@@ -3,7 +3,7 @@ import { GRID_COLS, GRID_ROWS, INSTRUMENT_INFO, parseBpm } from './config';
 import { intensity, layerLevels, pickVoices } from './music';
 import { Renderer, drawIcon, drawLogo } from './render';
 import { Scheduler } from './scheduler';
-import { Sequencer, type Instrument, type NoteEvent } from './sequencer';
+import { Sequencer, INSTRUMENTS, type Instrument, type NoteEvent, type PatternLength } from './sequencer';
 import type { SpriteName } from './sprites';
 import { DEFAULT_THEME, nextTheme, themeById, type Theme } from './themes';
 import './style.css';
@@ -35,7 +35,9 @@ const stepsEl = byId<HTMLDivElement>('steps');
 const kickButton = byId<HTMLButtonElement>('tool-kick');
 const hatButton = byId<HTMLButtonElement>('tool-hat');
 const synthButton = byId<HTMLButtonElement>('tool-synth');
-const eraseButton = byId<HTMLButtonElement>('tool-erase');
+const snareButton = byId<HTMLButtonElement>('tool-snare');
+const pageButton = byId<HTMLButtonElement>('page');
+const lengthButton = byId<HTMLButtonElement>('length');
 const playButton = byId<HTMLButtonElement>('play');
 const backingButton = byId<HTMLButtonElement>('backing');
 const bpmInput = byId<HTMLInputElement>('bpm');
@@ -60,7 +62,7 @@ let audioContext: AudioContext | null = null;
 let started = false;
 let playing = false;
 let muted = false;
-let selected: Instrument | 'erase' = 'kick';
+let selected: Instrument = 'kick';
 let hover: { col: number; row: number } | null = null;
 let queued: Array<{ at: number; note: NoteEvent }> = [];
 let musicStep = 0;
@@ -72,13 +74,15 @@ let backing = loadBacking();
 let bpm = loadBpm();
 const stepLeds: HTMLSpanElement[] = [];
 let litStep = -1;
+let shownPlayhead = -1;
+let page = 0;
 let paint: 'add' | 'erase' | null = null;
 
 window.__drumline = { sequencer, scheduler, audio };
 
 function updateHud(): void {
-  notesEl.textContent = String(sequencer.cells.length);
-  stepEl.textContent = `${String(playhead + 1).padStart(2, '0')}/16`;
+  notesEl.textContent = String(sequencer.activeCells().length);
+  stepEl.textContent = `${String(playhead + 1).padStart(2, '0')}/${sequencer.length}`;
 }
 
 function updateStepHints(): void {
@@ -88,33 +92,36 @@ function updateStepHints(): void {
   });
 }
 
-function updateInfo(): void {
-  updateStepHints();
-  const cell = hover ? sequencer.cellAt(hover.col, hover.row) : null;
-  if (cell) {
-    const info = INSTRUMENT_INFO[cell.instrument];
-    infoEl.textContent = `${info.name} on step ${cell.col + 1}, row ${GRID_ROWS - cell.row} of ${GRID_ROWS}. ${info.description}`;
-    return;
-  }
-  if (selected === 'erase') {
-    infoEl.textContent = 'Click or drag over notes to erase them.';
-    return;
-  }
-  const info = INSTRUMENT_INFO[selected];
-  infoEl.textContent = `${info.name}: ${info.description} Click or drag on the grid to add notes, and click a note again to remove it.`;
+function setLength(length: PatternLength): void {
+  sequencer.setLength(length);
+  if (length === 16) setPage(0);
+  lengthButton.textContent = `${length} steps`;
+  lengthButton.classList.toggle('selected', length === 32);
+  pageButton.hidden = length === 16;
+  updateHud();
+}
+
+function setPage(next: number): void {
+  page = next;
+  pageButton.textContent = `Page ${page + 1}`;
+  stepLeds.forEach((led, i) => {
+    const number = led.querySelector('em');
+    if (number) number.textContent = i % 4 === 0 ? String(page * GRID_COLS + i + 1) : '';
+  });
+  stepLeds[litStep]?.classList.remove('on');
+  litStep = -1;
 }
 
 function updateSelection(): void {
   kickButton.classList.toggle('selected', selected === 'kick');
   hatButton.classList.toggle('selected', selected === 'hat');
   synthButton.classList.toggle('selected', selected === 'synth');
-  eraseButton.classList.toggle('selected', selected === 'erase');
+  snareButton.classList.toggle('selected', selected === 'snare');
 }
 
-function selectTool(tool: Instrument | 'erase'): void {
+function selectTool(tool: Instrument): void {
   selected = tool;
   updateSelection();
-  updateInfo();
 }
 
 function updateBackingButton(): void {
@@ -158,10 +165,10 @@ function onStep(time: number, duration: number): void {
       musicStep,
       time,
       duration,
-      layerLevels(intensity(sequencer.cells.length, 5)),
+      layerLevels(intensity(sequencer.activeCells().length, 5)),
     );
   }
-  if (sequencer.cells.length === 0 && sequencer.stepIndex % 4 === 0) {
+  if (sequencer.activeCells().length === 0 && sequencer.stepIndex % 4 === 0) {
     audio.playMetronome(time, sequencer.stepIndex === 0);
   }
   audio.setTempo(duration);
@@ -303,7 +310,7 @@ function togglePlay(): void {
 function clearPattern(): void {
   sequencer.clear();
   updateHud();
-  updateInfo();
+  updateStepHints();
 }
 
 function cellAt(event: PointerEvent | MouseEvent): { col: number; row: number } | null {
@@ -316,34 +323,35 @@ function cellAt(event: PointerEvent | MouseEvent): { col: number; row: number } 
 }
 
 function applyPaint(col: number, row: number): void {
+  if (paint === null) return;
+  const step = page * GRID_COLS + col;
   if (paint === 'add') {
-    if (selected === 'erase') return;
-    sequencer.set(selected, col, row);
-  } else if (paint === 'erase') {
-    sequencer.erase(col, row);
+    sequencer.set(selected, step, row);
   } else {
-    return;
+    sequencer.erase(step, row);
   }
   updateHud();
-  updateInfo();
+  updateStepHints();
 }
 
 canvas.addEventListener('pointerdown', (event) => {
   const cell = cellAt(event);
   if (!cell) return;
-  const existing = sequencer.cellAt(cell.col, cell.row);
-  if (selected !== 'erase' && existing?.instrument === selected) {
+  const step = page * GRID_COLS + cell.col;
+  if (sequencer.cellAt(step, cell.row) || event.button === 2) {
     paint = 'erase';
   } else {
-    paint = selected === 'erase' ? 'erase' : 'add';
+    paint = 'add';
   }
   applyPaint(cell.col, cell.row);
   canvas.setPointerCapture(event.pointerId);
 });
 
+canvas.addEventListener('contextmenu', (event) => event.preventDefault());
+
 canvas.addEventListener('pointermove', (event) => {
   hover = cellAt(event);
-  updateInfo();
+  updateStepHints();
   if (paint && hover) applyPaint(hover.col, hover.row);
 });
 
@@ -355,13 +363,15 @@ for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'] as const
 
 canvas.addEventListener('pointerleave', () => {
   hover = null;
-  updateInfo();
+  updateStepHints();
 });
 
 kickButton.addEventListener('click', () => selectTool('kick'));
 hatButton.addEventListener('click', () => selectTool('hat'));
 synthButton.addEventListener('click', () => selectTool('synth'));
-eraseButton.addEventListener('click', () => selectTool('erase'));
+snareButton.addEventListener('click', () => selectTool('snare'));
+lengthButton.addEventListener('click', () => setLength(sequencer.length === 16 ? 32 : 16));
+pageButton.addEventListener('click', () => setPage(page === 0 ? 1 : 0));
 
 playButton.addEventListener('click', togglePlay);
 backingButton.addEventListener('click', toggleBacking);
@@ -410,7 +420,7 @@ window.addEventListener('keydown', (event) => {
       selectTool('synth');
       break;
     case '4':
-      selectTool('erase');
+      selectTool('snare');
       break;
     case 'b':
       toggleBacking();
@@ -418,8 +428,14 @@ window.addEventListener('keydown', (event) => {
     case 'c':
       clearPattern();
       break;
+    case 'l':
+      setLength(sequencer.length === 16 ? 32 : 16);
+      break;
     case 'm':
       toggleMute();
+      break;
+    case 'p':
+      if (sequencer.length === 32) setPage(page === 0 ? 1 : 0);
       break;
     case 't':
       cycleTheme();
@@ -439,10 +455,14 @@ function frame(): void {
     stepMarks.shift();
     playhead = mark.step;
   }
-  if (playhead !== litStep) {
+  const lit = Math.floor(playhead / GRID_COLS) === page ? playhead % GRID_COLS : -1;
+  if (lit !== litStep) {
     stepLeds[litStep]?.classList.remove('on');
-    stepLeds[playhead]?.classList.add('on');
-    litStep = playhead;
+    stepLeds[lit]?.classList.add('on');
+    litStep = lit;
+  }
+  if (playhead !== shownPlayhead) {
+    shownPlayhead = playhead;
     updateHud();
   }
   while (queued.length > 0) {
@@ -451,7 +471,7 @@ function frame(): void {
     queued.shift();
     renderer.flash(item.note);
   }
-  renderer.draw({ sequencer, now, playhead, selected, hover });
+  renderer.draw({ sequencer, now, playhead, selected, page, hover });
   requestAnimationFrame(frame);
 }
 
@@ -473,9 +493,15 @@ for (let i = 0; i < 16; i += 1) {
   stepLeds.push(step);
 }
 
+setLength(16);
 updateHud();
 updateSelection();
-updateInfo();
+infoEl.textContent =
+  'Click or drag to paint. Click a note to remove it. Higher rows play higher.';
+for (const name of INSTRUMENTS) {
+  const button = byId<HTMLButtonElement>(`tool-${name}`);
+  button.title = `${INSTRUMENT_INFO[name].name}: ${INSTRUMENT_INFO[name].description}`;
+}
 updateThemeButton();
 bpmInput.value = String(bpm);
 updateBackingButton();

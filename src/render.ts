@@ -13,19 +13,21 @@ export const ART_CELL = 16;
 export const ART_WIDTH = GRID_COLS * ART_CELL; // 256
 export const ART_HEIGHT = GRID_ROWS * ART_CELL; // 128
 
-const TOWER_FLASH = 0.1;
+const NOTE_FLASH = 0.1;
 
 const NOTE_OUTLINE: Record<Instrument, string> = {
   kick: PIXEL_COLORS['7'],
   hat: PIXEL_COLORS.a,
   synth: PIXEL_COLORS.c,
+  snare: PIXEL_COLORS.g,
 };
 
 export interface RenderState {
   sequencer: Sequencer;
   now: number;
   playhead: number;
-  selected: Instrument | 'erase';
+  selected: Instrument;
+  page: number;
   hover: { col: number; row: number } | null;
 }
 
@@ -225,10 +227,12 @@ export class Renderer {
     this.ctx.fillRect(x + size - 1, y, 1, size);
   }
 
-  private drawPlayhead(playhead: number): void {
-    const x = playhead * ART_CELL;
+  private drawPlayhead(playhead: number, page: number): void {
+    if (Math.floor(playhead / GRID_COLS) !== page) return;
+    const column = playhead % GRID_COLS;
+    const x = column * ART_CELL;
     const color =
-      STEP_GROUP_COLORS[Math.floor(playhead / 4) % STEP_GROUP_COLORS.length] ??
+      STEP_GROUP_COLORS[Math.floor(column / 4) % STEP_GROUP_COLORS.length] ??
       STEP_GROUP_COLORS[0];
     this.ctx.drawImage(this.head, x, 0);
     this.ctx.fillStyle = color;
@@ -241,8 +245,13 @@ export class Renderer {
 
   private drawPreview(state: RenderState): void {
     const { sequencer, selected, hover } = state;
-    if (!hover || selected === 'erase') return;
-    if (sequencer.cellAt(hover.col, hover.row)?.instrument === selected) return;
+    if (!hover) return;
+    const offset = state.page * GRID_COLS;
+    if (sequencer.cellAt(offset + hover.col, hover.row)) {
+      // Clicking a note removes it, so show that instead of the preview.
+      this.strokeTile(hover.col, hover.row, PIXEL_COLORS.r);
+      return;
+    }
     const x = hover.col * ART_CELL;
     const y = hover.row * ART_CELL;
     for (const [j, row] of SPRITES[selected][0].entries()) {
@@ -254,22 +263,21 @@ export class Renderer {
     }
   }
 
-  private drawEraseOutline(state: RenderState): void {
-    const hover = state.hover;
-    if (state.selected !== 'erase' || !hover) return;
-    if (!state.sequencer.cellAt(hover.col, hover.row)) return;
-    this.strokeTile(hover.col, hover.row, PIXEL_COLORS.r);
-  }
-
   private drawNotes(state: RenderState): void {
+    const offset = state.page * GRID_COLS;
     const cells = [...state.sequencer.cells].sort((a, b) => a.row - b.row);
     for (const cell of cells) {
+      if (Math.floor(cell.col / GRID_COLS) !== state.page) continue;
       const flashedAt = this.flashes.get(`${cell.col},${cell.row}`);
-      const frame = flashedAt !== undefined && state.now - flashedAt < TOWER_FLASH ? 1 : 0;
-      if (frame === 1) this.strokeInset(cell.col, cell.row, NOTE_OUTLINE[cell.instrument]);
+      const frame = flashedAt !== undefined && state.now - flashedAt < NOTE_FLASH ? 1 : 0;
+      if (frame === 1) this.strokeInset(cell.col - offset, cell.row, NOTE_OUTLINE[cell.instrument]);
       const frames = BAKED.get(cell.instrument);
       if (!frames) continue;
-      this.ctx.drawImage(frames.normal[frame], cell.col * ART_CELL, cell.row * ART_CELL);
+      this.ctx.drawImage(
+        frames.normal[frame],
+        (cell.col - offset) * ART_CELL,
+        cell.row * ART_CELL,
+      );
     }
   }
 
@@ -291,9 +299,8 @@ export class Renderer {
   draw(state: RenderState): void {
     this.lastNow = state.now;
     this.ctx.drawImage(this.board, 0, 0);
-    this.drawPlayhead(state.playhead);
+    this.drawPlayhead(state.playhead, state.page);
     this.drawPreview(state);
-    this.drawEraseOutline(state);
     this.drawNotes(state);
     this.present();
   }

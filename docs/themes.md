@@ -1,7 +1,8 @@
 # Music themes
 
 Each theme is one entry in `src/themes.ts`. It sets the arrangement, tower sounds, space, and tone.
-Themes never change the tempo, tower timing, or game balance.
+Themes never change the tempo, tower timing, or game balance. The playable snare uses each theme's
+`drumKit.snareHz` and `drumKit.snareDecay`.
 
 ## Keeping volume consistent
 

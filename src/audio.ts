@@ -292,6 +292,8 @@ export class Audio_ {
       this.playKick(row, time, level);
     } else if (instrument === 'hat') {
       this.playHat(row, time, level);
+    } else if (instrument === 'snare') {
+      this.playSnare(row, time, level);
     } else {
       this.playSynth(row, time, level);
     }
@@ -347,6 +349,38 @@ export class Audio_ {
     gain.connect(this.towerBus);
     source.start(time);
     source.stop(time + hat.decay + 0.01);
+  }
+
+  private playSnare(row: number, time: number, level: number): void {
+    const kit = this.theme.drumKit;
+    const lift = 7 - clampRow(row);
+    const decay = kit.snareDecay * 1.5;
+    const source = this.ctx.createBufferSource();
+    source.buffer = this.noiseBuffers.white;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = kit.snareHz + lift * 180;
+    filter.Q.value = 0.9;
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(Math.max(MIX.snare * level, 0.0001), time);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, time + decay);
+    source.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(this.towerBus);
+    source.start(time);
+    source.stop(time + decay + 0.01);
+
+    const body = this.ctx.createOscillator();
+    body.type = 'triangle';
+    body.frequency.setValueAtTime(190 + lift * 14, time);
+    body.frequency.exponentialRampToValueAtTime(130 + lift * 10, time + 0.06);
+    const bodyGain = this.ctx.createGain();
+    bodyGain.gain.setValueAtTime(Math.max(MIX.snare * 0.7 * level, 0.0001), time);
+    bodyGain.gain.exponentialRampToValueAtTime(0.0001, time + 0.08);
+    body.connect(bodyGain);
+    bodyGain.connect(this.towerBus);
+    body.start(time);
+    body.stop(time + 0.1);
   }
 
   private playSynth(row: number, time: number, level: number): void {

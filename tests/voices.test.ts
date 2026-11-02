@@ -9,18 +9,29 @@ function notes(instrument: Instrument, count: number) {
 
 describe('pickVoices', () => {
   it('keeps every note under the limits', () => {
-    const chord = [...notes('kick', 2), ...notes('hat', 1), ...notes('synth', 3)];
-    expect(pickVoices(chord)).toHaveLength(6);
+    const chord = [
+      ...notes('kick', 2),
+      ...notes('hat', 1),
+      ...notes('synth', 3),
+      ...notes('snare', 2),
+    ];
+    expect(pickVoices(chord)).toHaveLength(8);
   });
 
   it('limits each instrument on its own', () => {
-    const chord = [...notes('kick', 8), ...notes('hat', 8), ...notes('synth', 8)];
+    const chord = [
+      ...notes('kick', 8),
+      ...notes('hat', 8),
+      ...notes('synth', 8),
+      ...notes('snare', 8),
+    ];
     const voices = pickVoices(chord);
-    for (const instrument of ['kick', 'hat', 'synth'] as const) {
+    for (const instrument of ['kick', 'hat', 'synth', 'snare'] as const) {
       expect(voices.filter((voice) => voice.instrument === instrument)).toHaveLength(
         VOICE_LIMITS[instrument],
       );
     }
+    expect(VOICE_LIMITS.snare).toBe(2);
   });
 
   it('never returns a note twice', () => {

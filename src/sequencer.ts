@@ -1,7 +1,8 @@
-import { GRID_COLS, GRID_ROWS, STEPS_PER_BAR } from './config';
+import { GRID_ROWS, MAX_STEPS } from './config';
 
-export type Instrument = 'kick' | 'hat' | 'synth';
-export const INSTRUMENTS: readonly Instrument[] = ['kick', 'hat', 'synth'];
+export type Instrument = 'kick' | 'hat' | 'synth' | 'snare';
+export const INSTRUMENTS: readonly Instrument[] = ['kick', 'hat', 'synth', 'snare'];
+export type PatternLength = 16 | 32;
 
 export interface Cell {
   instrument: Instrument;
@@ -18,13 +19,14 @@ export interface NoteEvent {
 export class Sequencer {
   cells: Cell[] = [];
   stepIndex = 0;
+  length: PatternLength = 16;
 
   inGrid(col: number, row: number): boolean {
     return (
       Number.isInteger(col) &&
       Number.isInteger(row) &&
       col >= 0 &&
-      col < GRID_COLS &&
+      col < MAX_STEPS &&
       row >= 0 &&
       row < GRID_ROWS
     );
@@ -61,11 +63,21 @@ export class Sequencer {
     this.stepIndex = 0;
   }
 
+  // Notes past the length are kept, so switching back to 32 steps brings them back.
+  setLength(length: PatternLength): void {
+    this.length = length;
+    if (this.stepIndex >= length) this.stepIndex = 0;
+  }
+
+  activeCells(): Cell[] {
+    return this.cells.filter((cell) => cell.col < this.length);
+  }
+
   step(): NoteEvent[] {
     const notes = this.cells
       .filter((cell) => cell.col === this.stepIndex)
       .map((cell) => ({ instrument: cell.instrument, col: cell.col, row: cell.row }));
-    this.stepIndex = (this.stepIndex + 1) % STEPS_PER_BAR;
+    this.stepIndex = (this.stepIndex + 1) % this.length;
     return notes;
   }
 }

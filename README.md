@@ -5,10 +5,13 @@ A pixel-art drum machine and synth sequencer in your browser, forked from
 
 ## How to use
 
-The grid is a 16-step pattern: each column is one step, and each cell holds at most one
+The grid shows 16 steps at a time: each column is one step, and each cell holds at most one
 note. Click or drag on the grid to paint the selected instrument. Rows are pitch: higher
-rows tune a kick up, brighten a hat, and play higher notes on the synth. Click a note
-again to remove it, or select **Erase** to clear notes.
+rows tune a kick up, brighten a hat, tighten a snare, and play higher notes on the synth.
+Clicking or dragging over a note removes it, and right-click also removes.
+
+**Length** switches between 16 and 32 steps. With 32 steps, **Page** flips the board between
+steps 1–16 and 17–32. Notes on steps 17–32 are kept but silent while the length is 16.
 
 Press **Play** to start the loop and **Stop** to end it. **Backing** turns the backing
 music on or off; with it off, only your pattern plays, plus a metronome click while the
@@ -20,10 +23,12 @@ time; themes change the sound only, never the pattern or the tempo.
 
 ## Controls
 
-- **1** Kick, **2** Hat, **3** Synth, **4** Erase
+- **1** Kick, **2** Hat, **3** Synth, **4** Snare
 - **Space** play or stop
 - **B** turn backing music on or off
 - **C** clear the pattern
+- **L** switch the pattern length between 16 and 32 steps
+- **P** flip between the two pages while the length is 32
 - **-** / **=** slower or faster by 1 BPM; with Shift, by 10
 - **M** mute or unmute
 - **T** change the music theme
