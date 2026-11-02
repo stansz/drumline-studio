@@ -13,7 +13,8 @@ Clicking or dragging over a note removes it, and right-click also removes.
 **Length** switches between 16 and 32 steps. With 32 steps, **Page** flips the board between
 steps 1–16 and 17–32. Notes on steps 17–32 are kept but silent while the length is 16.
 
-Press **Play** to start the loop and **Stop** to end it. **Backing** turns the backing
+Press **Play** to start the loop and **Pause** to hold it where it is; **Play** then carries on
+from the same step. **Stop** halts and goes back to step 1. **Backing** turns the backing
 music on or off; with it off, only your pattern plays, plus a metronome click while the
 grid is empty. Set the tempo from 40 to 300 BPM by typing it into the **BPM** box or with
 the **−** and **+** buttons (hold Shift to move by 10). **Mute** silences everything, and
@@ -29,7 +30,8 @@ the tempo-synced delay and the reverb; **Crush** adds bit-crush on top of the th
 ## Controls
 
 - **1** Kick, **2** Hat, **3** Synth, **4** Snare
-- **Space** play or stop
+- **Space** play or pause
+- **Esc** stop and go back to step 1
 - **B** turn backing music on or off
 - **C** clear the pattern
 - **L** switch the pattern length between 16 and 32 steps

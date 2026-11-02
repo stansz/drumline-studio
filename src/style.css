@@ -335,7 +335,6 @@ body {
 }
 
 .hw.go {
-  grid-column: span 2;
   background: var(--amber);
   color: #1d1a10;
   box-shadow: inset 0 2px 0 #ffe79a, inset 0 -3px 0 #a8701a, 0 2px 0 #000;
@@ -559,7 +558,10 @@ body {
     grid-template-columns: repeat(8, 1fr);
   }
 
-  .hw.go,
+  .hw.go {
+    grid-column: span 2;
+  }
+
   .tempo {
     grid-column: span 4;
   }
@@ -820,7 +822,10 @@ body {
     gap: 4px;
   }
 
-  .hw.go,
+  .hw.go {
+    grid-column: auto;
+  }
+
   .tempo {
     grid-column: span 2;
   }

@@ -41,6 +41,7 @@ const snareButton = byId<HTMLButtonElement>('tool-snare');
 const pageButton = byId<HTMLButtonElement>('page');
 const lengthButton = byId<HTMLButtonElement>('length');
 const playButton = byId<HTMLButtonElement>('play');
+const stopButton = byId<HTMLButtonElement>('stop');
 const backingButton = byId<HTMLButtonElement>('backing');
 const bpmInput = byId<HTMLInputElement>('bpm');
 const bpmDownButton = byId<HTMLButtonElement>('bpm-down');
@@ -357,24 +358,29 @@ function play(): void {
   }
   scheduler?.start();
   playing = true;
-  playButton.textContent = 'Stop';
+  playButton.textContent = 'Pause';
 }
 
-function stop(): void {
+// Holds the position so Play carries on from the same step.
+function pause(): void {
   scheduler?.stop();
   playing = false;
-  sequencer.rewind();
-  musicStep = 0;
-  playhead = sequencer.stepIndex;
-  playheadAt = 0;
   queued = [];
   stepMarks = [];
   playButton.textContent = 'Play';
 }
 
+function stop(): void {
+  pause();
+  sequencer.rewind();
+  musicStep = 0;
+  playhead = sequencer.stepIndex;
+  playheadAt = 0;
+}
+
 function togglePlay(): void {
   if (playing) {
-    stop();
+    pause();
   } else {
     play();
   }
@@ -527,6 +533,7 @@ lengthButton.addEventListener('click', () => setLength(sequencer.length === 16 ?
 pageButton.addEventListener('click', () => setPage(page === 0 ? 1 : 0));
 
 playButton.addEventListener('click', togglePlay);
+stopButton.addEventListener('click', stop);
 backingButton.addEventListener('click', toggleBacking);
 bpmDownButton.addEventListener('click', (event) => nudgeBpm(-1, event.shiftKey));
 bpmUpButton.addEventListener('click', (event) => nudgeBpm(1, event.shiftKey));
@@ -576,6 +583,10 @@ window.addEventListener('keydown', (event) => {
   if (!overlay.classList.contains('hidden')) {
     if (event.key === 'Enter' || event.code === 'Space') play();
     if (event.key.toLowerCase() === 't') cycleTheme();
+    return;
+  }
+  if (event.key === 'Escape') {
+    stop();
     return;
   }
   if (event.code === 'Space') {
