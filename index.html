@@ -3,19 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="DrumlineTD is a tower defense game where your defense plays the music." />
+    <meta name="description" content="Drumline Studio is a pixel-art drum machine and synth sequencer in your browser." />
     <meta name="theme-color" content="#14131a" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <title>DrumlineTD</title>
+    <title>Drumline Studio</title>
   </head>
   <body>
     <div id="app">
       <header id="hud" class="faceplate">
-        <canvas class="logo" role="img" aria-label="DrumlineTD"></canvas>
+        <canvas class="logo" role="img" aria-label="Drumline Studio"></canvas>
         <div class="lcds">
-          <div class="lcd"><small>Cash</small><span id="money">$100</span></div>
-          <div class="lcd lives"><small>Lives</small><span id="lives">20</span></div>
-          <div class="lcd wave"><small>Wave</small><span id="wave">00/30</span></div>
+          <div class="lcd"><small>Notes</small><span id="notes">0</span></div>
+          <div class="lcd"><small>Step</small><span id="step">01/16</span></div>
         </div>
         <div class="sys">
           <button id="theme" class="hw" type="button" aria-label="Change music theme">♪ Neon</button>
@@ -24,41 +23,37 @@
       </header>
       <main id="stage">
         <div id="steps" class="steps" aria-hidden="true"></div>
-        <canvas id="game" width="256" height="128" aria-label="DrumlineTD game board"></canvas>
+        <canvas id="game" width="256" height="128" aria-label="Pattern grid"></canvas>
       </main>
       <p id="info" class="readout"></p>
       <div id="controls" class="deck">
         <div class="bank">
           <div class="cap">Instruments</div>
           <div class="pads">
-            <button id="tool-kick" class="pad" type="button"><span class="led"></span><canvas data-sprite="kick" width="16" height="16"></canvas><b>Kick</b><small class="cost"></small><kbd>1</kbd></button>
-            <button id="tool-hat" class="pad" type="button"><span class="led"></span><canvas data-sprite="hat" width="16" height="16"></canvas><b>Hat</b><small class="cost"></small><kbd>2</kbd></button>
-            <button id="tool-synth" class="pad" type="button"><span class="led"></span><canvas data-sprite="synth" width="16" height="16"></canvas><b>Synth</b><small class="cost"></small><kbd>3</kbd></button>
-            <button id="tool-sell" class="pad" type="button"><span class="led"></span><canvas data-sprite="sell" width="16" height="16"></canvas><b>Sell</b><small class="cost"></small><kbd>4</kbd></button>
+            <button id="tool-kick" class="pad" type="button"><span class="led"></span><canvas data-sprite="kick" width="16" height="16"></canvas><b>Kick</b><kbd>1</kbd></button>
+            <button id="tool-hat" class="pad" type="button"><span class="led"></span><canvas data-sprite="hat" width="16" height="16"></canvas><b>Hat</b><kbd>2</kbd></button>
+            <button id="tool-synth" class="pad" type="button"><span class="led"></span><canvas data-sprite="synth" width="16" height="16"></canvas><b>Synth</b><kbd>3</kbd></button>
+            <button id="tool-erase" class="pad" type="button"><span class="led"></span><canvas data-sprite="sell" width="16" height="16"></canvas><b>Erase</b><kbd>4</kbd></button>
           </div>
         </div>
         <div class="bank">
           <div class="cap">Transport</div>
           <div class="keys">
-            <button id="start-wave" class="hw go" type="button">Start wave</button>
-            <button id="auto-wave" class="hw" type="button">Auto</button>
+            <button id="play" class="hw go" type="button">Play</button>
+            <button id="backing" class="hw" type="button">Backing</button>
             <button id="speed" class="hw" type="button">120 BPM</button>
             <button id="mute" class="hw" type="button">Mute</button>
-            <button id="restart" class="hw" type="button">Reset</button>
+            <button id="clear" class="hw" type="button">Clear</button>
           </div>
         </div>
       </div>
     </div>
     <div id="overlay">
-      <canvas class="logo" role="img" aria-label="DrumlineTD"></canvas>
-      <div id="overlay-text">Your defense plays the music.</div>
+      <canvas class="logo" role="img" aria-label="Drumline Studio"></canvas>
+      <div id="overlay-text">Paint a beat. Each column is one step.</div>
       <div id="overlay-detail"></div>
-      <div id="mode-buttons">
-        <button id="mode-easy" class="hw mode" type="button"><span>Easy</span><small></small></button>
-        <button id="mode-hard" class="hw mode" type="button"><span>Hard</span><small></small></button>
-      </div>
+      <div id="mode-buttons"><button id="start" class="hw mode" type="button"><span>Start</span></button></div>
       <p id="rotate-hint">Turn your phone sideways for a bigger board.</p>
-      <p id="channel-label" hidden>Test build with tower upgrades</p>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

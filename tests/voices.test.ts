@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { TOWER_VOICE_LIMITS } from '../src/config';
+import { VOICE_LIMITS } from '../src/config';
 import { pickVoices } from '../src/music';
-import type { TowerType } from '../src/sim';
+import type { Instrument } from '../src/sequencer';
 
-function notes(type: TowerType, count: number, hit = true) {
-  return Array.from({ length: count }, (_, row) => ({ towerType: type, row, hit }));
+function notes(instrument: Instrument, count: number) {
+  return Array.from({ length: count }, (_, row) => ({ instrument, row }));
 }
 
 describe('pickVoices', () => {
@@ -16,9 +16,9 @@ describe('pickVoices', () => {
   it('limits each instrument on its own', () => {
     const chord = [...notes('kick', 8), ...notes('hat', 8), ...notes('synth', 8)];
     const voices = pickVoices(chord);
-    for (const type of ['kick', 'hat', 'synth'] as const) {
-      expect(voices.filter((voice) => voice.towerType === type)).toHaveLength(
-        TOWER_VOICE_LIMITS[type],
+    for (const instrument of ['kick', 'hat', 'synth'] as const) {
+      expect(voices.filter((voice) => voice.instrument === instrument)).toHaveLength(
+        VOICE_LIMITS[instrument],
       );
     }
   });
@@ -31,11 +31,6 @@ describe('pickVoices', () => {
   it('spreads a big chord across its pitches', () => {
     const rows = pickVoices(notes('synth', 9)).map((voice) => voice.row);
     expect(rows).toEqual([0, 3, 6]);
-  });
-
-  it('prefers notes that hit', () => {
-    const voices = pickVoices([...notes('hat', 4, false), ...notes('hat', 2, true)]);
-    expect(voices.every((voice) => voice.hit)).toBe(true);
   });
 
   it('handles an empty step', () => {

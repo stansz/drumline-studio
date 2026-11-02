@@ -1,56 +1,34 @@
-# DrumlineTD
+# Drumline Studio
 
-A tower defense game where your defense plays the music.
+A pixel-art drum machine and synth sequencer in your browser, forked from
+[DrumlineTD](https://github.com/stansz/drumline).
 
-Try it here: https://stansz.github.io/drumline/
+## How to use
 
-A test build with tower upgrades, from the `upgrades` branch, is at
-https://stansz.github.io/drumline/upgrades/
+The grid is a 16-step pattern: each column is one step, and each cell holds at most one
+note. Click or drag on the grid to paint the selected instrument. Rows are pitch: higher
+rows tune a kick up, brighten a hat, and play higher notes on the synth. Click a note
+again to remove it, or select **Erase** to clear notes.
 
-## How to play
-
-Choose **Easy** or **Hard** to start the audio clock. Enemies march along the path while
-your instruments sit on a looping 16-step sequencer. Each column of the board is
-one step: towers fire when the playhead reaches their column.
-
-- **Kick** (50): heavy splash damage, fires once per bar.
-- **Hat** (35): fast chip damage, fires four times per bar.
-- **Synth** (70): long-range damage that chains to nearby enemies.
-
-Towers that fire on the same step form a chord and deal bonus damage. Build,
-then press **Start wave** to send wave 1. With **Auto** on, each later wave
-starts 4 bars after the last one clears, which is 8 seconds at 120 BPM. Press
-the button during the countdown to send the wave early, or turn **Auto** off to
-start every wave yourself. Every leaked enemy costs lives; clear all 30 waves
-before your lives run out to win. A boss arrives every 10 waves, and one that
-gets through costs 5, 10, then 20 lives. Select **Sell** and click a tower to
-refund 70% of its cost.
-
-| Mode | Lives | Starting money | Wave bonus | Enemy health |
-| --- | --- | --- | --- | --- |
-| Easy | 30 | $150 | $40 | 50% |
-| Hard | 20 | $100 | $20 | 100% |
-
-[docs/balance.md](docs/balance.md) explains how the difficulty curve works and how
-to retune it.
-
-Press **Theme** to switch between the Neon, Chiptune, Lo-fi, Techno, and Funk soundtracks at any time. Themes change the music and tower sounds, never the tempo or the game. [docs/themes.md](docs/themes.md) explains how to add a theme and match its volume.
+Press **Play** to start the loop and **Stop** to end it. **Backing** turns the backing
+music on or off. With **Backing** off, only your pattern and the metronome play. **Speed**
+changes the tempo, **Mute** silences everything, and **Clear** empties the pattern.
+**Theme** switches between the Neon, Chiptune, Lo-fi, Techno, and Funk soundtracks at any
+time; themes change the sound only, never the pattern or the tempo.
 
 ## Controls
 
-- **E** Easy or **H** Hard on the difficulty screen
-- **1** Kick, **2** Hat, **3** Synth, **4** Sell
-- Click a buildable cell to place the selected tower
-- **Space** start the next wave, or send it early during the countdown
-- **A** turn automatic waves on or off
+- **1** Kick, **2** Hat, **3** Synth, **4** Erase
+- **Space** play or stop
+- **B** turn backing music on or off
+- **C** clear the pattern
 - **F** change speed: 120, 180, or 240 BPM
 - **M** mute or unmute
 - **T** change the music theme
-- **R** restart and choose a difficulty again
 
-The on-screen buttons provide the same actions, and the slider beside the theme
-button sets the volume. Your theme, volume, and **Auto** setting are remembered
-between visits. Speed and mute reset when you start a new run.
+On the start screen, **Enter** or **Space** starts, and **T** changes the theme. The
+on-screen buttons provide the same actions, and the slider beside the theme button sets
+the volume. Your theme, volume, and backing setting are remembered between visits.
 
 On a phone, tap instead of clicking, and turn the phone sideways for a bigger board.
 
@@ -63,18 +41,12 @@ npm test
 npm run test:sandbox
 npm run typecheck
 npm run build
-npm run playtest -- --job tools/playtest/jobs/smoke.json --out playtest-out/smoke.jsonl
-npm run playtest:report -- --in playtest-out/smoke.jsonl
-npm run playtest:sweep -- --sweep tools/playtest/sweeps/boss-cap.json --out playtest-out/boss-cap
-npm run playtest:search -- --search tools/playtest/searches/hard.json --out playtest-out/search-hard
-npm run playtest:tiers -- --plan playtest-out/search-hard/best-plan.json --games 200 --seed 1 --out playtest-out/tiers-hard
 ```
 
 `npm run test:sandbox` runs the same tests inside the Windows `dsh` sandbox, where `npm test` can't
 start. `npm run build` type-checks the project and writes a static site to `dist/`.
-Pushing to `main` deploys that site to GitHub Pages through the included
-workflow, and pushing to `upgrades` rebuilds the `/upgrades/` page. [docs/references.md](docs/references.md) describes how the code fits
-together.
+Pushing to `main` deploys that site to GitHub Pages through the included workflow.
+[docs/references.md](docs/references.md) describes how the code fits together.
 
 ## Credits
 

@@ -2,16 +2,9 @@
 // /tests/loudness.html. It renders each board through the real audio chain, faster than real time.
 // Add ?theme=funk, for example, to render only that theme.
 import { Audio_ } from '../src/audio';
-import {
-  GRID_COLS,
-  GRID_ROWS,
-  KILL_VOICE_LIMIT,
-  STEPS_PER_BAR,
-  TOWERS,
-  stepSeconds,
-} from '../src/config';
+import { GRID_COLS, GRID_ROWS, STEPS_PER_BAR, stepSeconds } from '../src/config';
 import { intensity, layerLevels, pickVoices } from '../src/music';
-import { Sim, type TowerType } from '../src/sim';
+import { Sequencer, type Instrument } from '../src/sequencer';
 import { DEFAULT_THEME, THEMES, type Theme } from '../src/themes';
 import { NEON_BASELINE } from './loudness-baseline';
 
@@ -19,10 +12,9 @@ const SAMPLE_RATE = 48000;
 const BARS = 8;
 const TAIL_SECONDS = 3;
 const CLIP_LEVEL = 1;
-const KILLS_PER_STEP = 3;
-const TOWER_TYPES: TowerType[] = ['kick', 'hat', 'synth'];
+const INSTRUMENTS: Instrument[] = ['kick', 'hat', 'synth'];
 
-type Board = Array<[TowerType, number, number]>;
+type Board = Array<[Instrument, number, number]>;
 
 interface Result {
   board: string;
@@ -35,18 +27,20 @@ interface Result {
   rmsDb: number;
 }
 
-function column(type: TowerType, col: number, count: number): Board {
+function column(instrument: Instrument, col: number, count: number): Board {
   const rows = [0, 2, 3, 5, 7];
-  return rows.slice(0, count).map((row) => [type, col, row]);
+  return rows.slice(0, count).map((row) => [instrument, col, row]);
 }
 
-function fullBoard(type?: TowerType): Board {
-  const probe = new Sim();
+function fullBoard(instrument?: Instrument): Board {
   const board: Board = [];
   for (let col = 0; col < GRID_COLS; col += 1) {
     for (let row = 0; row < GRID_ROWS; row += 1) {
-      if (!probe.canPlace(col, row)) continue;
-      board.push([type ?? TOWER_TYPES[board.length % TOWER_TYPES.length] ?? 'kick', col, row]);
+      board.push([
+        instrument ?? INSTRUMENTS[board.length % INSTRUMENTS.length] ?? 'kick',
+        col,
+        row,
+      ]);
     }
   }
   return board;
@@ -64,8 +58,8 @@ function kickLine(): Board {
 
 const BOARDS: Record<string, Board> = {
   solo: [['kick', 0, 0]],
-  'spread 12': Array.from({ length: 12 }, (_, i): [TowerType, number, number] => [
-    TOWER_TYPES[i % TOWER_TYPES.length] ?? 'kick',
+  'spread 12': Array.from({ length: 12 }, (_, i): [Instrument, number, number] => [
+    INSTRUMENTS[i % INSTRUMENTS.length] ?? 'kick',
     i,
     i % 2 === 0 ? 0 : 7,
   ]),
@@ -109,25 +103,21 @@ async function renderBoard(
   audio.setTheme(theme);
   audio.setTempo(duration);
 
-  const sim = new Sim();
-  sim.money = board.reduce((total, [type]) => total + TOWERS[type].cost, 0);
-  for (const [type, col, row] of board) {
-    if (!sim.placeTower(type, col, row)) throw new Error(`${name}: cannot place at ${col},${row}`);
+  const sequencer = new Sequencer();
+  for (const [instrument, col, row] of board) {
+    if (!sequencer.set(instrument, col, row)) {
+      throw new Error(`${name}: cannot place at ${col},${row}`);
+    }
   }
 
-  const levels = layerLevels(intensity(sim.towers.length, 5));
+  const levels = layerLevels(intensity(sequencer.cells.length, 5));
   for (let musicStep = 0; musicStep < STEPS_PER_BAR * BARS; musicStep += 1) {
     const time = musicStep * duration;
     audio.playMusicStep(musicStep, time, duration, levels);
-    const notes = sim
-      .step()
-      .filter((event) => event.kind === 'note');
+    const notes = sequencer.step();
     const voices = pickVoices(notes);
     for (const voice of voices) {
-      audio.playNote(voice.towerType, voice.row, time, true, voices.length);
-    }
-    for (let kill = 0; kill < Math.min(KILLS_PER_STEP, KILL_VOICE_LIMIT); kill += 1) {
-      audio.playKill(time);
+      audio.playNote(voice.instrument, voice.row, time, voices.length);
     }
   }
 

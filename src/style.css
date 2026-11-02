@@ -108,14 +108,6 @@ body {
   color: var(--mute);
 }
 
-.lcd.lives {
-  color: #ff6a55;
-}
-
-.lcd.wave {
-  color: var(--teal);
-}
-
 .sys {
   display: flex;
   align-items: center;
@@ -451,29 +443,11 @@ body {
   color: var(--mute);
 }
 
-#mode-hard span {
-  color: #ff6a55;
-}
-
-#mode-easy span {
-  color: var(--teal);
-}
-
 #rotate-hint {
   display: none;
   margin: 0;
   font: 400 1.1rem/1.1 var(--lcd);
   color: var(--mute);
-}
-
-#channel-label {
-  margin: 0;
-  font: 400 1.1rem/1.1 var(--lcd);
-  color: var(--amber);
-}
-
-#channel-label[hidden] {
-  display: none;
 }
 
 /* ---- Narrow screens ---- */

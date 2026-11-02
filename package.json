@@ -1,5 +1,5 @@
 {
-  "name": "drumline",
+  "name": "drumline-studio",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -9,12 +9,7 @@
     "test": "vitest run",
     "test:sandbox": "node node_modules/vitest/vitest.mjs run --config vitest.sandbox.config.mjs",
     "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit && vite build",
-    "playtest": "node --import ./tools/playtest/resolve-ts.mjs tools/playtest/run.mjs",
-    "playtest:report": "node --import ./tools/playtest/resolve-ts.mjs tools/playtest/report-cli.mjs",
-    "playtest:sweep": "node --import ./tools/playtest/resolve-ts.mjs tools/playtest/sweep.mjs",
-    "playtest:search": "node --import ./tools/playtest/resolve-ts.mjs tools/playtest/search-cli.mjs",
-    "playtest:tiers": "node --import ./tools/playtest/resolve-ts.mjs tools/playtest/tiers-cli.mjs"
+    "build": "tsc --noEmit && vite build"
   },
   "devDependencies": {
     "typescript": "7.0.2",

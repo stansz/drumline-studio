@@ -1,6 +1,6 @@
 import { BPM, MIX, STEPS_PER_BAR, stepSeconds } from './config';
 import { arpNote, chordForStep, midiToHz, type layerLevels } from './music';
-import type { TowerType } from './sim';
+import type { Instrument } from './sequencer';
 import {
   DEFAULT_THEME,
   DRUM_PARTS,
@@ -280,23 +280,17 @@ export class Audio_ {
     lfo.stop(end);
   }
 
-  playNote(
-    towerType: TowerType,
-    row: number,
-    time: number,
-    hit: boolean,
-    chordSize: number,
-  ): void {
-    const baseLevel = (hit ? 1 : 0.6) / Math.sqrt(Math.max(1, chordSize));
+  playNote(instrument: Instrument, row: number, time: number, voiceCount: number): void {
+    const baseLevel = 1 / Math.sqrt(Math.max(1, voiceCount));
     const level = baseLevel * (0.9 + Math.random() * 0.2);
-    if (towerType === 'kick') {
+    if (instrument === 'kick') {
       if (time !== this.lastDuckTime) {
         this.lastDuckTime = time;
         this.musicBus.gain.setValueAtTime(1 - MIX.duckAmount, time);
         this.musicBus.gain.linearRampToValueAtTime(1, time + MIX.duckRelease);
       }
       this.playKick(row, time, level);
-    } else if (towerType === 'hat') {
+    } else if (instrument === 'hat') {
       this.playHat(row, time, level);
     } else {
       this.playSynth(row, time, level);
@@ -397,30 +391,6 @@ export class Audio_ {
     gain.connect(this.master);
     osc.start(time);
     osc.stop(time + 0.04);
-  }
-
-  playKill(time: number): void {
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    const scale = this.theme.synth.scale;
-    const frequency = midiToHz(scale[Math.floor(Math.random() * scale.length)] ?? 69);
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(frequency * 2, time);
-    gain.gain.setValueAtTime(MIX.kill, time);
-    gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.12);
-    osc.connect(gain);
-    gain.connect(this.fxBus);
-    osc.start(time);
-    osc.stop(time + 0.13);
-  }
-
-  playLeak(time: number): void {
-    const tone = this.theme.space.toneHz;
-    const bar = stepSeconds(BPM) * STEPS_PER_BAR;
-    this.filter.frequency.cancelScheduledValues(time);
-    this.filter.frequency.setValueAtTime(tone, time);
-    this.filter.frequency.exponentialRampToValueAtTime(400, time + bar / 2);
-    this.filter.frequency.exponentialRampToValueAtTime(tone, time + bar);
   }
 
   playMusicStep(

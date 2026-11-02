@@ -1,5 +1,5 @@
-import { MUSIC_CHORDS, STEPS_PER_BAR, TOWER_VOICE_LIMITS } from './config';
-import type { TowerType } from './sim';
+import { MUSIC_CHORDS, STEPS_PER_BAR, VOICE_LIMITS } from './config';
+import type { Instrument } from './sequencer';
 
 export function midiToHz(midi: number): number {
   return 440 * 2 ** ((midi - 69) / 12);
@@ -38,21 +38,15 @@ export function arpNote(
   return (pad[index] ?? pad[0] ?? 0) + 12;
 }
 
-// Chooses which notes to sound on a step. Notes that hit come first, and the rest of each
-// instrument's limit is spread across its notes, so a big chord keeps its range of pitches.
-export function pickVoices<T extends { towerType: TowerType; hit: boolean }>(
-  notes: readonly T[],
-): T[] {
+// Chooses which notes to sound on a step. Each instrument keeps at most its voice limit, and the
+// notes it keeps are spread across the group, so a big chord keeps its range of pitches.
+export function pickVoices<T extends { instrument: Instrument }>(notes: readonly T[]): T[] {
   const voices: T[] = [];
   for (const type of ['kick', 'hat', 'synth'] as const) {
-    const group = notes.filter((note) => note.towerType === type);
-    const hits = group.filter((note) => note.hit);
-    const limit = TOWER_VOICE_LIMITS[type];
-    const pool =
-      hits.length >= limit ? hits : [...hits, ...group.filter((note) => !note.hit)];
-    const count = Math.min(limit, pool.length);
+    const group = notes.filter((note) => note.instrument === type);
+    const count = Math.min(VOICE_LIMITS[type], group.length);
     for (let i = 0; i < count; i += 1) {
-      const note = pool[Math.floor((i * pool.length) / count)];
+      const note = group[Math.floor((i * group.length) / count)];
       if (note) voices.push(note);
     }
   }

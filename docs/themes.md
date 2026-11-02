@@ -6,7 +6,8 @@ Themes never change the tempo, tower timing, or game balance.
 ## Keeping volume consistent
 
 Neon is the loudness reference, stored in `tests/loudness-baseline.ts`. Every other theme has a
-`space.trim` value that matches it, and Neon's trim stays at 1.
+`space.trim` value that matches it, and Neon's trim stays at 1. The baseline was measured on
+DrumlineTD boards and must be refreshed for the full 128-cell grid.
 
 The target is an average within 1 dB of Neon across the test boards. Average level is measured,
 not peak level, because short sounds can peak high and still sound quiet. The limiter also absorbs
