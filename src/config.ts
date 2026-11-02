@@ -6,7 +6,16 @@ export const STEPS_PER_BAR = 16;
 
 export const BPM = 120;
 export const stepSeconds = (bpm: number): number => 60 / bpm / 4;
-export const SPEED_BPMS = [BPM, 180, 240];
+export const MIN_BPM = 40;
+export const MAX_BPM = 300;
+
+// Reads a tempo from text such as a saved setting or the tempo field. Anything unreadable
+// falls back to the base tempo; anything else is rounded and kept within range.
+export function parseBpm(text: string | null): number {
+  const value = text === null || text.trim() === '' ? Number.NaN : Number(text);
+  if (!Number.isFinite(value)) return BPM;
+  return Math.max(MIN_BPM, Math.min(MAX_BPM, Math.round(value)));
+}
 
 // How many of each sound can start on one step, because each one costs audio CPU.
 // Notes past the limit are skipped.

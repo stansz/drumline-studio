@@ -199,6 +199,7 @@ body {
 /* ---- Board ---- */
 #game {
   display: block;
+  touch-action: none;
   width: 100%;
   aspect-ratio: 2 / 1;
   background: #000;
@@ -252,7 +253,7 @@ body {
 
 .keys {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(7, 1fr);
   gap: 6px;
 }
 
@@ -288,6 +289,45 @@ body {
 
 .hw.selected {
   color: var(--amber);
+}
+
+.tempo {
+  grid-column: span 2;
+  display: grid;
+  grid-template-columns: minmax(28px, auto) minmax(0, 1fr) minmax(28px, auto);
+  gap: 4px;
+  min-width: 0;
+}
+
+.tempo .lcd {
+  padding: 2px 6px 3px;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+}
+
+#bpm {
+  width: 3ch;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+#bpm::-webkit-inner-spin-button,
+#bpm::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+#bpm:focus-visible {
+  outline: 2px solid var(--cream);
+  outline-offset: 2px;
 }
 
 .hw:disabled {
@@ -454,6 +494,19 @@ body {
 @media (max-width: 760px) {
   .deck {
     grid-template-columns: 1fr;
+  }
+
+  .keys {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .hw.go,
+  .tempo {
+    grid-column: span 3;
+  }
+
+  .keys > .hw:not(.go) {
+    grid-column: span 2;
   }
 
   .logo {
@@ -706,6 +759,15 @@ body {
   .keys {
     grid-template-columns: repeat(2, 1fr);
     gap: 4px;
+  }
+
+  .hw.go,
+  .tempo {
+    grid-column: span 2;
+  }
+
+  .keys > .hw:not(.go) {
+    grid-column: auto;
   }
 
   .hw {

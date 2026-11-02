@@ -4,7 +4,7 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
 
 ## Files
 
-- `src/config.ts`: tunable values, including `SPEED_BPMS`, `VOICE_LIMITS`, and
+- `src/config.ts`: tunable values, including `MIN_BPM`, `MAX_BPM`, `VOICE_LIMITS`, and
   `INSTRUMENT_INFO`.
 - `src/sequencer.ts`: the pattern. `step()` advances one sixteenth note and returns
   `NoteEvent`s.

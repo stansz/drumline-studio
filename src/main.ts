@@ -1,5 +1,5 @@
 import { Audio_, parseVolume } from './audio';
-import { BPM, GRID_COLS, GRID_ROWS, INSTRUMENT_INFO, SPEED_BPMS } from './config';
+import { GRID_COLS, GRID_ROWS, INSTRUMENT_INFO, parseBpm } from './config';
 import { intensity, layerLevels, pickVoices } from './music';
 import { Renderer, drawIcon, drawLogo } from './render';
 import { Scheduler } from './scheduler';
@@ -38,7 +38,9 @@ const synthButton = byId<HTMLButtonElement>('tool-synth');
 const eraseButton = byId<HTMLButtonElement>('tool-erase');
 const playButton = byId<HTMLButtonElement>('play');
 const backingButton = byId<HTMLButtonElement>('backing');
-const speedButton = byId<HTMLButtonElement>('speed');
+const bpmInput = byId<HTMLInputElement>('bpm');
+const bpmDownButton = byId<HTMLButtonElement>('bpm-down');
+const bpmUpButton = byId<HTMLButtonElement>('bpm-up');
 const muteButton = byId<HTMLButtonElement>('mute');
 const clearButton = byId<HTMLButtonElement>('clear');
 const startButton = byId<HTMLButtonElement>('start');
@@ -48,6 +50,7 @@ const volumeSlider = byId<HTMLInputElement>('volume');
 const THEME_KEY = 'drumline-theme';
 const BACKING_KEY = 'drumline-backing';
 const VOLUME_KEY = 'drumline-volume';
+const BPM_KEY = 'drumline-bpm';
 const renderer = new Renderer(canvas);
 
 const sequencer = new Sequencer();
@@ -56,7 +59,6 @@ let audio: Audio_ | null = null;
 let audioContext: AudioContext | null = null;
 let started = false;
 let playing = false;
-let speedIndex = 0;
 let muted = false;
 let selected: Instrument | 'erase' = 'kick';
 let hover: { col: number; row: number } | null = null;
@@ -67,6 +69,7 @@ let playhead = 0;
 let theme = loadTheme();
 let volume = loadVolume();
 let backing = loadBacking();
+let bpm = loadBpm();
 const stepLeds: HTMLSpanElement[] = [];
 let litStep = -1;
 let paint: 'add' | 'erase' | null = null;
@@ -186,7 +189,7 @@ async function startAudio(): Promise<void> {
     audio.setMuted(muted);
     audio.setVolume(volume);
     scheduler = new Scheduler(ctx, onStep);
-    scheduler.bpm = currentBpm();
+    scheduler.bpm = bpm;
     window.__drumline = { sequencer, scheduler, audio };
     hideOverlay();
     play();
@@ -197,19 +200,27 @@ async function startAudio(): Promise<void> {
   }
 }
 
-function currentBpm(): number {
-  return SPEED_BPMS[speedIndex] ?? BPM;
+function loadBpm(): number {
+  try {
+    return parseBpm(localStorage.getItem(BPM_KEY));
+  } catch {
+    return parseBpm(null);
+  }
 }
 
-function updateSpeedButton(): void {
-  speedButton.textContent = `${currentBpm()} BPM`;
-  speedButton.classList.toggle('selected', speedIndex > 0);
+function setBpm(value: number): void {
+  bpm = parseBpm(String(value));
+  if (scheduler) scheduler.bpm = bpm;
+  bpmInput.value = String(bpm);
+  try {
+    localStorage.setItem(BPM_KEY, String(bpm));
+  } catch {
+    // The tempo still works for this visit.
+  }
 }
 
-function cycleSpeed(): void {
-  speedIndex = (speedIndex + 1) % SPEED_BPMS.length;
-  if (scheduler) scheduler.bpm = currentBpm();
-  updateSpeedButton();
+function nudgeBpm(direction: 1 | -1, big: boolean): void {
+  setBpm(bpm + direction * (big ? 10 : 1));
 }
 
 function toggleMute(): void {
@@ -268,7 +279,6 @@ function play(): void {
   scheduler?.start();
   playing = true;
   playButton.textContent = 'Stop';
-  playButton.classList.add('selected');
 }
 
 function stop(): void {
@@ -280,7 +290,6 @@ function stop(): void {
   queued = [];
   stepMarks = [];
   playButton.textContent = 'Play';
-  playButton.classList.remove('selected');
 }
 
 function togglePlay(): void {
@@ -356,7 +365,12 @@ eraseButton.addEventListener('click', () => selectTool('erase'));
 
 playButton.addEventListener('click', togglePlay);
 backingButton.addEventListener('click', toggleBacking);
-speedButton.addEventListener('click', cycleSpeed);
+bpmDownButton.addEventListener('click', (event) => nudgeBpm(-1, event.shiftKey));
+bpmUpButton.addEventListener('click', (event) => nudgeBpm(1, event.shiftKey));
+bpmInput.addEventListener('change', () => setBpm(parseBpm(bpmInput.value)));
+bpmInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') bpmInput.blur();
+});
 muteButton.addEventListener('click', toggleMute);
 clearButton.addEventListener('click', clearPattern);
 startButton.addEventListener('click', play);
@@ -364,6 +378,16 @@ themeButton.addEventListener('click', cycleTheme);
 volumeSlider.addEventListener('input', changeVolume);
 
 window.addEventListener('keydown', (event) => {
+  // Typing a tempo must not trigger the shortcuts.
+  if (event.target === bpmInput) return;
+  if (event.code === 'Minus' || event.code === 'NumpadSubtract') {
+    nudgeBpm(-1, event.shiftKey);
+    return;
+  }
+  if (event.code === 'Equal' || event.code === 'NumpadAdd') {
+    nudgeBpm(1, event.shiftKey);
+    return;
+  }
   if (event.repeat) return;
   if (!overlay.classList.contains('hidden')) {
     if (event.key === 'Enter' || event.code === 'Space') play();
@@ -393,9 +417,6 @@ window.addEventListener('keydown', (event) => {
       break;
     case 'c':
       clearPattern();
-      break;
-    case 'f':
-      cycleSpeed();
       break;
     case 'm':
       toggleMute();
@@ -456,7 +477,7 @@ updateHud();
 updateSelection();
 updateInfo();
 updateThemeButton();
-updateSpeedButton();
+bpmInput.value = String(bpm);
 updateBackingButton();
 volumeSlider.value = String(volume);
 requestAnimationFrame(frame);

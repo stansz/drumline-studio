@@ -11,8 +11,10 @@ rows tune a kick up, brighten a hat, and play higher notes on the synth. Click a
 again to remove it, or select **Erase** to clear notes.
 
 Press **Play** to start the loop and **Stop** to end it. **Backing** turns the backing
-music on or off. With **Backing** off, only your pattern and the metronome play. **Speed**
-changes the tempo, **Mute** silences everything, and **Clear** empties the pattern.
+music on or off; with it off, only your pattern plays, plus a metronome click while the
+grid is empty. Set the tempo from 40 to 300 BPM by typing it into the **BPM** box or with
+the **−** and **+** buttons (hold Shift to move by 10). **Mute** silences everything, and
+**Clear** empties the pattern.
 **Theme** switches between the Neon, Chiptune, Lo-fi, Techno, and Funk soundtracks at any
 time; themes change the sound only, never the pattern or the tempo.
 
@@ -22,13 +24,13 @@ time; themes change the sound only, never the pattern or the tempo.
 - **Space** play or stop
 - **B** turn backing music on or off
 - **C** clear the pattern
-- **F** change speed: 120, 180, or 240 BPM
+- **-** / **=** slower or faster by 1 BPM; with Shift, by 10
 - **M** mute or unmute
 - **T** change the music theme
 
 On the start screen, **Enter** or **Space** starts, and **T** changes the theme. The
 on-screen buttons provide the same actions, and the slider beside the theme button sets
-the volume. Your theme, volume, and backing setting are remembered between visits.
+the volume. Your theme, volume, tempo, and backing setting are remembered between visits.
 
 On a phone, tap instead of clicking, and turn the phone sideways for a bigger board.
 
