@@ -122,4 +122,63 @@ describe('Sequencer', () => {
     sequencer.rewind();
     expect(sequencer.stepIndex).toBe(0);
   });
+
+  it('repeats the steps inside a loop', () => {
+    const sequencer = new Sequencer();
+    expect(sequencer.setLoop(4, 7)).toBe(true);
+    sequencer.stepIndex = 4;
+    const visited: number[] = [];
+    for (let i = 0; i < 8; i += 1) {
+      visited.push(sequencer.stepIndex);
+      sequencer.step();
+    }
+    expect(visited).toEqual([4, 5, 6, 7, 4, 5, 6, 7]);
+  });
+
+  it('jumps into the loop from outside it', () => {
+    const sequencer = new Sequencer();
+    sequencer.setLoop(4, 7);
+    sequencer.stepIndex = 10;
+    sequencer.step();
+    expect(sequencer.stepIndex).toBe(4);
+  });
+
+  it('accepts only a loop of at least two steps inside the pattern', () => {
+    const sequencer = new Sequencer();
+    expect(sequencer.setLoop(5, 5)).toBe(false);
+    expect(sequencer.setLoop(-1, 3)).toBe(false);
+    expect(sequencer.setLoop(3, 16)).toBe(false);
+    expect(sequencer.loop).toBeNull();
+    expect(sequencer.setLoop(9, 2)).toBe(true);
+    expect(sequencer.loop).toEqual({ start: 2, end: 9 });
+  });
+
+  it('rewinds to the loop start, and to the beginning without a loop', () => {
+    const sequencer = new Sequencer();
+    sequencer.setLoop(4, 7);
+    for (let i = 0; i < 3; i += 1) sequencer.step();
+    sequencer.rewind();
+    expect(sequencer.stepIndex).toBe(4);
+    sequencer.clearLoop();
+    sequencer.rewind();
+    expect(sequencer.stepIndex).toBe(0);
+  });
+
+  it('clears a loop that no longer fits when the length shrinks', () => {
+    const sequencer = new Sequencer();
+    sequencer.setLength(32);
+    sequencer.setLoop(20, 23);
+    sequencer.setLength(16);
+    expect(sequencer.loop).toBeNull();
+  });
+
+  it('skips a note once, because it already sounded live', () => {
+    const sequencer = new Sequencer();
+    sequencer.set('kick', 2, 4);
+    sequencer.stepIndex = 2;
+    sequencer.skipOnce(2, 4);
+    expect(sequencer.step()).toEqual([]);
+    for (let i = 0; i < 15; i += 1) sequencer.step();
+    expect(sequencer.step()).toEqual([{ instrument: 'kick', col: 2, row: 4 }]);
+  });
 });

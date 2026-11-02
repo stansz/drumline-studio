@@ -10,6 +10,15 @@ note. Click or drag on the grid to paint the selected instrument. Rows are pitch
 rows tune a kick up, brighten a hat, tighten a snare, and play higher notes on the synth.
 Clicking or dragging over a note removes it, and right-click also removes.
 
+The **Paint / Live / Rec** button (key **V**) cycles the mode. The keys **A S D F G H J K**
+always play the selected instrument instantly, from the bottom row (**A**) to the top row
+(**K**). In **Live** and **Rec**, tapping the board plays the selected instrument at the
+tapped row instead of painting. In **Rec**, while the pattern is playing, every live hit is
+also added to the pattern at the nearest step.
+
+Drag across the step lights above the board to loop a section, and tap the lights to clear
+the loop. The loop repeats the chosen range of steps while the pattern plays.
+
 **Length** switches between 16 and 32 steps. With 32 steps, **Page** flips the board between
 steps 1–16 and 17–32. Notes on steps 17–32 are kept but silent while the length is 16.
 
@@ -32,6 +41,8 @@ time; themes change the sound only, never the pattern or the tempo.
 - **-** / **=** slower or faster by 1 BPM; with Shift, by 10
 - **M** mute or unmute
 - **T** change the music theme
+- **V** cycle the Paint, Live, and Rec modes
+- **A S D F G H J K** play the selected instrument live, bottom row to top row
 
 On the start screen, **Enter** or **Space** starts, and **T** changes the theme. The
 on-screen buttons provide the same actions, and the slider beside the theme button sets

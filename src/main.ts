@@ -1,5 +1,6 @@
 import { Audio_, parseVolume } from './audio';
 import { GRID_COLS, GRID_ROWS, INSTRUMENT_INFO, parseBpm } from './config';
+import { liveRowForCode, nearestStep, nextLiveMode, type LiveMode } from './live';
 import { intensity, layerLevels, pickVoices } from './music';
 import { Renderer, drawIcon, drawLogo } from './render';
 import { Scheduler } from './scheduler';
@@ -45,6 +46,7 @@ const bpmDownButton = byId<HTMLButtonElement>('bpm-down');
 const bpmUpButton = byId<HTMLButtonElement>('bpm-up');
 const muteButton = byId<HTMLButtonElement>('mute');
 const clearButton = byId<HTMLButtonElement>('clear');
+const liveButton = byId<HTMLButtonElement>('live');
 const startButton = byId<HTMLButtonElement>('start');
 const themeButton = byId<HTMLButtonElement>('theme');
 const volumeSlider = byId<HTMLInputElement>('volume');
@@ -77,6 +79,9 @@ let litStep = -1;
 let shownPlayhead = -1;
 let page = 0;
 let paint: 'add' | 'erase' | null = null;
+let liveMode: LiveMode = 'paint';
+let playheadAt = 0;
+let loopDrag: number | null = null;
 
 window.__drumline = { sequencer, scheduler, audio };
 
@@ -99,6 +104,7 @@ function setLength(length: PatternLength): void {
   lengthButton.classList.toggle('selected', length === 32);
   pageButton.hidden = length === 16;
   updateHud();
+  updateLoopLeds();
 }
 
 function setPage(next: number): void {
@@ -110,6 +116,7 @@ function setPage(next: number): void {
   });
   stepLeds[litStep]?.classList.remove('on');
   litStep = -1;
+  updateLoopLeds();
 }
 
 function updateSelection(): void {
@@ -156,6 +163,16 @@ function showStartOverlay(): void {
 function hideOverlay(): void {
   overlay.classList.add('hidden');
   overlay.classList.remove('passive');
+  sequencer.rewind();
+  playhead = sequencer.stepIndex;
+  playheadAt = 0;
+}
+
+// The audio clock time being heard right now, after output latency.
+function heardTime(): number {
+  if (!audioContext) return 0;
+  const latency = audioContext.outputLatency || audioContext.baseLatency || 0;
+  return Math.max(0, audioContext.currentTime - latency);
 }
 
 function onStep(time: number, duration: number): void {
@@ -293,7 +310,8 @@ function stop(): void {
   playing = false;
   sequencer.rewind();
   musicStep = 0;
-  playhead = 0;
+  playhead = sequencer.stepIndex;
+  playheadAt = 0;
   queued = [];
   stepMarks = [];
   playButton.textContent = 'Play';
@@ -334,9 +352,53 @@ function applyPaint(col: number, row: number): void {
   updateStepHints();
 }
 
+function setLiveMode(mode: LiveMode): void {
+  liveMode = mode;
+  liveButton.textContent = mode === 'paint' ? 'Paint' : mode === 'live' ? 'Live' : 'Rec';
+  liveButton.classList.toggle('selected', mode === 'live');
+  liveButton.classList.toggle('rec', mode === 'rec');
+  paint = null;
+  hover = null;
+}
+
+function playLive(row: number): void {
+  if (!audio || !audioContext) return;
+  audio.playNote(selected, row, audioContext.currentTime, 1);
+  if (liveMode !== 'rec' || !playing || !scheduler) return;
+  const step = nearestStep(
+    heardTime(),
+    playheadAt,
+    playhead,
+    sequencer.stepAfter(playhead),
+    scheduler.stepDuration,
+  );
+  if (!sequencer.set(selected, step, row)) return;
+  if (step === sequencer.stepIndex) sequencer.skipOnce(step, row);
+  renderer.flash({ instrument: selected, col: step, row });
+  updateHud();
+}
+
+function stripStep(event: PointerEvent): number {
+  const rect = stepsEl.getBoundingClientRect();
+  const index = Math.floor(((event.clientX - rect.left) / rect.width) * GRID_COLS);
+  return page * GRID_COLS + Math.max(0, Math.min(GRID_COLS - 1, index));
+}
+
+function updateLoopLeds(preview: { start: number; end: number } | null = null): void {
+  const range = preview ?? sequencer.loop;
+  stepLeds.forEach((led, i) => {
+    const step = page * GRID_COLS + i;
+    led.classList.toggle('looped', range !== null && step >= range.start && step <= range.end);
+  });
+}
+
 canvas.addEventListener('pointerdown', (event) => {
   const cell = cellAt(event);
   if (!cell) return;
+  if (liveMode !== 'paint') {
+    playLive(cell.row);
+    return;
+  }
   const step = page * GRID_COLS + cell.col;
   if (sequencer.cellAt(step, cell.row) || event.button === 2) {
     paint = 'erase';
@@ -350,6 +412,10 @@ canvas.addEventListener('pointerdown', (event) => {
 canvas.addEventListener('contextmenu', (event) => event.preventDefault());
 
 canvas.addEventListener('pointermove', (event) => {
+  if (liveMode !== 'paint') {
+    hover = null;
+    return;
+  }
   hover = cellAt(event);
   updateStepHints();
   if (paint && hover) applyPaint(hover.col, hover.row);
@@ -364,6 +430,37 @@ for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'] as const
 canvas.addEventListener('pointerleave', () => {
   hover = null;
   updateStepHints();
+});
+
+stepsEl.addEventListener('pointerdown', (event) => {
+  const start = stripStep(event);
+  if (start >= sequencer.length) return;
+  loopDrag = start;
+  stepsEl.setPointerCapture(event.pointerId);
+  updateLoopLeds({ start: loopDrag, end: loopDrag });
+});
+
+stepsEl.addEventListener('pointermove', (event) => {
+  if (loopDrag === null) return;
+  const end = Math.min(stripStep(event), sequencer.length - 1);
+  updateLoopLeds({ start: Math.min(loopDrag, end), end: Math.max(loopDrag, end) });
+});
+
+stepsEl.addEventListener('pointerup', (event) => {
+  if (loopDrag === null) return;
+  const end = Math.min(stripStep(event), sequencer.length - 1);
+  if (end === loopDrag) {
+    sequencer.clearLoop();
+  } else {
+    sequencer.setLoop(loopDrag, end);
+  }
+  loopDrag = null;
+  updateLoopLeds();
+});
+
+stepsEl.addEventListener('pointercancel', () => {
+  loopDrag = null;
+  updateLoopLeds();
 });
 
 kickButton.addEventListener('click', () => selectTool('kick'));
@@ -383,6 +480,7 @@ bpmInput.addEventListener('keydown', (event) => {
 });
 muteButton.addEventListener('click', toggleMute);
 clearButton.addEventListener('click', clearPattern);
+liveButton.addEventListener('click', () => setLiveMode(nextLiveMode(liveMode)));
 startButton.addEventListener('click', play);
 themeButton.addEventListener('click', cycleTheme);
 volumeSlider.addEventListener('input', changeVolume);
@@ -399,6 +497,13 @@ window.addEventListener('keydown', (event) => {
     return;
   }
   if (event.repeat) return;
+  if (!event.ctrlKey && !event.metaKey && !event.altKey) {
+    const liveRow = liveRowForCode(event.code);
+    if (liveRow !== null) {
+      playLive(liveRow);
+      return;
+    }
+  }
   if (!overlay.classList.contains('hidden')) {
     if (event.key === 'Enter' || event.code === 'Space') play();
     if (event.key.toLowerCase() === 't') cycleTheme();
@@ -440,6 +545,9 @@ window.addEventListener('keydown', (event) => {
     case 't':
       cycleTheme();
       break;
+    case 'v':
+      setLiveMode(nextLiveMode(liveMode));
+      break;
     default:
       break;
   }
@@ -447,13 +555,13 @@ window.addEventListener('keydown', (event) => {
 
 function frame(): void {
   // Sound reaches the speakers after the audio clock, so draw at the time being heard.
-  const latency = audioContext ? audioContext.outputLatency || audioContext.baseLatency || 0 : 0;
-  const now = audioContext ? Math.max(0, audioContext.currentTime - latency) : 0;
+  const now = heardTime();
   while (stepMarks.length > 0) {
     const mark = stepMarks[0];
     if (!mark || mark.at > now) break;
     stepMarks.shift();
     playhead = mark.step;
+    playheadAt = mark.at;
   }
   const lit = Math.floor(playhead / GRID_COLS) === page ? playhead % GRID_COLS : -1;
   if (lit !== litStep) {
@@ -471,7 +579,7 @@ function frame(): void {
     queued.shift();
     renderer.flash(item.note);
   }
-  renderer.draw({ sequencer, now, playhead, selected, page, hover });
+  renderer.draw({ sequencer, now, playhead, selected, page, hover: liveMode === 'paint' ? hover : null });
   requestAnimationFrame(frame);
 }
 
@@ -496,8 +604,9 @@ for (let i = 0; i < 16; i += 1) {
 setLength(16);
 updateHud();
 updateSelection();
+setLiveMode('paint');
 infoEl.textContent =
-  'Click or drag to paint. Click a note to remove it. Higher rows play higher.';
+  'Click or drag to paint. Click a note to remove it. Drag the step lights to loop.';
 for (const name of INSTRUMENTS) {
   const button = byId<HTMLButtonElement>(`tool-${name}`);
   button.title = `${INSTRUMENT_INFO[name].name}: ${INSTRUMENT_INFO[name].description}`;

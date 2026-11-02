@@ -20,6 +20,9 @@ export class Sequencer {
   cells: Cell[] = [];
   stepIndex = 0;
   length: PatternLength = 16;
+  loop: { start: number; end: number } | null = null;
+
+  private skips = new Set<string>();
 
   inGrid(col: number, row: number): boolean {
     return (
@@ -57,16 +60,45 @@ export class Sequencer {
 
   clear(): void {
     this.cells = [];
+    this.skips.clear();
   }
 
   rewind(): void {
-    this.stepIndex = 0;
+    this.stepIndex = this.loop?.start ?? 0;
+    this.skips.clear();
   }
 
   // Notes past the length are kept, so switching back to 32 steps brings them back.
   setLength(length: PatternLength): void {
     this.length = length;
-    if (this.stepIndex >= length) this.stepIndex = 0;
+    if (this.loop && this.loop.end >= length) this.loop = null;
+    if (this.stepIndex >= length) this.stepIndex = this.loop?.start ?? 0;
+  }
+
+  // The loop needs at least two steps inside the pattern length.
+  setLoop(start: number, end: number): boolean {
+    const low = Math.min(start, end);
+    const high = Math.max(start, end);
+    if (!Number.isInteger(low) || !Number.isInteger(high)) return false;
+    if (low < 0 || high >= this.length || low === high) return false;
+    this.loop = { start: low, end: high };
+    return true;
+  }
+
+  clearLoop(): void {
+    this.loop = null;
+  }
+
+  stepAfter(step: number): number {
+    if (this.loop) {
+      return step >= this.loop.start && step < this.loop.end ? step + 1 : this.loop.start;
+    }
+    return (step + 1) % this.length;
+  }
+
+  // A note recorded live has already sounded, so it skips the next time its step plays.
+  skipOnce(col: number, row: number): void {
+    this.skips.add(`${col},${row}`);
   }
 
   activeCells(): Cell[] {
@@ -74,10 +106,17 @@ export class Sequencer {
   }
 
   step(): NoteEvent[] {
-    const notes = this.cells
-      .filter((cell) => cell.col === this.stepIndex)
-      .map((cell) => ({ instrument: cell.instrument, col: cell.col, row: cell.row }));
-    this.stepIndex = (this.stepIndex + 1) % this.length;
+    const notes: NoteEvent[] = [];
+    for (const cell of this.cells) {
+      if (cell.col !== this.stepIndex) continue;
+      const key = `${cell.col},${cell.row}`;
+      if (this.skips.has(key)) {
+        this.skips.delete(key);
+        continue;
+      }
+      notes.push({ instrument: cell.instrument, col: cell.col, row: cell.row });
+    }
+    this.stepIndex = this.stepAfter(this.stepIndex);
     return notes;
   }
 }

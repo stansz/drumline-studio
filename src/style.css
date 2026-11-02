@@ -134,6 +134,9 @@ body {
   display: grid;
   grid-template-columns: repeat(16, 1fr);
   gap: 0;
+  cursor: pointer;
+  touch-action: none;
+  padding-block: 4px;
 }
 
 .steps span {
@@ -174,6 +177,10 @@ body {
 .steps span.fires i {
   outline: 1px solid var(--cream);
   outline-offset: 1px;
+}
+
+.steps span.looped {
+  background: rgba(239, 230, 208, 0.14);
 }
 
 .steps span.on.g0 i {
@@ -261,7 +268,7 @@ body {
 
 .keys {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
+  grid-template-columns: repeat(9, 1fr);
   gap: 6px;
 }
 
@@ -297,6 +304,10 @@ body {
 
 .hw.selected {
   color: var(--amber);
+}
+
+.hw.rec {
+  color: var(--red);
 }
 
 .tempo {
@@ -506,11 +517,15 @@ body {
   }
 
   .keys {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(10, 1fr);
   }
 
   .hw.go,
   .tempo {
+    grid-column: span 5;
+  }
+
+  .keys > .hw:not(.go) {
     grid-column: span 2;
   }
 
@@ -761,6 +776,10 @@ body {
   .hw.go,
   .tempo {
     grid-column: span 2;
+  }
+
+  .keys > .hw:not(.go) {
+    grid-column: auto;
   }
 
   .hw {

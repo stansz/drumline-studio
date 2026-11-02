@@ -23,7 +23,7 @@
         </div>
       </header>
       <main id="stage">
-        <div id="steps" class="steps" aria-hidden="true"></div>
+        <div id="steps" class="steps" title="Drag to loop a section. Tap to clear the loop."></div>
         <canvas id="game" width="256" height="128" aria-label="Pattern grid"></canvas>
       </main>
       <p id="info" class="readout"></p>
@@ -46,6 +46,7 @@
               <label class="lcd"><small>BPM</small><input id="bpm" type="number" inputmode="numeric" min="40" max="300" step="1" value="120" aria-label="Tempo in BPM" /></label>
               <button id="bpm-up" class="hw" type="button" aria-label="Faster" title="Faster (Shift: 10 BPM)">+</button>
             </div>
+            <button id="live" class="hw" type="button" title="Paint, Live, or Rec (V)">Paint</button>
             <button id="backing" class="hw" type="button">Backing</button>
             <button id="mute" class="hw" type="button">Mute</button>
             <button id="clear" class="hw" type="button">Clear</button>
