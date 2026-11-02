@@ -19,6 +19,7 @@
         </div>
         <div class="sys">
           <button id="theme" class="hw" type="button" aria-label="Change music theme">♪ Neon</button>
+          <button id="fx-toggle" class="hw" type="button" aria-expanded="false" aria-controls="fx">FX</button>
           <input id="volume" type="range" min="0" max="100" step="1" value="100" aria-label="Volume" title="Volume" />
         </div>
       </header>
@@ -27,6 +28,13 @@
         <canvas id="game" width="256" height="128" aria-label="Pattern grid"></canvas>
       </main>
       <p id="info" class="readout"></p>
+      <div id="fx" class="fx-panel" hidden>
+        <label class="fx-knob"><small>Filter</small><input id="fx-filter" type="range" min="-100" max="100" step="1" value="0" aria-label="Filter: left is low-pass, right is high-pass" /></label>
+        <label class="fx-knob"><small>Delay</small><input id="fx-delay" type="range" min="0" max="100" step="1" value="0" aria-label="Delay amount" /></label>
+        <label class="fx-knob"><small>Reverb</small><input id="fx-reverb" type="range" min="0" max="100" step="1" value="0" aria-label="Reverb amount" /></label>
+        <label class="fx-knob"><small>Crush</small><input id="fx-crush" type="range" min="0" max="100" step="1" value="0" aria-label="Crush amount" /></label>
+        <button id="fx-reset" class="hw" type="button">Reset</button>
+      </div>
       <div id="controls" class="deck">
         <div class="bank">
           <div class="cap">Instruments</div>

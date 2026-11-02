@@ -1,4 +1,12 @@
 import { BPM, MIX, STEPS_PER_BAR, stepSeconds } from './config';
+import {
+  crushMix,
+  DEFAULT_FX,
+  filterCutoffs,
+  FX_DELAY_SEND,
+  FX_REVERB_SEND,
+  type FxSettings,
+} from './fx';
 import { arpNote, chordForStep, midiToHz, type layerLevels } from './music';
 import type { Instrument } from './sequencer';
 import {
@@ -77,11 +85,15 @@ export class Audio_ {
   private readonly ctx: AudioContext;
   private readonly master: GainNode;
   private readonly filter: BiquadFilterNode;
+  private readonly fxLowpass: BiquadFilterNode;
+  private readonly fxHighpass: BiquadFilterNode;
   private readonly towerBus: GainNode;
   private readonly musicBus: GainNode;
   private readonly fxBus: GainNode;
   private readonly delay: DelayNode;
   private readonly delaySend: GainNode;
+  private readonly fxDelaySend: GainNode;
+  private readonly fxReverbSend: GainNode;
   private readonly analyser: AnalyserNode;
   private readonly analyserData: Float32Array<ArrayBuffer>;
   private readonly noiseBuffers: Record<NoiseKind, AudioBuffer>;
@@ -98,6 +110,7 @@ export class Audio_ {
   private readonly pulseWave: PeriodicWave;
   private readonly masterLevel = 0.8;
   private theme: Theme = DEFAULT_THEME;
+  private fx: FxSettings = { ...DEFAULT_FX };
   private muted = false;
   private lastDuckTime = -1;
   private lastStepDuration = 0;
@@ -141,7 +154,19 @@ export class Audio_ {
     crusher.connect(this.crushWet);
     this.crushDry.connect(this.filter);
     this.crushWet.connect(this.filter);
-    this.filter.connect(limiter);
+
+    this.fxLowpass = ctx.createBiquadFilter();
+    this.fxLowpass.type = 'lowpass';
+    this.fxLowpass.frequency.value = 20000;
+    this.fxLowpass.Q.value = 1.2;
+    this.fxHighpass = ctx.createBiquadFilter();
+    this.fxHighpass.type = 'highpass';
+    this.fxHighpass.frequency.value = 20;
+    this.fxHighpass.Q.value = 1.2;
+    this.filter.connect(this.fxLowpass);
+    this.fxLowpass.connect(this.fxHighpass);
+    this.fxHighpass.connect(limiter);
+
     limiter.connect(softClip);
     softClip.connect(this.analyser);
     // After the limiter, so the slider changes the level without changing the mix.
@@ -181,6 +206,15 @@ export class Audio_ {
     this.delaySend = ctx.createGain();
     this.delaySend.gain.value = MIX.delaySend;
     this.delaySend.connect(this.delay);
+
+    this.fxDelaySend = ctx.createGain();
+    this.fxDelaySend.gain.value = 0;
+    this.towerBus.connect(this.fxDelaySend);
+    this.fxDelaySend.connect(this.delay);
+    this.fxReverbSend = ctx.createGain();
+    this.fxReverbSend.gain.value = 0;
+    this.towerBus.connect(this.fxReverbSend);
+    this.fxReverbSend.connect(this.reverb);
 
     const length = Math.max(1, Math.floor(ctx.sampleRate));
     const white = ctx.createBuffer(1, length, ctx.sampleRate);
@@ -618,11 +652,27 @@ export class Audio_ {
     this.delaySend.gain.setTargetAtTime(space.delaySend, now, 0.02);
     this.delayFeedback.gain.setTargetAtTime(space.delayFeedback, now, 0.02);
     this.filter.frequency.setTargetAtTime(space.toneHz, now, 0.02);
-    this.crushDry.gain.setTargetAtTime(1 - space.crush, now, 0.02);
-    this.crushWet.gain.setTargetAtTime(space.crush, now, 0.02);
+    this.applyCrush(now);
     this.trim.gain.setTargetAtTime(space.trim, now, 0.02);
     this.crackleGain.gain.setTargetAtTime(theme.crackle, now, 0.02);
     this.reverb.buffer = this.reverbImpulse(space.reverbSeconds);
+  }
+
+  setFx(fx: FxSettings): void {
+    this.fx = { ...fx };
+    const now = this.ctx.currentTime;
+    const { lowpassHz, highpassHz } = filterCutoffs(fx.filter);
+    this.fxLowpass.frequency.setTargetAtTime(lowpassHz, now, 0.03);
+    this.fxHighpass.frequency.setTargetAtTime(highpassHz, now, 0.03);
+    this.fxDelaySend.gain.setTargetAtTime(fx.delay * FX_DELAY_SEND, now, 0.03);
+    this.fxReverbSend.gain.setTargetAtTime(fx.reverb * FX_REVERB_SEND, now, 0.03);
+    this.applyCrush(now);
+  }
+
+  private applyCrush(now: number): void {
+    const wet = crushMix(this.theme.space.crush, this.fx.crush);
+    this.crushDry.gain.setTargetAtTime(1 - wet, now, 0.02);
+    this.crushWet.gain.setTargetAtTime(wet, now, 0.02);
   }
 
   setTempo(stepDuration: number): void {

@@ -17,6 +17,10 @@ part of any boost, so a trim of 2 adds less than 6 dB in practice.
 The player's volume slider comes after the limiter and only turns the sound down, so it doesn't
 change the mix. The loudness page renders at full volume and doesn't depend on the slider.
 
+The FX panel sits after each theme's sound, so its filter, delay, reverb, and crush shape what the
+theme already produces. The FX crush adds to the theme's `space.crush`, and loudness checks are run
+with FX off.
+
 ## Adding or changing a theme
 
 1. Add or edit the theme in `src/themes.ts`, and add it to `THEMES`.

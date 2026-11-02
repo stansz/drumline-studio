@@ -18,6 +18,8 @@ Commands: `npm run dev`, `npm test`, `npm run test:sandbox`, `npm run typecheck`
 - Each note plays only on its own step, and only while that step is within the pattern
   length and the loop. A note recorded live skips its next pass because it already sounded.
 - Keep `src/live.ts` free of the DOM and audio.
+- Keep `src/fx.ts` free of the DOM and audio. FX are applied on top of the theme and never change
+  a theme's own values.
 - Themes change the sound only, never the pattern or the tempo.
 - Wrap every `localStorage` call in `try`/`catch`, and make the game work without it.
 - Keep Neon's `space.trim` at 1. It is the loudness reference.

@@ -29,6 +29,11 @@ the **−** and **+** buttons (hold Shift to move by 10). **Mute** silences ever
 **Clear** empties the pattern.
 **Theme** switches between the Neon, Chiptune, Lo-fi, Techno, and Funk soundtracks at any
 time; themes change the sound only, never the pattern or the tempo.
+**FX** (key **X**) opens a panel of four sliders that shape the whole mix live, on top of the
+theme's own sound. **Filter** sweeps a low-pass down to the left of center and a high-pass up
+to the right, with center off; **Delay** and **Reverb** set how much of the instruments feeds
+the tempo-synced delay and the reverb; **Crush** adds bit-crush on top of the theme's own.
+**Reset** sets them all back to off.
 
 ## Controls
 
@@ -41,12 +46,13 @@ time; themes change the sound only, never the pattern or the tempo.
 - **-** / **=** slower or faster by 1 BPM; with Shift, by 10
 - **M** mute or unmute
 - **T** change the music theme
+- **X** show or hide the FX panel
 - **V** cycle the Paint, Live, and Rec modes
 - **A S D F G H J K** play the selected instrument live, bottom row to top row
 
 On the start screen, **Enter** or **Space** starts, and **T** changes the theme. The
 on-screen buttons provide the same actions, and the slider beside the theme button sets
-the volume. Your theme, volume, tempo, and backing setting are remembered between visits.
+the volume. Your theme, volume, tempo, backing setting, and FX are remembered between visits.
 
 On a phone, tap instead of clicking, and turn the phone sideways for a bigger board.
 

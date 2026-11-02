@@ -1,5 +1,6 @@
 import { Audio_, parseVolume } from './audio';
 import { GRID_COLS, GRID_ROWS, INSTRUMENT_INFO, parseBpm } from './config';
+import { DEFAULT_FX, parseFx, type FxSettings } from './fx';
 import { liveRowForCode, nearestStep, nextLiveMode, type LiveMode } from './live';
 import { intensity, layerLevels, pickVoices } from './music';
 import { Renderer, drawIcon, drawLogo } from './render';
@@ -50,11 +51,19 @@ const liveButton = byId<HTMLButtonElement>('live');
 const startButton = byId<HTMLButtonElement>('start');
 const themeButton = byId<HTMLButtonElement>('theme');
 const volumeSlider = byId<HTMLInputElement>('volume');
+const fxToggle = byId<HTMLButtonElement>('fx-toggle');
+const fxPanel = byId<HTMLDivElement>('fx');
+const fxFilter = byId<HTMLInputElement>('fx-filter');
+const fxDelay = byId<HTMLInputElement>('fx-delay');
+const fxReverb = byId<HTMLInputElement>('fx-reverb');
+const fxCrush = byId<HTMLInputElement>('fx-crush');
+const fxReset = byId<HTMLButtonElement>('fx-reset');
 
 const THEME_KEY = 'drumline-theme';
 const BACKING_KEY = 'drumline-backing';
 const VOLUME_KEY = 'drumline-volume';
 const BPM_KEY = 'drumline-bpm';
+const FX_KEY = 'drumline-fx';
 const renderer = new Renderer(canvas);
 
 const sequencer = new Sequencer();
@@ -74,6 +83,7 @@ let theme = loadTheme();
 let volume = loadVolume();
 let backing = loadBacking();
 let bpm = loadBpm();
+let fx: FxSettings = loadFx();
 const stepLeds: HTMLSpanElement[] = [];
 let litStep = -1;
 let shownPlayhead = -1;
@@ -212,6 +222,7 @@ async function startAudio(): Promise<void> {
     audio.setTheme(theme);
     audio.setMuted(muted);
     audio.setVolume(volume);
+    audio.setFx(fx);
     scheduler = new Scheduler(ctx, onStep);
     scheduler.bpm = bpm;
     window.__drumline = { sequencer, scheduler, audio };
@@ -293,6 +304,50 @@ function changeVolume(): void {
   } catch {
     // The choice just lasts for this visit when storage is unavailable.
   }
+}
+
+function loadFx(): FxSettings {
+  try {
+    return parseFx(localStorage.getItem(FX_KEY));
+  } catch {
+    return parseFx(null);
+  }
+}
+
+function showFx(): void {
+  fxFilter.value = String(Math.round(fx.filter * 100));
+  fxDelay.value = String(Math.round(fx.delay * 100));
+  fxReverb.value = String(Math.round(fx.reverb * 100));
+  fxCrush.value = String(Math.round(fx.crush * 100));
+  const active = fx.filter !== 0 || fx.delay > 0 || fx.reverb > 0 || fx.crush > 0;
+  fxToggle.classList.toggle('selected', active);
+}
+
+function setFx(next: FxSettings): void {
+  fx = next;
+  audio?.setFx(fx);
+  showFx();
+  try {
+    localStorage.setItem(FX_KEY, JSON.stringify(fx));
+  } catch {
+    // The settings still apply for this visit.
+  }
+}
+
+function readFxSliders(): FxSettings {
+  return parseFx(
+    JSON.stringify({
+      filter: Number(fxFilter.value) / 100,
+      delay: Number(fxDelay.value) / 100,
+      reverb: Number(fxReverb.value) / 100,
+      crush: Number(fxCrush.value) / 100,
+    }),
+  );
+}
+
+function toggleFxPanel(): void {
+  fxPanel.hidden = !fxPanel.hidden;
+  fxToggle.setAttribute('aria-expanded', String(!fxPanel.hidden));
 }
 
 function play(): void {
@@ -484,10 +539,23 @@ liveButton.addEventListener('click', () => setLiveMode(nextLiveMode(liveMode)));
 startButton.addEventListener('click', play);
 themeButton.addEventListener('click', cycleTheme);
 volumeSlider.addEventListener('input', changeVolume);
+fxToggle.addEventListener('click', toggleFxPanel);
+for (const slider of [fxFilter, fxDelay, fxReverb, fxCrush]) {
+  slider.addEventListener('input', () => setFx(readFxSliders()));
+}
+fxReset.addEventListener('click', () => setFx({ ...DEFAULT_FX }));
 
 window.addEventListener('keydown', (event) => {
-  // Typing a tempo must not trigger the shortcuts.
-  if (event.target === bpmInput) return;
+  // Typing a tempo or moving an FX slider must not trigger the shortcuts.
+  if (
+    event.target === bpmInput ||
+    event.target === fxFilter ||
+    event.target === fxDelay ||
+    event.target === fxReverb ||
+    event.target === fxCrush
+  ) {
+    return;
+  }
   if (event.code === 'Minus' || event.code === 'NumpadSubtract') {
     nudgeBpm(-1, event.shiftKey);
     return;
@@ -547,6 +615,9 @@ window.addEventListener('keydown', (event) => {
       break;
     case 'v':
       setLiveMode(nextLiveMode(liveMode));
+      break;
+    case 'x':
+      toggleFxPanel();
       break;
     default:
       break;
@@ -615,4 +686,5 @@ updateThemeButton();
 bpmInput.value = String(bpm);
 updateBackingButton();
 volumeSlider.value = String(volume);
+showFx();
 requestAnimationFrame(frame);
