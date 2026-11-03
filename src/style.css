@@ -190,7 +190,9 @@ body {
 
 .share-panel .hw,
 #fx-reset,
-.sample-list .hw {
+.sample-list .hw,
+#sample-mic,
+#sample-file {
   min-height: 0;
   height: 34px;
   padding-block: 0;
@@ -206,13 +208,24 @@ body {
 }
 
 .sampler-panel {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 6px;
 }
 
 .sample-list {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  display: flex;
   gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.sample-list .hw {
+  flex: 1 0 auto;
+  min-width: 64px;
+}
+
+#sample-mic.rec {
+  color: var(--red);
 }
 
 /* ---- Step strip ---- */
@@ -694,7 +707,9 @@ body {
 
   .sample-list .hw,
   .share-panel .hw,
-  #fx-reset {
+  #fx-reset,
+  #sample-mic,
+  #sample-file {
     font-size: 0.6rem;
     padding-inline: 4px;
   }

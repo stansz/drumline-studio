@@ -9,7 +9,7 @@ import {
 } from './fx';
 import { arpNote, chordForStep, midiToHz, type layerLevels } from './music';
 import { renderSamples } from './sampler';
-import { DEFAULT_SAMPLE, rateForRow } from './samples';
+import { DEFAULT_SAMPLE, USER_SAMPLE, rateForRow } from './samples';
 import type { Instrument } from './sequencer';
 import {
   DEFAULT_THEME,
@@ -323,7 +323,29 @@ export class Audio_ {
   }
 
   async loadSamples(): Promise<void> {
-    this.samples = await renderSamples(this.ctx.sampleRate);
+    const rendered = await renderSamples(this.ctx.sampleRate);
+    const user = this.samples.get(USER_SAMPLE.id);
+    if (user) rendered.set(USER_SAMPLE.id, user);
+    this.samples = rendered;
+  }
+
+  // Puts the player's own sample in the sample map under its id, or removes it.
+  setUserSample(id: string, data: Float32Array | null, sampleRate: number): void {
+    if (!data) {
+      this.samples.delete(id);
+      return;
+    }
+    const buffer = this.ctx.createBuffer(1, data.length, sampleRate);
+    buffer.copyToChannel(data as Float32Array<ArrayBuffer>, 0);
+    this.samples.set(id, buffer);
+  }
+
+  decode(bytes: ArrayBuffer): Promise<AudioBuffer> {
+    return this.ctx.decodeAudioData(bytes);
+  }
+
+  get sampleRate(): number {
+    return this.ctx.sampleRate;
   }
 
   setSample(id: string): void {

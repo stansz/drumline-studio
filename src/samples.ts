@@ -2,20 +2,26 @@ export interface SamplePreset {
   id: string;
   name: string;
   midiNote: number; // General MIDI drum note used for MIDI export
+  color: string; // PIXEL_COLORS key for the Sample icon and notes
 }
 
 export const SAMPLE_PRESETS: readonly SamplePreset[] = [
-  { id: 'clap', name: 'Clap', midiNote: 39 },
-  { id: 'cowbell', name: 'Cowbell', midiNote: 56 },
-  { id: 'rim', name: 'Rimshot', midiNote: 37 },
-  { id: 'tom', name: 'Tom', midiNote: 45 },
-  { id: 'shaker', name: 'Shaker', midiNote: 70 },
-  { id: 'zap', name: 'Zap', midiNote: 81 },
+  { id: 'clap', name: 'Clap', midiNote: 39, color: '9' },
+  { id: 'cowbell', name: 'Cowbell', midiNote: 56, color: 'a' },
+  { id: 'rim', name: 'Rimshot', midiNote: 37, color: '7' },
+  { id: 'tom', name: 'Tom', midiNote: 45, color: 'c' },
+  { id: 'shaker', name: 'Shaker', midiNote: 70, color: 'g' },
+  { id: 'zap', name: 'Zap', midiNote: 81, color: 'e' },
 ];
 
 export const DEFAULT_SAMPLE = 'clap';
 
-export function sampleById(id: string | null): SamplePreset {
+// The sound the player records or loads. It is not one of SAMPLE_PRESETS and is never
+// chosen by a share link.
+export const USER_SAMPLE: SamplePreset = { id: 'mine', name: 'Mine', midiNote: 39, color: '5' };
+
+export function sampleById(id: string | null, hasUserSample = false): SamplePreset {
+  if (hasUserSample && id === USER_SAMPLE.id) return USER_SAMPLE;
   return SAMPLE_PRESETS.find((preset) => preset.id === id) ?? (SAMPLE_PRESETS[0] as SamplePreset);
 }
 

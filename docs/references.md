@@ -10,7 +10,9 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
   `stepAfter()`.
 - `src/scheduler.ts`: step clock that runs on `AudioContext` time, slightly ahead of playback.
 - `src/audio.ts`: `Audio_`, which owns the audio chain and every generated sound.
-- `src/samples.ts`: the built-in sample presets and the row-to-pitch rate.
+- `src/samples.ts`: the built-in sample presets, the user sample entry, and the row-to-pitch rate.
+- `src/sampleEdit.ts`: mixes, trims, fades, and normalizes a recorded or loaded sample.
+- `src/sampleStore.ts`: saves the user sample in IndexedDB.
 - `src/sampler.ts`: renders each sample preset into an `AudioBuffer` with an
   `OfflineAudioContext`.
 - `src/fx.ts`: FX settings, parsing, and filter cutoffs.
@@ -28,6 +30,7 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
 - `src/main.ts`: connects everything, and handles input, the HUD, and saved settings.
 - `index.html`: the page markup, the HUD, and the panel buttons.
 - `public/`: static files served as-is, such as `favicon.svg`.
+- `tests/sampleEdit.test.ts`: unit tests for the sample trimming helpers.
 - `vitest.sandbox.config.mjs`: runs the tests inside the Windows `dsh` sandbox, through
   `npm run test:sandbox`.
 - `tests/loudness.ts`: browser-only audio check, with Neon's target levels stored in
@@ -87,6 +90,10 @@ other page are skipped, and the playhead only draws while it is on the shown pag
 When the pointer is over a note, the renderer draws a red outline around that cell instead of the
 sprite preview, to show that a click removes the note.
 
+Sample notes use the color of the chosen sound: `SamplePreset.color` keys into `PIXEL_COLORS`, and
+the renderer bakes one Sample sprite variant per color for the board, the preview, and the pad
+icon.
+
 On phones held upright, the board's size is limited by the screen width, so it runs edge to edge.
 On phones held sideways, the controls sit in a column beside the board, which gives it most of the
 screen. `#rotate-hint` on the start screen points players to that layout. These layouts were
@@ -124,6 +131,10 @@ These values are saved to `localStorage` when they change, and come back on the 
 
 Mute, the shown page, and whether the panels are open are not saved. Mute zeroes the master
 gain, before the recording tap, so it also silences recordings.
+
+The recorded or loaded user sample lives in IndexedDB: database `drumline`, store `samples`, key
+`mine`, holding `{ sampleRate, data: Float32Array }`. It is not in a share link, and a share link
+never selects `mine`: decoding falls back to the default Clap sound.
 
 Share links put the beat in the URL hash: `v1.<length>.<bpm>.<theme id>.<cells>` or
 `v2.<length>.<bpm>.<theme id>.<sample id>.<cells>`. Each cell is two bytes, the step and then the

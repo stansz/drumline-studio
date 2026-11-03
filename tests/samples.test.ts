@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SAMPLE, SAMPLE_PRESETS, rateForRow, sampleById } from '../src/samples';
+import { DEFAULT_SAMPLE, SAMPLE_PRESETS, USER_SAMPLE, rateForRow, sampleById } from '../src/samples';
+import { PIXEL_COLORS } from '../src/sprites';
 
 describe('samples', () => {
   it('has unique, well-formed preset ids', () => {
@@ -12,6 +13,23 @@ describe('samples', () => {
     expect(sampleById('cowbell').name).toBe('Cowbell');
     expect(sampleById('nope')).toBe(sampleById('clap'));
     expect(sampleById(null)).toBe(sampleById('clap'));
+  });
+
+  it('only finds the user sample when one exists', () => {
+    expect(sampleById('mine')).toBe(sampleById('clap'));
+    expect(sampleById('mine', true)).toBe(USER_SAMPLE);
+    expect(sampleById('cowbell', true)).toBe(sampleById('cowbell'));
+  });
+
+  it('gives every sound a pixel color', () => {
+    for (const preset of [...SAMPLE_PRESETS, USER_SAMPLE]) {
+      expect(PIXEL_COLORS[preset.color]).toBeTypeOf('string');
+    }
+  });
+
+  it('gives the presets different colors', () => {
+    const colors = SAMPLE_PRESETS.map((preset) => preset.color);
+    expect(new Set(colors).size).toBe(colors.length);
   });
 
   it('uses a preset for the default sample', () => {

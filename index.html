@@ -43,7 +43,12 @@
           <button id="midi" class="hw" type="button">MIDI</button>
           <span id="share-status" class="share-status" aria-live="polite"></span>
         </div>
-        <div id="sampler" class="fx-panel sampler-panel" hidden><div id="sample-list" class="sample-list"></div></div>
+        <div id="sampler" class="fx-panel sampler-panel" hidden>
+          <div id="sample-list" class="sample-list"></div>
+          <button id="sample-mic" class="hw" type="button" title="Record up to 2 seconds from the microphone">● Mic</button>
+          <button id="sample-file" class="hw" type="button" title="Load a short sound file">File</button>
+          <input id="sample-file-input" type="file" accept="audio/*" hidden />
+        </div>
       </div>
       <div id="controls" class="deck">
         <div class="bank">

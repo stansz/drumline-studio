@@ -30,6 +30,7 @@ export interface RenderState {
   selected: Instrument;
   page: number;
   hover: { col: number; row: number } | null;
+  sampleColor: string;
 }
 
 interface BakedSprites {
@@ -71,6 +72,24 @@ for (const name of Object.keys(SPRITES) as SpriteName[]) {
   });
 }
 
+// The Sample sprite in each sound's color: only its body color ('9') changes.
+const SAMPLE_VARIANTS = new Map<string, BakedSprites>();
+function sampleFrames(color: string): BakedSprites | undefined {
+  const cached = SAMPLE_VARIANTS.get(color);
+  if (cached) return cached;
+  const body = PIXEL_COLORS[color];
+  if (!body) return BAKED.get('sample');
+  const map = (character: string): string =>
+    character === '9' ? body : (PIXEL_COLORS[character] ?? body);
+  const [first, second] = SPRITES.sample;
+  const baked: BakedSprites = {
+    normal: [bake(first, map), bake(second, map)],
+    hit: [bake(first, hitColor), bake(second, hitColor)],
+  };
+  SAMPLE_VARIANTS.set(color, baked);
+  return baked;
+}
+
 function shade(hex: string, factor: number): string {
   const value = parseInt(hex.slice(1), 16);
   const channel = (part: number): number => Math.min(255, Math.round(part * factor));
@@ -109,12 +128,14 @@ export function drawLogo(canvas: HTMLCanvasElement): void {
   });
 }
 
-export function drawIcon(canvas: HTMLCanvasElement, name: SpriteName): void {
-  const frames = BAKED.get(name);
+export function drawIcon(canvas: HTMLCanvasElement, name: SpriteName, color?: string): void {
+  const frames =
+    name === 'sample' && color ? (sampleFrames(color) ?? BAKED.get(name)) : BAKED.get(name);
   if (!frames) return;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(frames.normal[0], 0, 0);
 }
 
@@ -255,11 +276,16 @@ export class Renderer {
     }
     const x = hover.col * ART_CELL;
     const y = hover.row * ART_CELL;
+    const colorOf = (character: string): string | undefined =>
+      selected === 'sample' && character === '9'
+        ? (PIXEL_COLORS[state.sampleColor] ?? PIXEL_COLORS[character])
+        : PIXEL_COLORS[character];
     for (const [j, row] of SPRITES[selected][0].entries()) {
       [...row].forEach((character, i) => {
         if (character === '.') return;
         if (bayer(x + i, y + j) >= 0.5) return;
-        this.pl(x + i, y + j, PIXEL_COLORS[character]);
+        const color = colorOf(character);
+        if (color) this.pl(x + i, y + j, color);
       });
     }
   }
@@ -271,8 +297,17 @@ export class Renderer {
       if (Math.floor(cell.col / GRID_COLS) !== state.page) continue;
       const flashedAt = this.flashes.get(`${cell.col},${cell.row}`);
       const frame = flashedAt !== undefined && state.now - flashedAt < NOTE_FLASH ? 1 : 0;
-      if (frame === 1) this.strokeInset(cell.col - offset, cell.row, NOTE_OUTLINE[cell.instrument]);
-      const frames = BAKED.get(cell.instrument);
+      if (frame === 1) {
+        const outline =
+          cell.instrument === 'sample'
+            ? (PIXEL_COLORS[state.sampleColor] ?? NOTE_OUTLINE.sample)
+            : NOTE_OUTLINE[cell.instrument];
+        this.strokeInset(cell.col - offset, cell.row, outline);
+      }
+      const frames =
+        cell.instrument === 'sample'
+          ? sampleFrames(state.sampleColor)
+          : BAKED.get(cell.instrument);
       if (!frames) continue;
       this.ctx.drawImage(
         frames.normal[frame],

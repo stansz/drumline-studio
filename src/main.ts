@@ -7,7 +7,9 @@ import { intensity, layerLevels, pickVoices } from './music';
 import { decodeShare, encodeShare, parsePattern, serializePattern } from './pattern';
 import { extensionFor, fileStamp, formatElapsed, pickRecordingType } from './recording';
 import { Renderer, drawIcon, drawLogo } from './render';
-import { SAMPLE_PRESETS, sampleById, type SamplePreset } from './samples';
+import { MAX_SAMPLE_SECONDS, prepareSample } from './sampleEdit';
+import { SAMPLE_PRESETS, USER_SAMPLE, sampleById, type SamplePreset } from './samples';
+import { loadUserSample, saveUserSample } from './sampleStore';
 import { Scheduler } from './scheduler';
 import {
   Sequencer,
@@ -17,7 +19,7 @@ import {
   type NoteEvent,
   type PatternLength,
 } from './sequencer';
-import type { SpriteName } from './sprites';
+import { PIXEL_COLORS, type SpriteName } from './sprites';
 import { DEFAULT_THEME, nextTheme, themeById, type Theme } from './themes';
 import './style.css';
 
@@ -52,6 +54,9 @@ const snareButton = byId<HTMLButtonElement>('tool-snare');
 const sampleButton = byId<HTMLButtonElement>('tool-sample');
 const samplerPanel = byId<HTMLDivElement>('sampler');
 const sampleList = byId<HTMLDivElement>('sample-list');
+const micButton = byId<HTMLButtonElement>('sample-mic');
+const fileButton = byId<HTMLButtonElement>('sample-file');
+const fileInput = byId<HTMLInputElement>('sample-file-input');
 const pageButton = byId<HTMLButtonElement>('page');
 const lengthButton = byId<HTMLButtonElement>('length');
 const playButton = byId<HTMLButtonElement>('play');
@@ -108,6 +113,17 @@ let backing = loadBacking();
 let bpm = loadBpm();
 let fx: FxSettings = loadFx();
 let sample: SamplePreset = loadSample();
+let hasUserSample = false;
+// Whether the player picked a sound since the page loaded; the saved user sample only takes
+// over when they haven't.
+let sampleChosenThisVisit = false;
+const storedSampleId = (() => {
+  try {
+    return localStorage.getItem(SAMPLE_KEY);
+  } catch {
+    return null;
+  }
+})();
 const stepLeds: HTMLSpanElement[] = [];
 let litStep = -1;
 let shownPlayhead = -1;
@@ -186,6 +202,26 @@ function updateSampler(): void {
   });
 }
 
+function addSampleButton(name: string, id: string): void {
+  const button = document.createElement('button');
+  button.className = 'hw';
+  button.type = 'button';
+  button.dataset.sample = id;
+  button.textContent = name;
+  button.addEventListener('click', () => {
+    sampleChosenThisVisit = true;
+    pickSample(id);
+  });
+  sampleList.append(button);
+}
+
+function renderSampleButtons(): void {
+  sampleList.replaceChildren();
+  for (const preset of SAMPLE_PRESETS) addSampleButton(preset.name, preset.id);
+  if (hasUserSample) addSampleButton(USER_SAMPLE.name, USER_SAMPLE.id);
+  updateSampler();
+}
+
 // The dock shows one view at a time: an opened panel, else the sampler while Sample is
 // selected, else the info line.
 function updateDock(): void {
@@ -198,8 +234,8 @@ function updateDock(): void {
   shareToggle.setAttribute('aria-expanded', String(view === 'share'));
 }
 
-function pickSample(id: string): void {
-  sample = sampleById(id);
+function pickSample(id: string, audition = true): void {
+  sample = sampleById(id, hasUserSample);
   audio?.setSample(sample.id);
   try {
     localStorage.setItem(SAMPLE_KEY, sample.id);
@@ -207,7 +243,14 @@ function pickSample(id: string): void {
     // The choice still applies for this visit.
   }
   updateSampler();
-  audio?.auditionSample();
+  updateSampleLook();
+  if (audition) audio?.auditionSample();
+}
+
+function updateSampleLook(): void {
+  sampleButton.style.setProperty('--c', PIXEL_COLORS[sample.color] ?? '');
+  const icon = sampleButton.querySelector('canvas');
+  if (icon) drawIcon(icon, 'sample', sample.color);
 }
 
 function selectTool(tool: Instrument): void {
@@ -301,12 +344,24 @@ async function startAudio(): Promise<void> {
     audio.setFx(fx);
     audio.setSample(sample.id);
     void audio.loadSamples();
+    void loadUserSample().then((stored) => {
+      if (!stored || !audio) return;
+      audio.setUserSample(USER_SAMPLE.id, stored.data, stored.sampleRate);
+      hasUserSample = true;
+      renderSampleButtons();
+      // Switch to Mine only if the player hasn't picked another sound since the page loaded.
+      if (storedSampleId === USER_SAMPLE.id && !sampleChosenThisVisit) {
+        pickSample(USER_SAMPLE.id, false);
+      }
+    });
     scheduler = new Scheduler(ctx, onStep);
     scheduler.bpm = bpm;
     window.__drumline = { sequencer, scheduler, audio };
     hideOverlay();
     play();
     recordButton.disabled = false;
+    micButton.disabled = false;
+    fileButton.disabled = false;
   } catch (error) {
     started = false;
     console.error(error);
@@ -535,6 +590,94 @@ function toggleRecording(): void {
   updateRecordLabel();
 }
 
+async function useUserSample(channels: Float32Array[], sampleRate: number): Promise<boolean> {
+  if (!audio) return false;
+  const data = prepareSample(channels, sampleRate);
+  if (!data) return false;
+  audio.setUserSample(USER_SAMPLE.id, data, sampleRate);
+  hasUserSample = true;
+  renderSampleButtons();
+  pickSample(USER_SAMPLE.id);
+  await saveUserSample({ sampleRate, data });
+  return true;
+}
+
+function channelsOf(buffer: AudioBuffer): Float32Array[] {
+  return Array.from({ length: buffer.numberOfChannels }, (_, i) => buffer.getChannelData(i));
+}
+
+let micRecorder: MediaRecorder | null = null;
+let micStopTimer: ReturnType<typeof setTimeout> | null = null;
+
+async function toggleMic(): Promise<void> {
+  const current = audio;
+  if (!current || !recordingType) return;
+  if (micRecorder) {
+    micRecorder.stop();
+    return;
+  }
+  let stream: MediaStream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch {
+    micButton.textContent = 'Mic blocked';
+    return;
+  }
+  const chunks: Blob[] = [];
+  const type = recordingType;
+  const next = new MediaRecorder(stream, { mimeType: type });
+  next.addEventListener('dataavailable', (event) => {
+    if (event.data.size > 0) chunks.push(event.data);
+  });
+  next.addEventListener('stop', () => {
+    stream.getTracks().forEach((track) => track.stop());
+    if (micStopTimer !== null) clearTimeout(micStopTimer);
+    micStopTimer = null;
+    micRecorder = null;
+    micButton.classList.remove('rec');
+    micButton.textContent = '● Mic';
+    void (async () => {
+      try {
+        const decoded = await current.decode(await new Blob(chunks, { type }).arrayBuffer());
+        if (!(await useUserSample(channelsOf(decoded), decoded.sampleRate))) {
+          micButton.textContent = 'No sound';
+        }
+      } catch {
+        micButton.textContent = 'Mic failed';
+      }
+    })();
+  });
+  micRecorder = next;
+  next.start();
+  micButton.classList.add('rec');
+  micButton.textContent = '■ Stop';
+  // A little longer than the kept length, so trimming has room at the start.
+  micStopTimer = setTimeout(() => next.stop(), (MAX_SAMPLE_SECONDS + 0.5) * 1000);
+}
+
+function loadSampleFile(): void {
+  void (async () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    const current = audio;
+    if (!current) return;
+    let used = false;
+    try {
+      const decoded = await current.decode(await file.arrayBuffer());
+      used = await useUserSample(channelsOf(decoded), decoded.sampleRate);
+    } catch {
+      used = false;
+    }
+    fileInput.value = '';
+    if (!used) {
+      fileButton.textContent = 'Not audio';
+      setTimeout(() => {
+        fileButton.textContent = 'File';
+      }, 2000);
+    }
+  })();
+}
+
 function play(): void {
   if (!started) {
     void startAudio();
@@ -745,6 +888,9 @@ shareToggle.addEventListener('click', toggleSharePanel);
 shareLinkButton.addEventListener('click', () => void copyShareLink());
 recordButton.addEventListener('click', toggleRecording);
 midiButton.addEventListener('click', exportMidi);
+micButton.addEventListener('click', () => void toggleMic());
+fileButton.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', loadSampleFile);
 
 window.addEventListener('keydown', (event) => {
   // Typing a tempo or moving an FX slider must not trigger the shortcuts.
@@ -864,7 +1010,15 @@ function frame(): void {
     queued.shift();
     renderer.flash(item.note);
   }
-  renderer.draw({ sequencer, now, playhead, selected, page, hover: liveMode === 'paint' ? hover : null });
+  renderer.draw({
+    sequencer,
+    now,
+    playhead,
+    selected,
+    page,
+    hover: liveMode === 'paint' ? hover : null,
+    sampleColor: sample.color,
+  });
   requestAnimationFrame(frame);
 }
 
@@ -886,15 +1040,7 @@ for (let i = 0; i < 16; i += 1) {
   stepLeds.push(step);
 }
 
-for (const preset of SAMPLE_PRESETS) {
-  const button = document.createElement('button');
-  button.className = 'hw';
-  button.type = 'button';
-  button.dataset.sample = preset.id;
-  button.textContent = preset.name;
-  button.addEventListener('click', () => pickSample(button.dataset.sample ?? ''));
-  sampleList.append(button);
-}
+renderSampleButtons();
 
 const shared = (() => {
   try {
@@ -920,6 +1066,8 @@ if (shared) {
     // The sample still applies for this visit.
   }
   updateSampler();
+  sampleChosenThisVisit = true;
+  updateSampleLook();
   history.replaceState(null, '', location.pathname + location.search);
   infoEl.textContent = 'Loaded a shared beat.';
 } else {
@@ -935,6 +1083,7 @@ if (shared) {
 }
 updateHud();
 updateSelection();
+updateSampleLook();
 updateDock();
 setLiveMode('paint');
 liveButton.hidden = !LIVE_TOOLS;
@@ -955,5 +1104,8 @@ volumeSlider.value = String(volume);
 showFx();
 recordButton.disabled = true;
 if (!recordingType) recordButton.hidden = true;
+micButton.disabled = true;
+fileButton.disabled = true;
+if (!recordingType || !navigator.mediaDevices?.getUserMedia) micButton.hidden = true;
 updateRecordLabel();
 requestAnimationFrame(frame);
