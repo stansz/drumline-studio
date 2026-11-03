@@ -83,9 +83,6 @@ const clearButton = byId<HTMLButtonElement>('clear');
 const liveButton = byId<HTMLButtonElement>('live');
 const startButton = byId<HTMLButtonElement>('start');
 const themeButton = byId<HTMLButtonElement>('theme');
-const infoToggle = byId<HTMLButtonElement>('info-toggle');
-const infoBackdrop = byId<HTMLDivElement>('backing-info');
-const infoClose = byId<HTMLButtonElement>('info-close');
 const infoTitle = byId<HTMLHeadingElement>('info-title');
 const infoBlurb = byId<HTMLParagraphElement>('info-blurb');
 const infoMode = byId<HTMLParagraphElement>('info-mode');
@@ -112,6 +109,10 @@ const shareStatus = byId<HTMLSpanElement>('share-status');
 const mixPanel = byId<HTMLDivElement>('mix');
 const mixAllPanel = byId<HTMLDivElement>('mix-all');
 const beatsScreen = byId<HTMLDivElement>('beats-screen');
+const screenBeats = byId<HTMLButtonElement>('screen-beats');
+const screenBacking = byId<HTMLButtonElement>('screen-backing');
+const beatsPage = byId<HTMLDivElement>('beats-page');
+const backingPage = byId<HTMLDivElement>('backing-page');
 const beatsClose = byId<HTMLButtonElement>('beats-close');
 const beatsList = byId<HTMLDivElement>('beats-list');
 const beatsName = byId<HTMLParagraphElement>('beats-name');
@@ -185,6 +186,7 @@ const infoSections: HTMLSpanElement[] = [];
 let infoShownKey = '';
 let beatsCursor = 0;
 let loadedPresetId: string | null = null;
+let screenPage: 'beats' | 'backing' = 'beats';
 
 // One level of undo: the pattern and the settings the last preset or Random changed.
 interface Snapshot {
@@ -358,17 +360,47 @@ function moveBeatsCursor(delta: number): void {
   updateBeatsScreen();
 }
 
-function openBeats(): void {
-  const index = PRESETS.findIndex((preset) => preset.id === loadedPresetId);
-  if (index >= 0) beatsCursor = index;
-  updateBeatsScreen();
-  beatsScreen.hidden = false;
-  beatsList.querySelector<HTMLElement>(`.beats-item[data-index="${beatsCursor}"]`)?.focus();
+function backingShown(): boolean {
+  return !beatsScreen.hidden && screenPage === 'backing';
 }
 
-function closeBeats(): void {
+function showPage(page: 'beats' | 'backing'): void {
+  screenPage = page;
+  beatsPage.hidden = page !== 'beats';
+  backingPage.hidden = page !== 'backing';
+  screenBeats.classList.toggle('selected', page === 'beats');
+  screenBeats.setAttribute('aria-selected', String(page === 'beats'));
+  screenBacking.classList.toggle('selected', page === 'backing');
+  screenBacking.setAttribute('aria-selected', String(page === 'backing'));
+  if (page === 'beats') {
+    updateBeatsScreen();
+    beatsList.querySelector<HTMLElement>(`.beats-item[data-index="${beatsCursor}"]`)?.focus();
+  } else {
+    renderInfo();
+    infoShownKey = '';
+    updateInfoPosition();
+    screenBacking.focus();
+  }
+}
+
+function openScreen(page: 'beats' | 'backing'): void {
+  if (page === 'beats') {
+    const index = PRESETS.findIndex((preset) => preset.id === loadedPresetId);
+    if (index >= 0) beatsCursor = index;
+  }
+  beatsScreen.hidden = false;
+  showPage(page);
+}
+
+function closeScreen(): void {
   beatsScreen.hidden = true;
   beatsToggle.focus();
+}
+
+function loadHighlighted(): void {
+  const preset = PRESETS[beatsCursor];
+  if (preset) loadPreset(preset);
+  closeScreen();
 }
 
 // The dock shows one view at a time: an opened panel, else the sampler while Sample is
@@ -488,7 +520,7 @@ function cycleBacking(): void {
     backing = false;
   }
   updateBackingButton();
-  if (!infoBackdrop.hidden) renderInfo();
+  if (backingShown()) renderInfo();
   saveBackingSettings();
 }
 
@@ -603,7 +635,7 @@ function setBpm(value: number): void {
   bpm = parseBpm(String(value));
   if (scheduler) scheduler.bpm = bpm;
   bpmInput.value = String(bpm);
-  if (!infoBackdrop.hidden) renderInfo();
+  if (backingShown()) renderInfo();
   try {
     localStorage.setItem(BPM_KEY, String(bpm));
   } catch {
@@ -646,7 +678,7 @@ function applyTheme(next: Theme): void {
   theme = next;
   audio?.setTheme(theme);
   updateThemeButton();
-  if (!infoBackdrop.hidden) renderInfo();
+  if (backingShown()) renderInfo();
   try {
     localStorage.setItem(THEME_KEY, theme.id);
   } catch {
@@ -709,19 +741,6 @@ function updateInfoPosition(): void {
   infoSections.forEach((span, index) => span.classList.toggle('current', index === current));
   infoMap.classList.toggle('dim', !songOn);
   infoPosition.textContent = text;
-}
-
-function openInfo(): void {
-  renderInfo();
-  infoBackdrop.hidden = false;
-  infoShownKey = '';
-  updateInfoPosition();
-  infoClose.focus();
-}
-
-function closeInfo(): void {
-  infoBackdrop.hidden = true;
-  infoToggle.focus();
 }
 
 function loadVolume(): number {
@@ -1079,7 +1098,7 @@ function restoreSnapshot(snapshot: Snapshot): void {
   savePattern();
   updateHud();
   updateStepHints();
-  if (!infoBackdrop.hidden) renderInfo();
+  if (backingShown()) renderInfo();
 }
 
 function loadPreset(preset: Preset): void {
@@ -1098,8 +1117,8 @@ function loadPreset(preset: Preset): void {
   updateStepHints();
   beatUndo.disabled = false;
   loadedPresetId = preset.id;
-  if (!beatsScreen.hidden) updateBeatsScreen();
-  if (!infoBackdrop.hidden) renderInfo();
+  if (!beatsScreen.hidden && screenPage === 'beats') updateBeatsScreen();
+  if (backingShown()) renderInfo();
 }
 
 function randomize(): void {
@@ -1111,7 +1130,7 @@ function randomize(): void {
   updateStepHints();
   beatUndo.disabled = false;
   loadedPresetId = null;
-  if (!beatsScreen.hidden) updateBeatsScreen();
+  if (!beatsScreen.hidden && screenPage === 'beats') updateBeatsScreen();
 }
 
 function undo(): void {
@@ -1121,7 +1140,7 @@ function undo(): void {
   restoreSnapshot(snapshot);
   beatUndo.disabled = true;
   loadedPresetId = null;
-  if (!beatsScreen.hidden) updateBeatsScreen();
+  if (!beatsScreen.hidden && screenPage === 'beats') updateBeatsScreen();
 }
 
 function cellAt(event: PointerEvent | MouseEvent): { col: number; row: number } | null {
@@ -1293,11 +1312,6 @@ clearButton.addEventListener('click', clearPattern);
 liveButton.addEventListener('click', () => setLiveMode(nextLiveMode(liveMode)));
 startButton.addEventListener('click', () => void startAudio());
 themeButton.addEventListener('click', cycleTheme);
-infoToggle.addEventListener('click', openInfo);
-infoClose.addEventListener('click', closeInfo);
-infoBackdrop.addEventListener('click', (event) => {
-  if (event.target === infoBackdrop) closeInfo();
-});
 volumeSlider.addEventListener('input', changeVolume);
 fxToggle.addEventListener('click', toggleFxPanel);
 for (const slider of [fxFilter, fxDelay, fxReverb, fxCrush]) {
@@ -1315,18 +1329,16 @@ for (const input of mixInputs) {
 }
 shareToggle.addEventListener('click', toggleSharePanel);
 mixToggle.addEventListener('click', toggleMixAll);
-beatsToggle.addEventListener('click', openBeats);
-beatsClose.addEventListener('click', closeBeats);
+beatsToggle.addEventListener('click', () => openScreen('beats'));
+screenBeats.addEventListener('click', () => showPage('beats'));
+screenBacking.addEventListener('click', () => showPage('backing'));
+beatsClose.addEventListener('click', closeScreen);
 beatsScreen.addEventListener('click', (event) => {
-  if (event.target === beatsScreen) closeBeats();
+  if (event.target === beatsScreen) closeScreen();
 });
 beatsUp.addEventListener('click', () => moveBeatsCursor(-1));
 beatsDown.addEventListener('click', () => moveBeatsCursor(1));
-beatsLoad.addEventListener('click', () => {
-  const preset = PRESETS[beatsCursor];
-  if (preset) loadPreset(preset);
-  updateBeatsScreen();
-});
+beatsLoad.addEventListener('click', loadHighlighted);
 beatRandom.addEventListener('click', randomize);
 beatUndo.addEventListener('click', undo);
 shareLinkButton.addEventListener('click', () => void copyShareLink());
@@ -1340,29 +1352,25 @@ window.addEventListener('keydown', (event) => {
   // The Beats screen takes the keyboard while it is open.
   if (!beatsScreen.hidden) {
     if (event.key === 'Escape') {
-      closeBeats();
-    } else if (event.key === 'ArrowUp') {
+      closeScreen();
+    } else if (event.key.toLowerCase() === 'i') {
+      if (screenPage === 'backing') closeScreen();
+      else showPage('backing');
+    } else if (event.code === 'Space') {
       event.preventDefault();
-      moveBeatsCursor(-1);
-    } else if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      moveBeatsCursor(1);
-    } else if (event.key === 'Enter') {
-      event.preventDefault();
-      const preset = PRESETS[beatsCursor];
-      if (preset) loadPreset(preset);
-      updateBeatsScreen();
-    } else if (event.code === 'Space' && !event.repeat) {
-      event.preventDefault();
-      togglePlay();
+      if (!event.repeat) togglePlay();
+    } else if (screenPage === 'beats') {
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        moveBeatsCursor(-1);
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        moveBeatsCursor(1);
+      } else if (event.key === 'Enter') {
+        event.preventDefault();
+        loadHighlighted();
+      }
     }
-    return;
-  }
-  // The backing info screen takes the keyboard while it is open.
-  if (!infoBackdrop.hidden) {
-    if (event.key === 'Escape' || event.key.toLowerCase() === 'i') closeInfo();
-    // Space would otherwise click the focused close button.
-    if (event.code === 'Space') event.preventDefault();
     return;
   }
   // Typing a tempo or moving a slider must not trigger the shortcuts.
@@ -1429,7 +1437,7 @@ window.addEventListener('keydown', (event) => {
       setFollow(!follow);
       break;
     case 'i':
-      openInfo();
+      openScreen('backing');
       break;
     case 'l':
       setLength(sequencer.length === 16 ? 32 : 16);
@@ -1475,7 +1483,7 @@ function frame(): void {
     const playPage = Math.floor(playhead / GRID_COLS);
     if (playPage !== page) setPage(playPage);
   }
-  if (!infoBackdrop.hidden) updateInfoPosition();
+  if (backingShown()) updateInfoPosition();
   const lit = Math.floor(playhead / GRID_COLS) === page ? playhead % GRID_COLS : -1;
   if (lit !== litStep) {
     stepLeds[litStep]?.classList.remove('on');

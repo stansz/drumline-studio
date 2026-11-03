@@ -31,7 +31,7 @@ Or open **Beats** and pick a preset to hear a full groove right away, then chang
 - **Header:** the logo, the **Notes** and **Step** readouts, **Length** (16 or 32 steps), **Page**
   and **Follow** (with 32 steps), and **Share**.
 - **Board:** the grid. Each column is one step (a sixteenth note), and each row is a pitch.
-- **Tab row:** **Mix**, **Beats**, **FX**, **♪ Theme**, **Backing**, and **ⓘ**.
+- **Tab row:** **Mix**, **FX**, **♪ Theme**, **Backing**, and **Beats**.
 - **Dock:** the slot under the tab row. It shows one panel at a time: the selected instrument's
   volume, the sampler, or whichever of Mix, FX, or Share is open. Opening a panel never moves the
   board.
@@ -84,12 +84,12 @@ Themes change the sound only, never your pattern or the tempo.
 - **Loop** repeats the theme's verse.
 - **Off** plays only your pattern, plus a metronome click while the grid is empty.
 
-**ⓘ** opens a panel about the current theme's backing: a description, the current mode, a map of
-the song's sections (the one playing is highlighted), the verse and chorus chords, whether the feel
-is straight or swung, and the tempo. Close it with **✕**, **Esc**, **I**, or a click outside it.
-The music keeps playing while it is open.
+The **Backing** page of the Beats screen (tap **Beats**, then the **Backing** tab, or press **I**)
+shows the description, the current mode, the song map with the playing section highlighted, the
+chords, the feel, and the tempo. **I** again, **Esc**, **✕**, or a click outside closes it; the
+music keeps playing.
 
-![The backing info panel](images/info.png)
+![The Backing page of the Beats screen](images/info.png)
 
 ## Beats: grooves, tunes, and Random
 
@@ -102,11 +102,11 @@ the Backing mode, and some set a scale for the synth. The music keeps playing, a
 takes over on the next step.
 
 The screen shows the highlighted preset's tempo, theme, length, Backing mode, and a one-line
-description. Tap a preset to load it; the screen stays open so you can try others. **▲** and **▼**
-(or the arrow keys) move the highlight without loading, and **Load** (or **Enter**) loads it.
-**Space** plays or pauses while the screen is open. The loaded preset is marked with ♪. **Random**
-and **Undo** work as before and are on the screen. Close it with **✕**, **Esc**, or a click outside
-it.
+description. **▲** and **▼** (or the arrow keys) move the highlight without loading. **Load**
+(or **Enter**) loads the highlighted preset and closes the screen; tapping a preset loads it and
+keeps the screen open so you can try others. **Space** plays or pauses while the screen is open.
+The loaded preset is marked with ♪. **Random** and **Undo** work as before and are on the screen.
+Close it with **✕**, **Esc**, or a click outside it.
 
 **Random** makes a fresh 16-step groove: kick on the one, snare on 2 and 4, a hat pattern, a bass
 line that follows the kick, and a few synth notes in key. It keeps your theme, tempo, length, and
@@ -185,7 +185,7 @@ Backing mode, Follow setting, FX, and picked sample sound.
 | **-** / **=** | Slower or faster by 1 BPM (with Shift, by 10) |
 | **T** | Next theme |
 | **B** | Backing: Song, Loop, or Off |
-| **I** | Backing info panel |
+| **I** | Backing page of the Beats screen |
 | **X** | FX panel |
 | **E** | Share panel |
 | **R** | Start or stop recording |
@@ -196,8 +196,9 @@ Backing mode, Follow setting, FX, and picked sample sound.
 | **F** | Follow on or off (32 steps) |
 
 On the start screen, **Enter** or **Space** turns on the sound without starting the beat, and **T**
-changes the theme. While the backing info panel is open, **Esc** or **I** closes it and other keys
-are ignored.
+changes the theme. While the Beats screen is open, **Esc** closes it, **I** switches to or closes
+the Backing page, **Space** plays or pauses, and the arrow keys and **Enter** work on the Beats
+page; other keys are ignored.
 
 ## On a phone
 

@@ -22,7 +22,7 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
 - `src/live.ts`: live-play modes, key rows, and nearest-step quantizing; hidden by `LIVE_TOOLS`.
 - `src/music.ts`: chords, arpeggios, and how the backing music builds up.
 - `src/song.ts`: the song form's sections, the section a step falls in, how each section changes
-  the backing layers, and the pure helpers the backing info screen uses (`songMap`,
+  the backing layers, and the pure helpers the Backing page uses (`songMap`,
   `sectionIndexAt`, `describeSwing`, `SECTION_NAMES`).
 - `src/themes.ts`: one entry for each music theme.
 - `src/presets.ts`: the named synth scales and the beat presets (`PRESETS`, `presetById`).
@@ -33,9 +33,9 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
 - `src/render.ts`: draws the board into a 256×128 buffer, then scales it onto the canvas.
 - `src/sprites.ts`: colors, sprites, and bitmap letters, stored as data.
 - `src/pixel.ts`: pixel line, circle, and dither helpers with no DOM.
-- `src/style.css`: the page layout and the look of the controls, panels, and info screen.
+- `src/style.css`: the page layout and the look of the controls, panels, and screen pages.
 - `src/fonts/`: self-hosted Silkscreen and VT323 fonts and their licenses.
-- `src/main.ts`: connects everything, and handles input, the HUD, the dock, the info screen, and
+- `src/main.ts`: connects everything, and handles input, the HUD, the dock, the Beats screen, and
   saved settings.
 
 `tests/`:
@@ -68,7 +68,8 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
 
 Elsewhere:
 
-- `index.html`: the page markup, the HUD, the tab row, the dock, and the backing info dialog.
+- `index.html`: the page markup, the HUD, the tab row, the dock, and the Beats screen with its Beats
+  and Backing pages.
 - `package.json`: the scripts and the Vite, Vitest, and TypeScript versions.
 - `vite.config.ts`: Vite config; `base: './'` keeps the build working from any path.
 - `tsconfig.json`: strict TypeScript for `src` and `tests`.
@@ -93,7 +94,7 @@ Elsewhere:
    was painted with.
 3. Notes wait in `queued`, and `frame()` flashes them on the board once audio time reaches them.
    `onStep` also pushes `{ at, step, musicStep }` onto `stepMarks`; `frame()` consumes the marks
-   against the audio time being heard, which moves the playhead and, while the info screen is
+   against the audio time being heard, which moves the playhead and, while the Backing page is
    open, the highlighted section.
 
 Pause stops the scheduler and keeps the step. Stop also rewinds and resets `musicStep`. Notes
@@ -174,7 +175,7 @@ On phones held sideways, the controls sit in a column beside the board, which gi
 screen. `#rotate-hint` on the start screen points players to that layout. These layouts were
 measured in headless Edge at phone sizes, not on a real phone.
 
-The tab row directly above the dock holds the Mix, Beats, FX, Theme, Backing, and ⓘ buttons. The
+The tab row directly above the dock holds the Mix, FX, Theme, Backing, and Beats buttons. The
 header holds the logo, the Notes and Step readouts, the Share button, and the Length and Follow
 buttons; the transport holds Play, Stop, BPM, Mute, and Clear. The Master volume is the first
 slider in the `mixall` view of the dock. The Theme button cycles to the next theme.
@@ -188,19 +189,23 @@ sampler panel, and the Master and Backing volume sliders are in the `mixall` vie
 The dock's height comes from the `--dock-h` custom property, so swapping views never moves the
 board or the controls.
 
-The backing info screen is a separate fixed overlay, `#backing-info`, outside the dock. `ⓘ` in the
-tab row above the dock (key **I**) opens it; `main.ts` builds the song map once from `songMap()` at startup, and
-`renderInfo()` fills the title, blurb, backing mode, chord names, feel, and tempo. While it is
-open, each `frame()` compares the heard `musicStep` against the last rendered section index and bar
-and only then touches the DOM: the map's `current` class and the `Now:` line follow the song, and
-the map dims with a short message when the backing is a loop or off. Opening moves focus to the
-close button, closing returns it to `ⓘ`, and the keyboard closes the screen on **Esc** or **I**
-while ignoring other keys.
+The Beats screen (`#beats-screen`) is a fixed overlay outside the dock with two pages, **Beats**
+(`#beats-page`) and **Backing** (`#backing-page`). The **Beats** button in the tab row (key **I**)
+opens it. `openScreen(page)` shows the screen on a page, `showPage(page)` switches pages and updates
+the tabs, `closeScreen()` hides it, and `backingShown()` reports whether the Backing page is open.
+`renderBeatsList()` builds the preset list from `PRESETS` grouped by `kind`, and
+`updateBeatsScreen()` shows the highlighted preset (`beatsCursor`) and marks the loaded one
+(`loadedPresetId`). **Load** (or **Enter**) loads the highlighted preset and closes the screen;
+tapping a preset loads it and keeps the screen open. The screen takes the keyboard while open:
+**Esc** closes it, **I** switches to or closes the Backing page, **Space** plays or pauses, and the
+arrow keys and **Enter** work on the Beats page; other keys are ignored. Opening the screen moves
+focus to the active preset or the Backing tab, and closing returns it to the Beats button.
 
-The Beats screen (`#beats-screen`) is a pop-up like the backing info screen. `renderBeatsList()`
-builds it from `PRESETS` grouped by `kind`, `updateBeatsScreen()` shows the highlighted preset
-(`beatsCursor`) and marks the loaded one (`loadedPresetId`), and the screen takes the keyboard
-while open.
+The Backing page holds the backing info: `main.ts` builds the song map once from `songMap()` at
+startup, and `renderInfo()` fills the title, blurb, backing mode, chord names, feel, and tempo.
+While the page is open, each `frame()` compares the heard `musicStep` against the last rendered
+section index and bar and only then touches the DOM: the map's `current` class and the `Now:` line
+follow the song, and the map dims with a short message when the backing is a loop or off.
 
 ## Audio load
 
@@ -234,11 +239,11 @@ These values are saved to `localStorage` when they change, and come back on the 
   optional top-level `scale` holds a preset scale id; it is read only when it matches
   `/^[a-z0-9-]{1,24}$/`, and unknown ids fall back to the theme's scale.
 
-The Beats panel keeps one level of undo. A preset or Random first copies the cells, length, tempo,
+The Beats screen keeps one level of undo. A preset or Random first copies the cells, length, tempo,
 theme, backing and sections, and scale into a snapshot; Undo restores that snapshot through
 `loadCells`, `setLength`, `setBpm`, `applyTheme`, and `setScale`, then saves it.
 
-Mute, the shown page, whether the panels are open, and whether the info screen is open are not
+Mute, the shown page, whether the panels are open, and which page the Beats screen shows are not
 saved. Mute zeroes the master gain, before the recording tap, so it also silences recordings.
 
 The recorded or loaded user sample lives in IndexedDB: database `drumline`, store `samples`, key
@@ -283,5 +288,5 @@ track ends at the pattern length.
 - Navigating to the same URL with only a new `#hash` doesn't reload the page. Load `about:blank`
   first when testing share links.
 - Downloads in headless Edge need `Page.setDownloadBehavior`.
-- Press **I** during playback to check that the info screen's highlighted section and bar advance,
-  and check that **Esc**, **I**, **✕**, and a backdrop click each close it.
+- Press **I** during playback to check that the Backing page's highlighted section and bar advance,
+  and check that **Esc**, **I**, **✕**, and a backdrop click each close the screen.

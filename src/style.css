@@ -136,7 +136,7 @@ body {
 /* ---- Tab row ---- */
 .tabs {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 6px;
 }
 
@@ -149,10 +149,6 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-#info-toggle {
-  min-width: 40px;
 }
 
 #volume {
@@ -465,7 +461,7 @@ body {
 
 .pads {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 6px;
   flex: 1;
   align-content: stretch;
@@ -619,6 +615,9 @@ body {
 
 .pad b {
   font: 400 0.72rem/1.1 var(--label);
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .pad small {
@@ -704,7 +703,7 @@ body {
   gap: 10px;
 }
 
-.info-head h2 {
+.info-title {
   margin: 0;
   font: 400 0.9rem/1.2 var(--label);
   color: var(--amber);
@@ -845,6 +844,32 @@ body {
 .beats-controls .hw {
   min-height: 40px;
   padding-inline: 12px;
+}
+
+.screen-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.screen-tabs .hw {
+  min-height: 32px;
+  padding-inline: 12px;
+  font-size: 0.7rem;
+}
+
+.screen-tabs .hw.selected {
+  color: var(--amber);
+  background: #4a4655;
+}
+
+.screen-page {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.screen-page[hidden] {
+  display: none;
 }
 
 /* ---- Overlay ---- */
@@ -1063,6 +1088,22 @@ body {
   .share-status {
     display: none;
   }
+
+  .pad {
+    padding-inline: 2px;
+  }
+
+  .pad b {
+    font-size: min(0.72rem, 2.6vw);
+  }
+
+  .tempo .lcd {
+    font-size: min(1.25rem, 4.6vw);
+  }
+
+  .tempo .lcd small {
+    font-size: min(0.6rem, 2.2vw);
+  }
 }
 
 /* ---- Small phones ---- */
@@ -1234,9 +1275,12 @@ body {
   #tabs {
     grid-column: 2;
     grid-row: 2;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 4px;
   }
+
+  #tabs .hw { grid-column: span 2; }
+  #tabs .hw:nth-child(n + 4) { grid-column: span 3; }
 
   #tabs .hw {
     min-height: 28px;
@@ -1340,6 +1384,6 @@ body {
 /* ---- Very narrow phones: six pad labels need a smaller font ---- */
 @media (max-width: 380px) {
   .pad b {
-    font-size: 0.62rem;
+    font-size: min(0.62rem, 2.6vw);
   }
 }
