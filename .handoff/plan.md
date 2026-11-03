@@ -1,495 +1,183 @@
-# Plan: Sample instrument with a sampler panel of built-in sounds
+# Plan: Separate backing-music level per theme, and loudness checks for it
 
 ## Goal
 
-In Drumline Studio (`C:\Users\sz\Documents\Code\drumline-studio`), add a fifth instrument,
-**Sample** (key **5**). While Sample is the selected instrument, a **sampler panel** shows six
-built-in sounds: Clap, Cowbell, Rimshot, Tom, Shaker, and Zap.
+In Drumline Studio (`C:\Users\sz\Documents\Code\drumline-studio`), each theme's
+`space.trim` boosts the whole mix. It was tuned for the instruments, so themes with big
+trims (Chiptune 2.7, Funk 2.4) have backing music far louder than the others. Measured on
+the live site with an empty grid: Neon −25.7 dB, Chiptune −18.8, Lo-fi −23.4, Techno −27.2,
+Funk −21.8.
 
-- Clicking a sound picks it for the Sample instrument and plays it once.
-- Rows set the pitch: the bottom row plays the sound as recorded, and each higher row plays
-  it higher in pitch, up to an octave at the top row.
-- The sounds are generated in code into audio buffers. There are no audio files.
-- The chosen sound is saved and carried in share links (a new `v2` link format; `v1` links
-  still load) and in MIDI export.
+Make two changes:
 
-Microphone recording and loading sound files are a later round. They are not part of this
-plan.
+1. **Audio:**
+   - Add `space.musicTrim` to each theme. It sets the backing music's level on its own:
+     the backing ends up scaled by `musicTrim` no matter what `trim` is.
+   - `trim` keeps scaling the instruments.
+2. **Loudness harness (`tests/loudness.ts`):** measure the two separately.
+   - **Instrument boards** render with no backing music, and are checked against `trim`.
+   - **Backing boards** render backing music only, with no notes, and are checked against
+     `musicTrim`, by comparing each theme with Neon rendered in the same run.
+
+The final `musicTrim` and `trim` numbers are tuned afterwards by the verifier in a browser.
+This plan sets the starting values below.
 
 ## Files to touch
 
-- `src/samples.ts` (new)
-- `src/sampler.ts` (new)
-- `src/config.ts`
-- `src/sequencer.ts`
+- `src/themes.ts`
 - `src/audio.ts`
-- `src/sprites.ts`
-- `src/render.ts`
-- `src/pattern.ts`
-- `src/midi.ts`
-- `src/main.ts`
-- `src/style.css`
-- `index.html`
-- `tests/samples.test.ts` (new)
-- `tests/pattern.test.ts`
-- `tests/midi.test.ts`
-- `tests/voices.test.ts`
-- `tests/sprites.test.ts`
-- `README.md`
-- `AGENTS.md`
+- `tests/loudness.ts`
+- `tests/loudness-baseline.ts`
+- `tests/themes.test.ts`
+- `docs/themes.md`
 - `docs/references.md`
+- `AGENTS.md`
 - `.handoff/report.md`
 
 ## Steps
 
-### 1. `src/samples.ts` (new; no DOM, no audio, no `localStorage`)
+### 1. `src/themes.ts`
 
-```ts
-export interface SamplePreset {
-  id: string;
-  name: string;
-  midiNote: number; // General MIDI drum note used for MIDI export
-}
+- In the `Theme` type's `space`, add `musicTrim: number;` directly after `trim: number;`,
+  with this comment on the line above it:
+  `// Backing-music level, independent of trim. Neon stays at 1.`
+- Add `musicTrim` to every theme's `space`, directly after `trim`:
+  - Neon 1
+  - Chiptune 1.22
+  - Lo-fi 0.77
+  - Techno 1.19
+  - Funk 1.53
+- Change no other theme values.
 
-export const SAMPLE_PRESETS: readonly SamplePreset[] = [
-  { id: 'clap', name: 'Clap', midiNote: 39 },
-  { id: 'cowbell', name: 'Cowbell', midiNote: 56 },
-  { id: 'rim', name: 'Rimshot', midiNote: 37 },
-  { id: 'tom', name: 'Tom', midiNote: 45 },
-  { id: 'shaker', name: 'Shaker', midiNote: 70 },
-  { id: 'zap', name: 'Zap', midiNote: 81 },
-];
+### 2. `src/audio.ts`
 
-export const DEFAULT_SAMPLE = 'clap';
-
-export function sampleById(id: string | null): SamplePreset {
-  return SAMPLE_PRESETS.find((preset) => preset.id === id) ?? (SAMPLE_PRESETS[0] as SamplePreset);
-}
-
-// Semitones above the recorded pitch, indexed by board row (row 7 is the bottom).
-const ROW_SEMITONES = [12, 11, 9, 7, 5, 4, 2, 0];
-
-export function rateForRow(row: number): number {
-  const semitones = ROW_SEMITONES[Math.max(0, Math.min(7, Math.round(row)))] ?? 0;
-  return Math.pow(2, semitones / 12);
-}
-```
-
-### 2. `src/sampler.ts` (new; audio rendering only, no DOM)
-
-Renders each preset once into an `AudioBuffer` with an `OfflineAudioContext`.
-
-```ts
-import { SAMPLE_PRESETS } from './samples';
-
-const SAMPLE_SECONDS = 0.6;
-
-type Recipe = (ctx: OfflineAudioContext, noise: AudioBuffer) => void;
-
-function noiseBuffer(ctx: BaseAudioContext): AudioBuffer {
-  const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * SAMPLE_SECONDS), ctx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < data.length; i += 1) data[i] = Math.random() * 2 - 1;
-  return buffer;
-}
-
-function burst(
-  ctx: OfflineAudioContext,
-  noise: AudioBuffer,
-  start: number,
-  decay: number,
-  type: BiquadFilterType,
-  hz: number,
-  q: number,
-  level: number,
-): void {
-  const source = ctx.createBufferSource();
-  source.buffer = noise;
-  const filter = ctx.createBiquadFilter();
-  filter.type = type;
-  filter.frequency.value = hz;
-  filter.Q.value = q;
-  const gain = ctx.createGain();
-  gain.gain.setValueAtTime(0.0001, 0);
-  gain.gain.setValueAtTime(level, start);
-  gain.gain.exponentialRampToValueAtTime(0.0001, start + decay);
-  source.connect(filter);
-  filter.connect(gain);
-  gain.connect(ctx.destination);
-  source.start(start);
-  source.stop(start + decay + 0.01);
-}
-
-function tone(
-  ctx: OfflineAudioContext,
-  type: OscillatorType,
-  fromHz: number,
-  toHz: number,
-  sweep: number,
-  decay: number,
-  level: number,
-): void {
-  const osc = ctx.createOscillator();
-  osc.type = type;
-  osc.frequency.setValueAtTime(fromHz, 0);
-  osc.frequency.exponentialRampToValueAtTime(toHz, sweep);
-  const gain = ctx.createGain();
-  gain.gain.setValueAtTime(level, 0);
-  gain.gain.exponentialRampToValueAtTime(0.0001, decay);
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  osc.start(0);
-  osc.stop(decay + 0.01);
-}
-
-const RECIPES: Record<string, Recipe> = {
-  clap: (ctx, noise) => {
-    for (const start of [0, 0.011, 0.022]) burst(ctx, noise, start, 0.012, 'bandpass', 1500, 1.5, 0.9);
-    burst(ctx, noise, 0.03, 0.18, 'bandpass', 1300, 1.2, 0.6);
-  },
-  cowbell: (ctx) => {
-    for (const hz of [540, 800]) {
-      const osc = ctx.createOscillator();
-      osc.type = 'square';
-      osc.frequency.value = hz;
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.value = 800;
-      filter.Q.value = 1.2;
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.5, 0);
-      gain.gain.exponentialRampToValueAtTime(0.0001, 0.35);
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(0);
-      osc.stop(0.36);
-    }
-  },
-  rim: (ctx, noise) => {
-    tone(ctx, 'triangle', 1700, 1600, 0.02, 0.04, 0.9);
-    burst(ctx, noise, 0, 0.012, 'highpass', 3000, 0.7, 0.5);
-  },
-  tom: (ctx) => {
-    tone(ctx, 'sine', 170, 105, 0.25, 0.4, 1);
-  },
-  shaker: (ctx, noise) => {
-    const source = ctx.createBufferSource();
-    source.buffer = noise;
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'highpass';
-    filter.frequency.value = 6000;
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.0001, 0);
-    gain.gain.linearRampToValueAtTime(0.7, 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, 0.1);
-    source.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
-    source.start(0);
-    source.stop(0.11);
-  },
-  zap: (ctx) => {
-    tone(ctx, 'sine', 1200, 60, 0.15, 0.18, 0.9);
-  },
-};
-
-// Scales a buffer so its loudest sample is at `peak`.
-function normalize(buffer: AudioBuffer, peak = 0.9): AudioBuffer {
-  const data = buffer.getChannelData(0);
-  let max = 0;
-  for (let i = 0; i < data.length; i += 1) max = Math.max(max, Math.abs(data[i] ?? 0));
-  if (max > 0) {
-    const scale = peak / max;
-    for (let i = 0; i < data.length; i += 1) data[i] = (data[i] ?? 0) * scale;
-  }
-  return buffer;
-}
-
-export async function renderSamples(sampleRate: number): Promise<Map<string, AudioBuffer>> {
-  const result = new Map<string, AudioBuffer>();
-  for (const preset of SAMPLE_PRESETS) {
-    const recipe = RECIPES[preset.id];
-    if (!recipe) continue;
-    const ctx = new OfflineAudioContext(1, Math.floor(sampleRate * SAMPLE_SECONDS), sampleRate);
-    recipe(ctx, noiseBuffer(ctx));
-    result.set(preset.id, normalize(await ctx.startRendering()));
-  }
-  return result;
-}
-```
-
-### 3. `src/config.ts`
-
-- `MIX`: add `sample: 0.5,` after `snare`.
-- `VOICE_LIMITS`: add `sample: 2`.
-- `INSTRUMENT_INFO`: add
-  `sample: { name: 'Sample', description: 'Plays the sound picked in the sampler panel. Higher rows play it higher.' },`.
-
-### 4. `src/sequencer.ts`
-
-- `Instrument` adds `'sample'`. `INSTRUMENTS` becomes
-  `['kick', 'hat', 'synth', 'snare', 'sample']`.
-  The order matters: the share-link instrument index depends on it.
-
-### 5. `src/audio.ts`
-
-- Import `renderSamples` from `./sampler` and `DEFAULT_SAMPLE, rateForRow` from `./samples`.
-- Add private fields `samples = new Map<string, AudioBuffer>()` and
-  `sampleId: string = DEFAULT_SAMPLE`.
-- Add public methods:
+- Add a private field `musicTrim: GainNode`.
+- In the constructor:
+  - Create `this.musicTrim = ctx.createGain()` with `gain.value = 1`.
+  - Change the wiring so the music bus goes through it:
+    - Replace `this.musicBus.connect(this.master);` with
+      `this.musicBus.connect(this.musicTrim); this.musicTrim.connect(this.master);`.
+    - Replace `this.musicBus.connect(this.musicReverbSend);` with
+      `this.musicTrim.connect(this.musicReverbSend);`.
+  - Leave every other connection as it is. Kick ducking keeps automating `musicBus.gain`.
+- In `setTheme`, next to the line that sets `this.trim.gain`, add:
 
   ```ts
-  async loadSamples(): Promise<void> {
-    this.samples = await renderSamples(this.ctx.sampleRate);
-  }
-
-  setSample(id: string): void {
-    this.sampleId = id;
-  }
-
-  // Plays the current sample at its recorded pitch right away, for the sampler panel.
-  auditionSample(): void {
-    this.playSample(7, this.ctx.currentTime, 1);
-  }
+  // The master trim also scales the backing, so divide it back out: the backing ends up at
+  // musicTrim whatever the instruments' trim is.
+  this.musicTrim.gain.setTargetAtTime(space.musicTrim / space.trim, now, 0.02);
   ```
 
-- In `playNote`, add `} else if (instrument === 'sample') { this.playSample(row, time, level); }`
-  before the final `else`.
-- Add:
+- Add a public method for the harness only:
 
   ```ts
-  private playSample(row: number, time: number, level: number): void {
-    const buffer = this.samples.get(this.sampleId);
-    if (!buffer) return;
-    const source = this.ctx.createBufferSource();
-    source.buffer = buffer;
-    source.playbackRate.value = rateForRow(row);
-    const gain = this.ctx.createGain();
-    gain.gain.value = Math.max(MIX.sample * level, 0.0001);
-    source.connect(gain);
-    gain.connect(this.towerBus);
-    source.start(time);
+  // Silences the backing music, for loudness checks of the instruments alone.
+  setMusicEnabled(enabled: boolean): void {
+    this.musicBus.gain.cancelScheduledValues(this.ctx.currentTime);
+    this.musicBus.gain.value = enabled ? 1 : 0;
   }
   ```
 
-### 6. `src/sprites.ts`
+  Not used by `main.ts`. Rendering in the harness without calling `playMusicStep` is the main
+  way to skip music. This method exists so that the kick ducking can't bring music back. It
+  is not strictly needed. If it complicates anything, skip it and say so in the report.
 
-Add `sample` to `SpriteName` and this entry to `SPRITES` after `snare`:
+### 3. `tests/loudness.ts`
+
+- `renderBoard` gains a fourth-position options parameter, before `theme`:
+  `mode: 'notes' | 'backing'`, plus an optional `intensityLevel?: number`.
+  - `'notes'`: render the board's notes only. Do not call `audio.playMusicStep`.
+  - `'backing'`: render only `audio.playMusicStep` with
+    `layerLevels(intensityLevel ?? intensity(0, 5))`, and no notes. The board is ignored.
+
+  Use this signature:
+  `renderBoard(name, board, bpm, mode, theme, intensityLevel?)`.
+- Add backing boards:
+
+  ```ts
+  // Backing music alone, at the level an empty grid gets and at the fullest it gets.
+  const BACKING_BOARDS: Record<string, number> = {
+    'backing quiet': intensity(0, 5),
+    'backing full': 1,
+  };
+  ```
+
+- `runLoudness`:
+  - Neon's non-theme pass (all `BOARDS`, both BPMs) uses mode `'notes'`.
+  - For every theme in the run (the `?theme=` filter as now), render `THEME_BOARDS` with
+    mode `'notes'`.
+  - For every theme in the run **and always for Neon**, render each `BACKING_BOARDS` entry
+    at both BPMs with mode `'backing'`.
+  - Neon must be included in the backing pass even when `?theme=` names another theme, so
+    each run has its own Neon backing reference.
+- `themeOffsets`: unchanged in logic. It only uses results whose board is in
+  `NEON_BASELINE`, so backing results are excluded automatically.
+- Add `musicOffsets(results)`:
+  - For each theme other than Neon, take the mean of
+    `result.rmsDb − neonBacking[board][bpm]` over its backing results, where `neonBacking`
+    comes from Neon's backing results in the same run.
+  - Return `{ [theme name]: offset }`, rounded to 0.1.
+- Add `suggestedMusicTrims(offsets)`: like `suggestedTrims`, but
+  `theme.space.musicTrim * 10 ** (-offset / LIMITER_RESPONSE / 20)`.
+- Report object: add `musicOffsets` and `suggestedMusicTrims` after `suggestedTrims`.
+- Title: `PASS` requires nothing clipped, every `offsets` value within
+  `LOUDNESS_TOLERANCE_DB`, **and** every `musicOffsets` value within it.
+- Rename the result field `towers` to `notes`.
+- Update the header comment to describe both checks.
+
+### 4. `tests/loudness-baseline.ts`
+
+Keep the existing numbers. Change the comment to:
 
 ```ts
-sample: [
-  [
-    '................',
-    '.00000000000000.',
-    '.09999999999990.',
-    '.09bbbbbbbbbb90.',
-    '.09b00000000b90.',
-    '.09b0000a000b90.',
-    '.09b0a00a0a0b90.',
-    '.09b0aa0aaa0b90.',
-    '.09b0aaaaaa0b90.',
-    '.09b00000000b90.',
-    '.09bbbbbbbbbb90.',
-    '.09999999999990.',
-    '.09a9a999999990.',
-    '.00000000000000.',
-    '................',
-    '................',
-  ],
-  [
-    '................',
-    '.00000000000000.',
-    '.09999999999990.',
-    '.09bbbbbbbbbb90.',
-    '.09b00006000b90.',
-    '.09b06006060b90.',
-    '.09b06606660b90.',
-    '.09b06666660b90.',
-    '.09b06666660b90.',
-    '.09b00000000b90.',
-    '.09bbbbbbbbbb90.',
-    '.09999999999990.',
-    '.09696999999990.',
-    '.00000000000000.',
-    '................',
-    '................',
-  ],
-],
+// Neon's average level in dB for the instrument boards, rendered without backing music. Refresh
+// from the loudness page's `baseline` output whenever Neon, the shared audio chain, or the way
+// boards are rendered changes. Backing levels need no baseline: each run renders Neon's backing.
 ```
 
-Every row must be exactly 16 characters; the sprite test checks this.
+The verifier will refresh the numbers in a browser after this change.
 
-### 7. `src/render.ts`
+### 5. `tests/themes.test.ts`
 
-- Add `sample: PIXEL_COLORS['9'],` to `NOTE_OUTLINE`.
+Add these assertions:
 
-### 8. `src/pattern.ts`
+- `DEFAULT_THEME.space.musicTrim` is 1.
+- Every theme's `space.musicTrim` is a finite number between 0.25 and 4.
 
-- `SharedBeat` gains `sampleId: string`.
-- `encodeShare` now writes version 2:
-  `['v2', length, bpm, themeId, sampleId, cells].join('.')`, packing each cell's second byte as
-  `row * 5 + instrumentIndex`.
-- `decodeShare` accepts both versions:
-  - `v1`: 5 parts, second byte = `row * 4 + index`, `sampleId` set to `DEFAULT_SAMPLE`
-    (import it from `./samples`).
-  - `v2`: 6 parts, second byte = `row * 5 + index`. `sampleId` must match
-    `/^[a-z0-9-]{1,24}$/`, otherwise return null. An unknown but well-formed id is returned
-    as is. `main.ts` passes it through `sampleById`, which falls back to Clap.
-  - Anything else returns null.
-- Update the format comment above `encodeShare` to describe both versions.
+### 6. Docs
 
-### 9. `src/midi.ts`
-
-- `patternToMidi` gains a fifth parameter `sampleNote: number`. Sample cells go on the drum
-  channel with that note.
-- Update the doc comment.
-
-### 10. `index.html`
-
-- After the `#tool-snare` pad, add:
-  `<button id="tool-sample" class="pad" type="button"><span class="led"></span><canvas data-sprite="sample" width="16" height="16"></canvas><b>Sample</b><kbd>5</kbd></button>`
-- After the `#share` panel, add:
-  `<div id="sampler" class="fx-panel sampler-panel" hidden><small class="sampler-cap">Sample</small><div id="sample-list" class="sample-list"></div></div>`
-
-### 11. `src/main.ts`
-
-- Imports: `SAMPLE_PRESETS, sampleById, type SamplePreset` from `./samples`.
-- Elements: `sampleButton` (`#tool-sample`), `samplerPanel` (`#sampler`), `sampleList`
-  (`#sample-list`). Constant `SAMPLE_KEY = 'drumline-sample'`.
-- `let sample: SamplePreset = loadSample();`. `loadSample` reads `SAMPLE_KEY` through
-  `sampleById` inside `try`/`catch`, like `loadTheme`.
-- At startup, for each preset, create
-  `<button class="hw" type="button" data-sample="<id>">` with the preset's name as its text,
-  and append it to `sampleList`.
-- Add:
-
-  ```ts
-  function updateSampler(): void {
-    samplerPanel.hidden = selected !== 'sample';
-    sampleList.querySelectorAll<HTMLButtonElement>('button').forEach((button) => {
-      button.classList.toggle('selected', button.dataset.sample === sample.id);
-    });
-  }
-
-  function pickSample(id: string): void {
-    sample = sampleById(id);
-    audio?.setSample(sample.id);
-    try {
-      localStorage.setItem(SAMPLE_KEY, sample.id);
-    } catch {
-      // The choice still applies for this visit.
-    }
-    updateSampler();
-    audio?.auditionSample();
-  }
-  ```
-
-  - Clicking a preset button calls `pickSample(button.dataset.sample)`.
-  - `updateSelection` toggles `selected` on `sampleButton` and calls `updateSampler()`.
-- Keys: `case '5': selectTool('sample'); break;`.
-- `startAudio`: after `audio.setFx(fx);`, add `audio.setSample(sample.id);` and
-  `void audio.loadSamples();`.
-- Share link:
-  - `encodeShare` gets `sampleId: sample.id`.
-  - When a shared beat loads, call `pickSample`'s storage logic without auditioning: set
-    `sample = sampleById(shared.sampleId)`, save it to `SAMPLE_KEY` in `try`/`catch`, and
-    call `updateSampler()`.
-- MIDI: pass `sample.midiNote` as the new last argument of `patternToMidi`.
-
-### 12. `src/style.css`
-
-- `.pads`: `grid-template-columns: repeat(5, 1fr);`. Also change any other `.pads` rule with
-  4 columns to 5.
-- Add `#tool-sample { --c: var(--orange); }` next to the other `#tool-*` rules.
-- Add:
-
-  ```css
-  .sampler-panel {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .sampler-cap {
-    font: 400 0.6rem/1 var(--label);
-    color: var(--mute);
-  }
-
-  .sample-list {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 6px;
-  }
-  ```
-
-- Inside `@media (max-width: 760px)`, after the `.fx-panel` rule, add
-  `.sampler-panel { grid-template-columns: 1fr; }` and
-  `.sample-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }`.
-- Inside `@media (max-height: 520px) and (orientation: landscape)`, add `#sampler` to the
-  `#fx, #share` fixed-position selector.
-
-### 13. Tests
-
-- `tests/samples.test.ts` (new):
-  - Preset ids are unique and match `/^[a-z0-9-]{1,24}$/`.
-  - `sampleById('cowbell').name` is `'Cowbell'`. `sampleById('nope')` and `sampleById(null)`
-    return the Clap preset.
-  - `DEFAULT_SAMPLE` is a preset id.
-  - `rateForRow(7)` is 1. `rateForRow(0)` is close to 2. `rateForRow(4)` is close to
-    `2 ** (5 / 12)`. Rows rise monotonically from 7 to 0. Out-of-range rows clamp:
-    `rateForRow(-3)` equals `rateForRow(0)`, and `rateForRow(12)` equals `rateForRow(7)`.
-- `tests/pattern.test.ts`:
-  - Update the existing share tests for `v2` and `sampleId`, including a `sample` cell at
-    column 31, row 7.
-  - Keep the format regex test, updated to
-    `/^v2\.(16|32)\.\d+\.[a-z0-9-]+\.[a-z0-9-]+\.[A-Za-z0-9_-]*$/`.
-  - Add: the v1 link `'v1.32.120.chiptune.ABwEHAgcDBwCAh8P'` still decodes, to length 32, bpm
-    120, theme `'chiptune'`, sampleId `'clap'`, and these six cells in any order: kick at
-    0,7, 4,7, 8,7, 12,7; snare at 2,0 and 31,3.
-  - Add: a v2 link with sampleId `'BAD!'` returns null.
-  - `parsePattern` accepts a `sample` cell.
-- `tests/midi.test.ts`: pass a sample note (e.g. 56) everywhere. Add: a sample cell produces
-  note-on bytes `0x99 56 100`.
-- `tests/voices.test.ts`: include `sample` with a limit of 2.
-- `tests/sprites.test.ts`: the size test and the key-list test include `sample`.
-
-### 14. Docs
-
-- `README.md`:
-  - Five instruments; key **5** is Sample.
-  - New `### Sampler` subsection after "Painting a pattern": selecting Sample opens the
-    sampler panel with the six built-in sounds. Clicking one picks it and plays it. Rows set
-    its pitch, from as recorded at the bottom to an octave up at the top. The chosen sound is
-    remembered and included in share links and MIDI export.
-  - Add **5** to the Controls list.
-  - Note that older share links still open.
-- `AGENTS.md`:
-  - Add `src/samples.ts` to the list of files kept free of the DOM, audio, and
-    `localStorage`.
-  - Change the share-link rule to: "Share links are versioned (`v1.`, `v2.`) in
-    `src/pattern.ts`. Add a new version instead of changing an old one, and keep decoding
-    every old version."
-  - Add: "The order of `INSTRUMENTS` is part of the share-link format; append new
-    instruments, never reorder."
-- `docs/references.md`:
-  - Add `src/samples.ts` and `src/sampler.ts` to Files.
-  - Add `drumline-sample` to the storage keys.
-  - Update the share-link paragraph for `v2` (sample id, `row × 5 + index`) and v1 decoding.
-  - Update the MIDI paragraph to include the sample's note.
+- `docs/themes.md`: rewrite "Keeping volume consistent" and "Adding or changing a theme" so
+  they describe two levels:
+  - `space.trim` sets the instruments' level. It is checked on instrument boards rendered
+    without backing, against `NEON_BASELINE`.
+  - `space.musicTrim` sets the backing's level on its own. It is checked on the "backing
+    quiet" and "backing full" boards, against Neon rendered in the same run. Read
+    `musicOffsets` and `suggestedMusicTrims` on the loudness page.
+  - Both targets are within 1 dB of Neon.
+  - Keep Neon at 1 for both.
+  - Keep the existing notes about the limiter and the volume slider.
+- `docs/references.md`, **Audio chain**:
+  - Add `musicTrim` to the diagram: the music bus goes through its own trim before the
+    master.
+  - Add one sentence: the master `trim` scales everything, so `setTheme` sets the music trim
+    to `musicTrim / trim`.
+- `AGENTS.md`: change "Keep Neon's `space.trim` at 1. It is the loudness reference." to "Keep
+  Neon's `space.trim` and `space.musicTrim` at 1. Neon is the loudness reference."
 
 ## Acceptance
 
 - `npm run typecheck` exits 0.
 - `npm run test:sandbox` exits 0.
-- `git ls-files --others --exclude-standard -- src/samples.ts src/sampler.ts tests/samples.test.ts`
-  prints all three paths.
-- PowerShell: `Select-String -Path src/samples.ts -Pattern 'document|window|localStorage|AudioContext'`
-  prints nothing.
-- `git grep -n -F 'tool-sample' -- index.html` prints one line.
+- PowerShell: `(Select-String -Path src/themes.ts -Pattern 'musicTrim:').Count` prints 6 (the
+  type plus five themes).
+- `git grep -n -F 'musicTrim' -- src/audio.ts` prints at least three lines.
+- `git grep -n -F 'musicOffsets' -- tests/loudness.ts` prints at least two lines.
 
 Verifier only:
 
 - `npm test` exits 0.
 - `npm run build` exits 0.
+- The loudness page check in a browser (the verifier tunes the values).
 
 ## Parallel work
 
@@ -499,23 +187,19 @@ None — do it sequentially.
 
 - Do not commit, push, or switch branches.
 - Do not touch files outside **Files to touch**, except `.handoff/report.md`.
-- Do not change existing instrument sounds, themes, FX, tempo, recording, or `LIVE_TOOLS`.
-- Do not add audio files or dependencies.
+- Do not change any theme value other than adding `musicTrim`.
+- Do not change instrument sounds, FX, the sampler, or the UI.
 - Do not run the `Verifier only:` commands. If any command fails with `spawn EPERM`, stop and
   report it. Do not request wider sandbox access, set `NODE_OPTIONS`, or stub modules to get
   past it.
-- In `src/render.ts`, keep to whole art pixels. Don't use `arc`, `shadowBlur`, `globalAlpha`,
-  `setLineDash`, `fillText`, or `ctx.scale`.
 - If a TypeScript type error comes from code written in this plan and has a one-line,
-  type-only fix that doesn't change behavior (for example, adding a generic like
-  `Uint8Array<ArrayBuffer>`), apply it and list it in the report instead of stopping.
+  type-only fix that doesn't change behavior, apply it and list it in the report instead of
+  stopping.
 
 ## Out of scope
 
-- Microphone recording and loading sound files.
-- Storing samples in IndexedDB.
-- A beat file format.
-- Refreshing the loudness baseline.
+- Tuning the final numbers (the verifier does this in a browser).
+- Refreshing `NEON_BASELINE` values.
 
 ## If blocked
 

@@ -91,6 +91,7 @@ export class Audio_ {
   private readonly fxHighpass: BiquadFilterNode;
   private readonly towerBus: GainNode;
   private readonly musicBus: GainNode;
+  private readonly musicTrim: GainNode;
   private readonly fxBus: GainNode;
   private readonly delay: DelayNode;
   private readonly delaySend: GainNode;
@@ -180,12 +181,15 @@ export class Audio_ {
 
     this.towerBus = ctx.createGain();
     this.musicBus = ctx.createGain();
+    this.musicTrim = ctx.createGain();
     this.fxBus = ctx.createGain();
     this.towerBus.gain.value = 1;
     this.musicBus.gain.value = 1;
+    this.musicTrim.gain.value = 1;
     this.fxBus.gain.value = 1;
     this.towerBus.connect(this.master);
-    this.musicBus.connect(this.master);
+    this.musicBus.connect(this.musicTrim);
+    this.musicTrim.connect(this.master);
     this.fxBus.connect(this.master);
 
     this.reverb = ctx.createConvolver();
@@ -195,7 +199,7 @@ export class Audio_ {
     this.towerReverbSend = ctx.createGain();
     this.musicReverbSend.gain.value = MIX.reverbSend;
     this.towerReverbSend.gain.value = MIX.reverbSend;
-    this.musicBus.connect(this.musicReverbSend);
+    this.musicTrim.connect(this.musicReverbSend);
     this.musicReverbSend.connect(this.reverb);
     this.towerBus.connect(this.towerReverbSend);
     this.towerReverbSend.connect(this.reverb);
@@ -686,6 +690,9 @@ export class Audio_ {
     this.filter.frequency.setTargetAtTime(space.toneHz, now, 0.02);
     this.applyCrush(now);
     this.trim.gain.setTargetAtTime(space.trim, now, 0.02);
+    // The master trim also scales the backing, so divide it back out: the backing ends up at
+    // musicTrim whatever the instruments' trim is.
+    this.musicTrim.gain.setTargetAtTime(space.musicTrim / space.trim, now, 0.02);
     this.crackleGain.gain.setTargetAtTime(theme.crackle, now, 0.02);
     this.reverb.buffer = this.reverbImpulse(space.reverbSeconds);
   }
@@ -741,5 +748,11 @@ export class Audio_ {
 
   setVolume(percent: number): void {
     this.volume.gain.setTargetAtTime(volumeGain(percent), this.ctx.currentTime, 0.01);
+  }
+
+  // Silences the backing music, for loudness checks of the instruments alone.
+  setMusicEnabled(enabled: boolean): void {
+    this.musicBus.gain.cancelScheduledValues(this.ctx.currentTime);
+    this.musicBus.gain.value = enabled ? 1 : 0;
   }
 }

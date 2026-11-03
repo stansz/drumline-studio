@@ -6,14 +6,22 @@ tone. Themes never change the tempo or the pattern. The playable snare uses each
 
 ## Keeping volume consistent
 
-Neon is the loudness reference, stored in `tests/loudness-baseline.ts`. Every other theme has a
-`space.trim` value that matches it, and Neon's trim stays at 1. The baseline was measured on
-DrumlineTD boards and needs refreshing for the current grid, which is up to 256 cells with 32 steps
-and four instruments.
+Neon is the loudness reference, and both of its levels stay at 1: `space.trim` for the instruments
+and `space.musicTrim` for the backing music. Each theme sets the two levels separately.
 
-The target is an average within 1 dB of Neon across the test boards. Average level is measured,
-not peak level, because short sounds can peak high and still sound quiet. The limiter also absorbs
-part of any boost, so a trim of 2 adds less than 6 dB in practice.
+`space.trim` sets the instruments' level. The instrument boards render with no backing music and
+are compared with `NEON_BASELINE` in `tests/loudness-baseline.ts`, which holds Neon's average level
+for each board. Each theme should land within 1 dB of Neon.
+
+`space.musicTrim` sets the backing music's level on its own: the music bus goes through its own
+trim, and `setTheme` divides the master trim back out, so the backing ends up at `musicTrim`
+whatever `trim` is. The "backing quiet" and "backing full" boards render backing music only, with
+no notes. Each theme's backing is compared with Neon's backing rendered in the same run, so
+backing levels need no baseline. Read `musicOffsets` and `suggestedMusicTrims` on the loudness
+page; the target is again within 1 dB of Neon.
+
+The target is an average level, not peak level, because short sounds can peak high and still sound
+quiet. The limiter also absorbs part of any boost, so a trim of 2 adds less than 6 dB in practice.
 
 The player's volume slider comes after the limiter and only turns the sound down, so it doesn't
 change the mix. The loudness page renders at full volume and doesn't depend on the slider.
@@ -28,15 +36,17 @@ with FX off.
 2. Run `npm test`.
 3. Run `npm run dev` and open `/tests/loudness.html?theme=funk`, using the theme's `id`. This takes
    about 20 seconds.
-4. Read `offsets` at the top of the results. It shows the theme's difference from Neon in dB.
-5. If it's outside the target, set `space.trim` to the value in `suggestedTrims` and run the page
-   again. The limiter's effect varies, so it may take a second try.
+4. Read `offsets` at the top of the results for the instruments, and `musicOffsets` for the
+   backing. Each shows the theme's difference from Neon in dB.
+5. If either is outside the target, set `space.trim` or `space.musicTrim` to the matching value in
+   `suggestedTrims` or `suggestedMusicTrims` and run the page again. The limiter's effect varies,
+   so it may take a second try.
 
 Open `/tests/loudness.html` with no theme to run every board and theme. This takes a few minutes
 and also runs the worst-case Neon boards, so use it before a big audio change ships.
 
-The page title shows `PASS` when nothing clips and the theme is within 1 dB of Neon. Otherwise it
-shows `FAIL`.
+The page title shows `PASS` when nothing clips and both the instruments and the backing are within
+1 dB of Neon. Otherwise it shows `FAIL`.
 
 If you change Neon or the shared audio chain, open `/tests/loudness.html?theme=neon` and copy its
 `baseline` output into `tests/loudness-baseline.ts`.

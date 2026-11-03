@@ -13,6 +13,7 @@ describe('themes', () => {
     expect(DEFAULT_THEME.space.delayFeedback).toBe(MIX.delayFeedback);
     expect(DEFAULT_THEME.space.crush).toBe(0);
     expect(DEFAULT_THEME.space.trim).toBe(1);
+    expect(DEFAULT_THEME.space.musicTrim).toBe(1);
     expect(DEFAULT_THEME.swing).toBe(0);
     expect(DEFAULT_THEME.crackle).toBe(0);
     for (const part of DRUM_PARTS) {
@@ -71,6 +72,14 @@ describe('themes', () => {
     for (const part of ['space', 'chord', 'bass', 'arp', 'kick', 'hat', 'synth'] as const) {
       const recipes = THEMES.map((theme) => JSON.stringify(theme[part]));
       expect(new Set(recipes).size).toBe(THEMES.length);
+    }
+  });
+
+  it('keeps every theme music trim in a sane range', () => {
+    for (const theme of THEMES) {
+      expect(Number.isFinite(theme.space.musicTrim)).toBe(true);
+      expect(theme.space.musicTrim).toBeGreaterThanOrEqual(0.25);
+      expect(theme.space.musicTrim).toBeLessThanOrEqual(4);
     }
   });
 

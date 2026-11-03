@@ -31,7 +31,7 @@ Commands: `npm run dev`, `npm test`, `npm run test:sandbox`, `npm run typecheck`
   reorder.
 - Themes change the sound only, never the pattern or the tempo.
 - Wrap every `localStorage` call in `try`/`catch`, and make the app work without it.
-- Keep Neon's `space.trim` at 1. It is the loudness reference.
+- Keep Neon's `space.trim` and `space.musicTrim` at 1. Neon is the loudness reference.
 - Draw the board in whole art pixels. In `src/render.ts`, don't use `arc`, `shadowBlur`,
   `globalAlpha`, `setLineDash`, `fillText`, or `ctx.scale`.
 - Keep sprites as data in `src/sprites.ts`, and keep `src/pixel.ts` free of the DOM.

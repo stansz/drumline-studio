@@ -55,7 +55,8 @@ audio time, not against the sequencer's current state.
 ## Audio chain
 
 ```text
-instrument, music, and fx buses → master → trim → crusher → theme filter → FX low-pass → FX high-pass → limiter → soft clip → analyser → volume → output
+instrument and fx buses → master → trim → crusher → theme filter → FX low-pass → FX high-pass → limiter → soft clip → analyser → volume → output
+music bus → musicTrim → master
 ```
 
 The recording stream is tapped from the analyser. The FX delay and reverb sends are taken from the
@@ -63,6 +64,7 @@ instrument bus, which is still named `towerBus` in code.
 
 - A `WaveShaper` curve can only be set once, so themes crossfade the crusher in and out instead of
   replacing its curve.
+- The master `trim` scales everything, so `setTheme` sets the music trim to `musicTrim / trim`.
 - The limiter lets through only about 0.4 dB for each 1 dB of `space.trim`, so loudness has to be
   measured, not worked out. [themes.md](themes.md) has the steps.
 - The player's volume slider sits after the limiter, so it never changes the mix. It only turns the

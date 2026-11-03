@@ -1,6 +1,8 @@
 // Browser-only harness: Web Audio is unavailable in vitest. With `npm run dev` running, open
 // /tests/loudness.html. It renders each board through the real audio chain, faster than real time.
-// Add ?theme=funk, for example, to render only that theme.
+// Instrument boards have no backing music and are checked against NEON_BASELINE; backing boards
+// have no notes and are checked against Neon rendered in the same run. Add ?theme=funk, for
+// example, to render only that theme.
 import { Audio_ } from '../src/audio';
 import { GRID_COLS, GRID_ROWS, STEPS_PER_BAR, stepSeconds } from '../src/config';
 import { intensity, layerLevels, pickVoices } from '../src/music';
@@ -20,7 +22,7 @@ interface Result {
   board: string;
   theme: string;
   bpm: number;
-  towers: number;
+  notes: number;
   peak: number;
   peakDb: number;
   clippedSamples: number;
@@ -72,10 +74,17 @@ const BOARDS: Record<string, Board> = {
 };
 
 const THEME_BOARDS = ['spread 12', 'kick line', 'full board'];
+// Backing music alone, at the level an empty grid gets and at the fullest it gets.
+const BACKING_BOARDS: Record<string, number> = {
+  'backing quiet': intensity(0, 5),
+  'backing full': 1,
+};
 const LOUDNESS_BPMS = [120, 240];
 const LOUDNESS_TOLERANCE_DB = 1;
 // Measured on Chiptune: the limiter lets through about 0.4 dB for each 1 dB of trim.
 const LIMITER_RESPONSE = 0.4;
+// Backing alone stays under the limiter, so a music trim change comes through in full.
+const MUSIC_RESPONSE = 1;
 
 function seedRandom(seed: number): () => void {
   const original = Math.random;
@@ -93,7 +102,9 @@ async function renderBoard(
   name: string,
   board: Board,
   bpm: number,
+  mode: 'notes' | 'backing',
   theme: Theme,
+  intensityLevel?: number,
 ): Promise<Result> {
   const restoreRandom = seedRandom(1);
   const duration = stepSeconds(bpm);
@@ -104,16 +115,21 @@ async function renderBoard(
   audio.setTempo(duration);
 
   const sequencer = new Sequencer();
-  for (const [instrument, col, row] of board) {
-    if (!sequencer.set(instrument, col, row)) {
-      throw new Error(`${name}: cannot place at ${col},${row}`);
+  if (mode === 'notes') {
+    for (const [instrument, col, row] of board) {
+      if (!sequencer.set(instrument, col, row)) {
+        throw new Error(`${name}: cannot place at ${col},${row}`);
+      }
     }
   }
 
-  const levels = layerLevels(intensity(sequencer.activeCells().length, 5));
+  const levels = layerLevels(intensityLevel ?? intensity(0, 5));
   for (let musicStep = 0; musicStep < STEPS_PER_BAR * BARS; musicStep += 1) {
     const time = musicStep * duration;
-    audio.playMusicStep(musicStep, time, duration, levels);
+    if (mode === 'backing') {
+      audio.playMusicStep(musicStep, time, duration, levels);
+      continue;
+    }
     const notes = sequencer.step();
     const voices = pickVoices(notes);
     for (const voice of voices) {
@@ -140,7 +156,7 @@ async function renderBoard(
     board: name,
     theme: theme.name,
     bpm,
-    towers: board.length,
+    notes: board.length,
     peak: Number(peak.toFixed(3)),
     peakDb: Number((20 * Math.log10(peak)).toFixed(1)),
     clippedSamples,
@@ -153,14 +169,24 @@ export async function runLoudness(): Promise<Result[]> {
   const results: Result[] = [];
   for (const [name, board] of only ? [] : Object.entries(BOARDS)) {
     for (const bpm of LOUDNESS_BPMS) {
-      results.push(await renderBoard(name, board, bpm, DEFAULT_THEME));
+      results.push(await renderBoard(name, board, bpm, 'notes', DEFAULT_THEME));
     }
   }
   for (const theme of THEMES) {
     if (only ? theme.id !== only : theme === DEFAULT_THEME) continue;
     for (const name of THEME_BOARDS) {
       for (const bpm of LOUDNESS_BPMS) {
-        results.push(await renderBoard(name, BOARDS[name] ?? [], bpm, theme));
+        results.push(await renderBoard(name, BOARDS[name] ?? [], bpm, 'notes', theme));
+      }
+    }
+  }
+  // Neon is always in the backing pass, even when `?theme=` names another theme, so every run has
+  // its own Neon backing reference.
+  for (const theme of THEMES) {
+    if (only ? theme.id !== only && theme !== DEFAULT_THEME : false) continue;
+    for (const [name, intensityLevel] of Object.entries(BACKING_BOARDS)) {
+      for (const bpm of LOUDNESS_BPMS) {
+        results.push(await renderBoard(name, [], bpm, 'backing', theme, intensityLevel));
       }
     }
   }
@@ -197,6 +223,46 @@ function suggestedTrims(offsets: Record<string, number>): Record<string, number>
   return trims;
 }
 
+function neonBackingLevels(results: Result[]): Record<string, Record<number, number>> {
+  const levels: Record<string, Record<number, number>> = {};
+  for (const result of results) {
+    if (result.theme !== DEFAULT_THEME.name || !(result.board in BACKING_BOARDS)) continue;
+    levels[result.board] = { ...levels[result.board], [result.bpm]: result.rmsDb };
+  }
+  return levels;
+}
+
+// Each theme's average backing level compared with Neon's backing in the same run. Set
+// `space.musicTrim` in src/themes.ts to bring a theme back within LOUDNESS_TOLERANCE_DB.
+function musicOffsets(results: Result[]): Record<string, number> {
+  const neonBacking = neonBackingLevels(results);
+  const offsets: Record<string, number> = {};
+  for (const theme of THEMES) {
+    if (theme === DEFAULT_THEME) continue;
+    const differences: number[] = [];
+    for (const result of results) {
+      if (result.theme !== theme.name) continue;
+      const neon = neonBacking[result.board]?.[result.bpm];
+      if (neon !== undefined) differences.push(result.rmsDb - neon);
+    }
+    if (differences.length === 0) continue;
+    const mean = differences.reduce((sum, value) => sum + value, 0) / differences.length;
+    offsets[theme.name] = Number(mean.toFixed(1));
+  }
+  return offsets;
+}
+
+function suggestedMusicTrims(offsets: Record<string, number>): Record<string, number> {
+  const trims: Record<string, number> = {};
+  for (const theme of THEMES) {
+    const offset = offsets[theme.name];
+    if (offset === undefined || theme === DEFAULT_THEME) continue;
+    const trim = theme.space.musicTrim * 10 ** (-offset / MUSIC_RESPONSE / 20);
+    trims[theme.name] = Number(trim.toFixed(2));
+  }
+  return trims;
+}
+
 function neonLevels(results: Result[]): Record<string, Record<number, number>> {
   const levels: Record<string, Record<number, number>> = {};
   for (const result of results) {
@@ -209,16 +275,22 @@ function neonLevels(results: Result[]): Record<string, Record<number, number>> {
 const output = document.querySelector('#results');
 void runLoudness().then((results) => {
   const offsets = themeOffsets(results);
+  const music = musicOffsets(results);
   const balanced = Object.values(offsets).every(
+    (offset) => Math.abs(offset) <= LOUDNESS_TOLERANCE_DB,
+  );
+  const musicBalanced = Object.values(music).every(
     (offset) => Math.abs(offset) <= LOUDNESS_TOLERANCE_DB,
   );
   const report = {
     offsets,
     suggestedTrims: suggestedTrims(offsets),
+    musicOffsets: music,
+    suggestedMusicTrims: suggestedMusicTrims(music),
     baseline: neonLevels(results),
     results,
   };
   if (output) output.textContent = JSON.stringify(report, null, 1);
   const clean = results.every((result) => result.clippedSamples === 0);
-  document.title = clean && balanced ? 'PASS' : 'FAIL';
+  document.title = clean && balanced && musicBalanced ? 'PASS' : 'FAIL';
 });

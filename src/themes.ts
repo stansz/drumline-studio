@@ -16,6 +16,8 @@ export interface Theme {
     reverbSend: number;
     reverbSeconds: number;
     trim: number;
+    // Backing-music level, independent of trim. Neon stays at 1.
+    musicTrim: number;
     delaySend: number;
     delayFeedback: number;
     toneHz: number;
@@ -91,6 +93,7 @@ const NEON: Theme = {
     reverbSend: MIX.reverbSend,
     reverbSeconds: 2.2,
     trim: 1,
+    musicTrim: 1,
     delaySend: MIX.delaySend,
     delayFeedback: MIX.delayFeedback,
     toneHz: 20000,
@@ -148,7 +151,8 @@ const CHIPTUNE: Theme = {
   space: {
     reverbSend: 0,
     reverbSeconds: 0.4,
-    trim: 2.7,
+    trim: 4.94,
+    musicTrim: 1.15,
     delaySend: 0,
     delayFeedback: 0.2,
     toneHz: 12000,
@@ -214,6 +218,7 @@ const LOFI: Theme = {
     reverbSend: 0.12,
     reverbSeconds: 0.9,
     trim: 1,
+    musicTrim: 0.69,
     delaySend: 0.1,
     delayFeedback: 0.25,
     toneHz: 3600,
@@ -272,6 +277,7 @@ const TECHNO: Theme = {
     reverbSend: 0.45,
     reverbSeconds: 3.2,
     trim: 1,
+    musicTrim: 1.04,
     delaySend: 0.32,
     delayFeedback: 0.5,
     toneHz: 9000,
@@ -329,7 +335,8 @@ const FUNK: Theme = {
   space: {
     reverbSend: 0.08,
     reverbSeconds: 0.35,
-    trim: 2.4,
+    trim: 3.7,
+    musicTrim: 1.33,
     delaySend: 0,
     delayFeedback: 0.1,
     toneHz: 12000,
