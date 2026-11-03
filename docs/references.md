@@ -4,26 +4,33 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
 
 ## Files
 
-- `src/config.ts`: tunable values, including `MIN_BPM`, `MAX_BPM`, `VOICE_LIMITS`, and
-  `INSTRUMENT_INFO`.
-- `src/sequencer.ts`: the pattern. `step()` advances one sixteenth note and returns
-  `NoteEvent`s.
+- `src/config.ts`: tunable values, including `MAX_STEPS`, `MIX`, `LIVE_TOOLS`, `VOICE_LIMITS`,
+  and `INSTRUMENT_INFO`.
+- `src/sequencer.ts`: the pattern. `step()` returns the notes on the current step and moves on to
+  `stepAfter()`.
 - `src/scheduler.ts`: step clock that runs on `AudioContext` time, slightly ahead of playback.
 - `src/audio.ts`: `Audio_`, which owns the audio chain and every generated sound.
+- `src/fx.ts`: FX settings, parsing, and filter cutoffs.
+- `src/live.ts`: live-play modes, key rows, and nearest-step quantizing; hidden by `LIVE_TOOLS`.
 - `src/music.ts`: chords, arpeggios, and how the backing music builds up.
 - `src/themes.ts`: one entry for each music theme.
+- `src/pattern.ts`: autosave JSON and the `v1.` share-link format.
+- `src/midi.ts`: MIDI file writer.
+- `src/recording.ts`: recording type, file names, and timer text.
 - `src/render.ts`: draws the board into a 256×128 buffer, then scales it onto the canvas.
 - `src/sprites.ts`: colors, sprites, and bitmap letters, stored as data.
 - `src/pixel.ts`: pixel line, circle, and dither helpers with no DOM.
+- `src/style.css`: the page layout and the look of the controls and panels.
 - `src/fonts/`: self-hosted fonts and their licenses.
 - `src/main.ts`: connects everything, and handles input, the HUD, and saved settings.
+- `index.html`: the page markup, the HUD, and the panel buttons.
+- `public/`: static files served as-is, such as `favicon.svg`.
 - `vitest.sandbox.config.mjs`: runs the tests inside the Windows `dsh` sandbox, through
   `npm run test:sandbox`.
 - `tests/loudness.ts`: browser-only audio check, with Neon's target levels stored in
   `tests/loudness-baseline.ts`.
-- `.handoff/`: specs for work handed to another agent. The `plan*.md` files are tracked, while
-  `report.md` and `last-run.log` are ignored. Specs record past work, so don't treat their values or
-  instructions as current.
+- `.handoff/`: `plan.md` is tracked and holds the most recent spec; earlier specs are in git
+  history. `report.md` and `last-run.log` are ignored.
 - `.github/workflows/deploy.yml`: tests and builds `main`, then deploys the result to GitHub Pages.
   A failing test blocks the deploy.
 
@@ -32,9 +39,12 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
 1. `Scheduler` calls `onStep` in `src/main.ts` slightly before the step is due to play. That lead is
    `LOOKAHEAD_SECONDS`.
 2. `onStep` schedules the backing music and the metronome, calls `sequencer.step()`, and schedules
-   each voice at the step's audio time. `sequencer.step()` returns every note on the current column,
-   then moves the playhead to the next column.
+   each voice at the step's audio time. `sequencer.step()` returns only notes on steps inside the
+   pattern length (and inside the loop when one is set), then moves the playhead to `stepAfter()`.
 3. Notes wait in `queued`, and `frame()` flashes them on the board once audio time reaches them.
+
+Pause stops the scheduler and keeps the step. Stop also rewinds. Notes already scheduled within
+`LOOKAHEAD_SECONDS` still sound after a pause.
 
 The sequencer always runs slightly ahead of what the player sees and hears, so read visuals against
 audio time, not against the sequencer's current state.
@@ -42,8 +52,11 @@ audio time, not against the sequencer's current state.
 ## Audio chain
 
 ```text
-tower, music, and fx buses → master → trim → crusher → filter → limiter → soft clip → analyser → volume → output
+instrument, music, and fx buses → master → trim → crusher → theme filter → FX low-pass → FX high-pass → limiter → soft clip → analyser → volume → output
 ```
+
+The recording stream is tapped from the analyser. The FX delay and reverb sends are taken from the
+instrument bus, which is still named `towerBus` in code.
 
 - A `WaveShaper` curve can only be set once, so themes crossfade the crusher in and out instead of
   replacing its curve.
@@ -63,11 +76,17 @@ scales.
 The step strip above the board is DOM. `main.ts` lights the playhead's step, and outlines the step
 of the hovered cell.
 
+With 32 steps, the board shows one page at a time. The page offset is `page * 16`: cells from the
+other page are skipped, and the playhead only draws while it is on the shown page.
+
+When the pointer is over a note, the renderer draws a red outline around that cell instead of the
+sprite preview, to show that a click removes the note.
+
 On phones held upright, the board's size is limited by the screen width, so it runs edge to edge.
 On phones held sideways, the controls sit in a column beside the board, which gives it most of the
 screen. `#rotate-hint` on the start screen points players to that layout. These layouts were
-measured in headless Edge at phone sizes, not on a real phone. On 360px-wide phones, selecting Synth
-still moves the board by 5px, because its description wraps to an extra line.
+measured in headless Edge at phone sizes, not on a real phone. The info line under the board is one
+fixed line and truncates when its text is too long.
 
 ## Audio load
 
@@ -78,13 +97,34 @@ board took about 70% before voice limits and 28% after, and Techno went from 102
   `playNote` gets the number of voices played, not the number of notes, so a capped chord stays
   about as loud.
 - Don't add automation to long-lived `AudioParam`s on every step. Those events add up over a run.
-- The game uses `latencyHint: 'playback'`, because nothing depends on tapping in time. `frame()`
+- The app uses `latencyHint: 'playback'`, because nothing depends on tapping in time. `frame()`
   subtracts the output latency, so the board matches what's heard.
 
-## Saved settings
+## Saving and sharing
 
-`localStorage` keys are `drumline-theme`, `drumline-backing`, and `drumline-volume`. Speed and
-Mute aren't saved.
+These values are saved to `localStorage` when they change, and come back on the next visit.
+
+- `drumline-theme`: the theme id.
+- `drumline-backing`: `1` or `0`.
+- `drumline-volume`: the volume percent, from 0 to 100.
+- `drumline-bpm`: the tempo.
+- `drumline-fx`: the FX settings as JSON.
+- `drumline-pattern`: JSON `{ v: 1, length, cells }`.
+
+Mute, the shown page, and whether the panels are open are not saved. Mute zeroes the master
+gain, before the recording tap, so it also silences recordings.
+
+Share links put the beat in the URL hash: `v1.<length>.<bpm>.<theme id>.<cells>`. Each cell is two
+bytes, the step and then row × 4 + instrument index, in base64url. A link loads over the autosave,
+is then autosaved, and is removed from the address bar. Invalid links are ignored.
+
+Recording uses `MediaRecorder` on a stream from `Audio_.createRecordingStream()`. The format is the
+first supported in `pickRecordingType`'s list. The Record button is disabled until audio starts, and
+hidden where `MediaRecorder` is missing.
+
+MIDI files are type 0, with 96 ticks per quarter and one step at 24 ticks. Drums are on channel 10
+(kick 36, snare 38, hat 42), and the synth uses the theme's scale on channel 1. The track ends at the
+pattern length.
 
 ## Browser testing
 
@@ -95,3 +135,6 @@ Mute aren't saved.
   first.
 - With `npm run dev` running, `/tests/loudness.html` reports audio levels. Add `?theme=<id>` to
   check one theme.
+- Navigating to the same URL with only a new `#hash` doesn't reload the page. Load `about:blank`
+  first when testing share links.
+- Downloads in headless Edge need `Page.setDownloadBehavior`.

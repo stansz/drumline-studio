@@ -1,14 +1,15 @@
 # Music themes
 
-Each theme is one entry in `src/themes.ts`. It sets the arrangement, tower sounds, space, and tone.
-Themes never change the tempo, tower timing, or game balance. The playable snare uses each theme's
+Each theme is one entry in `src/themes.ts`. It sets the arrangement, instrument sounds, space, and
+tone. Themes never change the tempo or the pattern. The playable snare uses each theme's
 `drumKit.snareHz` and `drumKit.snareDecay`.
 
 ## Keeping volume consistent
 
 Neon is the loudness reference, stored in `tests/loudness-baseline.ts`. Every other theme has a
 `space.trim` value that matches it, and Neon's trim stays at 1. The baseline was measured on
-DrumlineTD boards and must be refreshed for the full 128-cell grid.
+DrumlineTD boards and needs refreshing for the current grid, which is up to 256 cells with 32 steps
+and four instruments.
 
 The target is an average within 1 dB of Neon across the test boards. Average level is measured,
 not peak level, because short sounds can peak high and still sound quiet. The limiter also absorbs
@@ -40,5 +41,5 @@ shows `FAIL`.
 If you change Neon or the shared audio chain, open `/tests/loudness.html?theme=neon` and copy its
 `baseline` output into `tests/loudness-baseline.ts`.
 
-If a theme needs a very high trim, its sounds are probably too short or thin. Lengthening its tower
-decays will usually sound better than pushing the limiter harder.
+If a theme needs a very high trim, its sounds are probably too short or thin. Lengthening its
+instrument decays will usually sound better than pushing the limiter harder.
