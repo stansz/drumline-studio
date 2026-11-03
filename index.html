@@ -21,9 +21,10 @@
           <button id="theme" class="hw" type="button" aria-label="Change music theme">♪ Neon</button>
           <button id="fx-toggle" class="hw" type="button" aria-expanded="false" aria-controls="fx">FX</button>
           <button id="share-toggle" class="hw" type="button" aria-expanded="false" aria-controls="share">Share</button>
+          <button id="mix-toggle" class="hw" type="button" aria-expanded="false" aria-controls="mix-all">Mix</button>
           <div class="levels">
             <label class="level"><small>Vol</small><input id="volume" type="range" min="0" max="100" step="1" value="100" aria-label="Volume" title="Volume" /></label>
-            <label class="level"><small>Backing</small><input id="mix-backing" type="range" min="0" max="100" step="1" value="100" aria-label="Backing volume" title="Backing volume" /></label>
+            <label class="level"><small>Backing</small><input id="mix-backing" type="range" min="0" max="100" step="1" value="100" data-mix-channel="backing" aria-label="Backing volume" title="Backing volume" /></label>
           </div>
         </div>
       </header>
@@ -33,10 +34,18 @@
       </main>
       <div id="dock" class="dock">
         <div id="mix" class="fx-panel mix-panel">
-          <label class="fx-knob mix-channel" style="--c: var(--red)" data-channel="kick"><small>Kick volume</small><input id="mix-kick" type="range" min="0" max="100" step="1" value="100" aria-label="Kick volume" /></label>
-          <label class="fx-knob mix-channel" style="--c: var(--amber)" data-channel="hat"><small>Hat volume</small><input id="mix-hat" type="range" min="0" max="100" step="1" value="100" aria-label="Hat volume" /></label>
-          <label class="fx-knob mix-channel" style="--c: var(--teal)" data-channel="synth"><small>Synth volume</small><input id="mix-synth" type="range" min="0" max="100" step="1" value="100" aria-label="Synth volume" /></label>
-          <label class="fx-knob mix-channel" style="--c: #a6d94a" data-channel="snare"><small>Snare volume</small><input id="mix-snare" type="range" min="0" max="100" step="1" value="100" aria-label="Snare volume" /></label>
+          <label class="fx-knob mix-channel" style="--c: var(--red)" data-channel="kick"><small>Kick volume</small><input id="mix-kick" type="range" min="0" max="100" step="1" value="100" data-mix-channel="kick" aria-label="Kick volume" /></label>
+          <label class="fx-knob mix-channel" style="--c: var(--amber)" data-channel="hat"><small>Hat volume</small><input id="mix-hat" type="range" min="0" max="100" step="1" value="100" data-mix-channel="hat" aria-label="Hat volume" /></label>
+          <label class="fx-knob mix-channel" style="--c: var(--teal)" data-channel="synth"><small>Synth volume</small><input id="mix-synth" type="range" min="0" max="100" step="1" value="100" data-mix-channel="synth" aria-label="Synth volume" /></label>
+          <label class="fx-knob mix-channel" style="--c: #a6d94a" data-channel="snare"><small>Snare volume</small><input id="mix-snare" type="range" min="0" max="100" step="1" value="100" data-mix-channel="snare" aria-label="Snare volume" /></label>
+        </div>
+        <div id="mix-all" class="fx-panel mix-all-panel" hidden>
+          <label class="fx-knob" style="--c: var(--red)"><small>Kick</small><input type="range" min="0" max="100" step="1" value="100" data-mix-channel="kick" aria-label="Kick volume" /></label>
+          <label class="fx-knob" style="--c: var(--amber)"><small>Hat</small><input type="range" min="0" max="100" step="1" value="100" data-mix-channel="hat" aria-label="Hat volume" /></label>
+          <label class="fx-knob" style="--c: var(--teal)"><small>Synth</small><input type="range" min="0" max="100" step="1" value="100" data-mix-channel="synth" aria-label="Synth volume" /></label>
+          <label class="fx-knob" style="--c: #a6d94a"><small>Snare</small><input type="range" min="0" max="100" step="1" value="100" data-mix-channel="snare" aria-label="Snare volume" /></label>
+          <label class="fx-knob mix-all-sample" style="--c: var(--orange)"><small>Sample</small><input type="range" min="0" max="100" step="1" value="100" data-mix-channel="sample" aria-label="Sample volume" /></label>
+          <label class="fx-knob" style="--c: var(--cream)"><small>Backing</small><input type="range" min="0" max="100" step="1" value="100" data-mix-channel="backing" aria-label="Backing volume" /></label>
         </div>
         <div id="fx" class="fx-panel" hidden>
           <label class="fx-knob"><small>Filter</small><input id="fx-filter" type="range" min="-100" max="100" step="1" value="0" aria-label="Filter: left is low-pass, right is high-pass" /></label>
@@ -56,7 +65,7 @@
           <button id="sample-mic" class="hw" type="button" title="Record up to 2 seconds from the microphone">● Mic</button>
           <button id="sample-file" class="hw" type="button" title="Load a short sound file">File</button>
           <input id="sample-file-input" type="file" accept="audio/*" hidden />
-          <label class="sampler-volume" title="Sample volume"><small>Vol</small><input id="mix-sample" type="range" min="0" max="100" step="1" value="100" aria-label="Sample volume" /></label>
+          <label class="sampler-volume" title="Sample volume"><small>Vol</small><input id="mix-sample" type="range" min="0" max="100" step="1" value="100" data-mix-channel="sample" aria-label="Sample volume" /></label>
         </div>
       </div>
       <div id="controls" class="deck">

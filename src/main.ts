@@ -91,10 +91,9 @@ const recordButton = byId<HTMLButtonElement>('record');
 const midiButton = byId<HTMLButtonElement>('midi');
 const shareStatus = byId<HTMLSpanElement>('share-status');
 const mixPanel = byId<HTMLDivElement>('mix');
-const mixSliders: Record<string, HTMLInputElement> = {};
-for (const channel of MIX_CHANNELS) {
-  mixSliders[channel] = byId<HTMLInputElement>(`mix-${channel}`);
-}
+const mixAllPanel = byId<HTMLDivElement>('mix-all');
+const mixToggle = byId<HTMLButtonElement>('mix-toggle');
+const mixInputs = Array.from(document.querySelectorAll<HTMLInputElement>('input[data-mix-channel]'));
 
 const THEME_KEY = 'drumline-theme';
 const BACKING_KEY = 'drumline-backing';
@@ -145,7 +144,7 @@ let paint: 'add' | 'erase' | null = null;
 let liveMode: LiveMode = 'paint';
 let playheadAt = 0;
 let loopDrag: number | null = null;
-let openPanel: 'fx' | 'share' | null = null;
+let openPanel: 'fx' | 'share' | 'mixall' | null = null;
 
 window.__drumline = { sequencer, scheduler, audio };
 
@@ -255,9 +254,12 @@ function updateDock(): void {
   mixPanel.hidden = view !== 'mix';
   fxPanel.hidden = view !== 'fx';
   sharePanel.hidden = view !== 'share';
+  mixAllPanel.hidden = view !== 'mixall';
   samplerPanel.hidden = view !== 'sampler';
   fxToggle.setAttribute('aria-expanded', String(view === 'fx'));
   shareToggle.setAttribute('aria-expanded', String(view === 'share'));
+  mixToggle.setAttribute('aria-expanded', String(view === 'mixall'));
+  mixToggle.classList.toggle('selected', view === 'mixall');
 }
 
 function pickSample(id: string, audition = true): void {
@@ -276,12 +278,14 @@ function pickSample(id: string, audition = true): void {
 function updateSampleLook(): void {
   sampleButton.style.setProperty('--c', PIXEL_COLORS[sample.color] ?? '');
   samplerPanel.querySelector<HTMLElement>('.sampler-volume')?.style.setProperty('--c', PIXEL_COLORS[sample.color] ?? '');
+  mixAllPanel.querySelector<HTMLElement>('.mix-all-sample')?.style.setProperty('--c', PIXEL_COLORS[sample.color] ?? '');
   const icon = sampleButton.querySelector('canvas');
   if (icon) drawIcon(icon, 'sample', sample.color);
 }
 
 function selectTool(tool: Instrument): void {
   selected = tool;
+  if (openPanel === 'mixall') openPanel = null;
   if (tool === 'sample') openPanel = null;
   updateSelection();
   updateDock();
@@ -493,8 +497,10 @@ function loadMix(): MixSettings {
 }
 
 function showMix(): void {
-  for (const channel of MIX_CHANNELS) {
-    mixSliders[channel].value = String(Math.round(mix[channel] * 100));
+  for (const input of mixInputs) {
+    const channel = MIX_CHANNELS.find((name) => name === input.dataset.mixChannel);
+    if (!channel) continue;
+    input.value = String(Math.round(mix[channel] * 100));
   }
 }
 
@@ -506,6 +512,7 @@ function setMix(next: MixSettings): void {
   } catch {
     // The settings still apply for this visit.
   }
+  showMix();
 }
 
 function showFx(): void {
@@ -546,6 +553,11 @@ function toggleFxPanel(): void {
 
 function toggleSharePanel(): void {
   openPanel = openPanel === 'share' ? null : 'share';
+  updateDock();
+}
+
+function toggleMixAll(): void {
+  openPanel = openPanel === 'mixall' ? null : 'mixall';
   updateDock();
 }
 
@@ -942,14 +954,17 @@ for (const slider of [fxFilter, fxDelay, fxReverb, fxCrush]) {
   slider.addEventListener('input', () => setFx(readFxSliders()));
 }
 fxReset.addEventListener('click', () => setFx({ ...DEFAULT_FX }));
-for (const channel of MIX_CHANNELS) {
-  mixSliders[channel].addEventListener('input', () => {
+for (const input of mixInputs) {
+  const channel = MIX_CHANNELS.find((name) => name === input.dataset.mixChannel);
+  if (!channel) continue;
+  input.addEventListener('input', () => {
     const next: MixSettings = { ...mix };
-    next[channel] = Number(mixSliders[channel].value) / 100;
+    next[channel] = Number(input.value) / 100;
     setMix(next);
   });
 }
 shareToggle.addEventListener('click', toggleSharePanel);
+mixToggle.addEventListener('click', toggleMixAll);
 shareLinkButton.addEventListener('click', () => void copyShareLink());
 recordButton.addEventListener('click', toggleRecording);
 midiButton.addEventListener('click', exportMidi);

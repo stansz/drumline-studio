@@ -242,6 +242,20 @@ body {
   accent-color: var(--c);
 }
 
+.mix-all-panel {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mix-all-panel small {
+  color: var(--c);
+}
+
+.mix-all-panel input {
+  accent-color: var(--c);
+  width: 100%;
+}
+
 .share-panel {
   grid-template-columns: auto auto auto minmax(0, 1fr);
 }
@@ -766,6 +780,10 @@ body {
   .fx-panel {
     gap: 6px;
     padding: 4px 6px;
+  }
+
+  .mix-all-panel {
+    gap: 6px;
   }
 
   .sampler-volume {

@@ -67,7 +67,10 @@ reverb that its sound feeds, so turning a part down turns its echo and reverb do
 levels are remembered between visits. Selecting Sample, or opening FX or Share, uses the same
 slot. Sample's volume is in the sampler panel. The Backing volume sits under the main volume
 slider in the header. On a phone held sideways, the per-instrument slider is hidden, but Backing
-and the main volume are not.
+and the main volume are not. **Mix** in the header shows all six volumes at once, each labeled in
+its color: Kick, Hat, Synth, Snare, Sample, and Backing. Picking an instrument, or pressing Mix
+again, goes back to the single slider. It also works on a phone held sideways. All sliders for a
+part stay in sync.
 
 ### Saving and sharing
 
