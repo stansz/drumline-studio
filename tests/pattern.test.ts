@@ -92,6 +92,17 @@ describe('serializePattern / parsePattern', () => {
     expect(saved?.cells).toHaveLength(1);
     expect(saved?.cells[0]?.sample).toBeUndefined();
   });
+
+  it('round-trips a scale', () => {
+    const pattern = { length: 16 as const, cells: [], scale: 'a-minor' };
+    expect(parsePattern(serializePattern(pattern))).toEqual(pattern);
+  });
+
+  it('drops an invalid scale but keeps the pattern', () => {
+    const saved = parsePattern('{"v":1,"length":16,"cells":[],"scale":"BAD!"}');
+    expect(saved).toEqual({ length: 16, cells: [] });
+    expect(saved?.scale).toBeUndefined();
+  });
 });
 
 describe('encodeShare / decodeShare', () => {
@@ -106,10 +117,52 @@ describe('encodeShare / decodeShare', () => {
     expect(decodeShare(encodeShare(beat))).toEqual(beat);
   });
 
-  it('produces a v4 link', () => {
+  it('produces a v5 link', () => {
     expect(
       encodeShare({ length: 16, bpm: 120, themeId: 'lofi', sampleId: 'clap', cells: [] }),
-    ).toMatch(/^v4\.(16|32)\.\d+\.[a-z0-9-]+\.[a-z0-9-]+\.[a-z0-9_-]*\.[A-Za-z0-9_-]*$/);
+    ).toMatch(
+      /^v5\.(16|32)\.\d+\.[a-z0-9-]+\.[a-z0-9-]+\.[a-z0-9-]*\.[a-z0-9_-]*\.[A-Za-z0-9_-]*$/,
+    );
+  });
+
+  it('round-trips a v5 link with a scale', () => {
+    const beat: SharedBeat = {
+      length: 32,
+      bpm: 80,
+      themeId: 'chiptune',
+      sampleId: 'clap',
+      scale: 'a-minor',
+      cells: ALL_INSTRUMENTS,
+    };
+    expect(decodeShare(encodeShare(beat))).toEqual(beat);
+  });
+
+  it('writes an empty scale for the theme scale and round-trips it', () => {
+    const beat: SharedBeat = {
+      length: 16,
+      bpm: 120,
+      themeId: 'neon',
+      sampleId: 'clap',
+      cells: [{ instrument: 'kick', col: 0, row: 0 }],
+    };
+    const link = encodeShare(beat);
+    expect(link.split('.')[5]).toBe('');
+    const decoded = decodeShare(link);
+    expect(decoded?.scale).toBeUndefined();
+    expect(decoded?.cells).toEqual(beat.cells);
+  });
+
+  it('still decodes a v4 link with the six-instrument encoding', () => {
+    // Three bytes per cell: the step, row * 6 + instrument index (sample is index 4), and the
+    // sample-table index.
+    const cells = base64url([2, 3 * 6 + 4, 0]);
+    const beat = decodeShare(`v4.16.120.neon.clap.clap.${cells}`);
+    expect(beat?.cells).toEqual([{ instrument: 'sample', col: 2, row: 3, sample: 'clap' }]);
+    expect(beat?.scale).toBeUndefined();
+  });
+
+  it('returns null for a v5 link with a bad scale id', () => {
+    expect(decodeShare(`v5.16.120.neon.clap.BAD!.clap.${base64url([0, 0, 0])}`)).toBeNull();
   });
 
   it('round-trips a bass cell alongside sample cells with different sounds', () => {
@@ -160,7 +213,7 @@ describe('encodeShare / decodeShare', () => {
       cells: [{ instrument: 'kick', col: 0, row: 0 }],
     };
     const link = encodeShare(beat);
-    expect(link.split('.')[5]).toBe('');
+    expect(link.split('.')[6]).toBe('');
     expect(decodeShare(link)?.cells).toEqual(beat.cells);
   });
 

@@ -119,6 +119,7 @@ export class Audio_ {
   private readonly pulseWave: PeriodicWave;
   private readonly masterLevel = 0.8;
   private theme: Theme = DEFAULT_THEME;
+  private scaleOverride: readonly number[] | null = null;
   private fx: FxSettings = { ...DEFAULT_FX };
   private samples = new Map<string, AudioBuffer>();
   private sampleId: string = DEFAULT_SAMPLE;
@@ -416,7 +417,8 @@ export class Audio_ {
   // The playable bass: the theme's synth scale two octaves down, with the backing bass's tone.
   private playBassNote(row: number, time: number, level: number): void {
     const bass = this.theme.bass;
-    const note = (this.theme.synth.scale[7 - clampRow(row)] ?? 45) - 24;
+    const scale = this.scaleOverride ?? this.theme.synth.scale;
+    const note = (scale[7 - clampRow(row)] ?? 45) - 24;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     this.setWave(osc, bass.wave);
@@ -541,11 +543,12 @@ export class Audio_ {
 
   private playSynth(row: number, time: number, level: number): void {
     const synth = this.theme.synth;
+    const scale = this.scaleOverride ?? synth.scale;
     const first = this.ctx.createOscillator();
     const second = this.ctx.createOscillator();
     const filter = this.ctx.createBiquadFilter();
     const gain = this.ctx.createGain();
-    const frequency = midiToHz(synth.scale[7 - clampRow(row)] ?? 57);
+    const frequency = midiToHz(scale[7 - clampRow(row)] ?? 57);
     this.setWave(first, synth.waves[0]);
     first.frequency.setValueAtTime(frequency, time);
     this.setWave(second, synth.waves[1]);
@@ -776,6 +779,11 @@ export class Audio_ {
     filter.connect(gain);
     source.start(time);
     source.stop(time + decay + 0.01);
+  }
+
+  // Replaces the theme's synth scale until it is cleared with null.
+  setScale(notes: readonly number[] | null): void {
+    this.scaleOverride = notes;
   }
 
   setTheme(theme: Theme): void {

@@ -268,7 +268,9 @@ body {
 #fx-reset,
 .sample-list .hw,
 #sample-mic,
-#sample-file {
+#sample-file,
+#beat-random,
+#beat-undo {
   min-height: 0;
   height: 34px;
   padding-block: 0;
@@ -285,6 +287,11 @@ body {
 
 .sampler-panel {
   grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 6px;
+}
+
+.beats-panel {
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 6px;
 }
 
@@ -456,7 +463,7 @@ body {
 
 .keys {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
+  grid-template-columns: repeat(9, 1fr);
   gap: 6px;
 }
 
@@ -898,7 +905,9 @@ body {
   .share-panel .hw,
   #fx-reset,
   #sample-mic,
-  #sample-file {
+  #sample-file,
+  #beat-random,
+  #beat-undo {
     font-size: 0.6rem;
     padding-inline: 4px;
   }

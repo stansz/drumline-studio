@@ -6,6 +6,8 @@ import { patternToMidi } from './midi';
 import { DEFAULT_MIX, MIX_CHANNELS, parseMix, type MixSettings } from './mix';
 import { intensity, layerLevels, pickVoices } from './music';
 import { decodeShare, encodeShare, parsePattern, serializePattern } from './pattern';
+import { PRESETS, scaleNotes, type Preset } from './presets';
+import { randomPattern } from './random';
 import { extensionFor, fileStamp, formatElapsed, pickRecordingType } from './recording';
 import { Renderer, drawIcon, drawLogo } from './render';
 import { MAX_SAMPLE_SECONDS, prepareSample } from './sampleEdit';
@@ -67,6 +69,7 @@ const fileButton = byId<HTMLButtonElement>('sample-file');
 const fileInput = byId<HTMLInputElement>('sample-file-input');
 const pageButton = byId<HTMLButtonElement>('page');
 const lengthButton = byId<HTMLButtonElement>('length');
+const beatsToggle = byId<HTMLButtonElement>('beats-toggle');
 const playButton = byId<HTMLButtonElement>('play');
 const stopButton = byId<HTMLButtonElement>('stop');
 const backingButton = byId<HTMLButtonElement>('backing');
@@ -106,6 +109,10 @@ const midiButton = byId<HTMLButtonElement>('midi');
 const shareStatus = byId<HTMLSpanElement>('share-status');
 const mixPanel = byId<HTMLDivElement>('mix');
 const mixAllPanel = byId<HTMLDivElement>('mix-all');
+const beatsPanel = byId<HTMLDivElement>('beats');
+const presetList = byId<HTMLDivElement>('preset-list');
+const beatRandom = byId<HTMLButtonElement>('beat-random');
+const beatUndo = byId<HTMLButtonElement>('beat-undo');
 const mixToggle = byId<HTMLButtonElement>('mix-toggle');
 const mixInputs = Array.from(document.querySelectorAll<HTMLInputElement>('input[data-mix-channel]'));
 
@@ -135,6 +142,7 @@ let heardMusicStep = 0;
 let stepMarks: Array<{ at: number; step: number; musicStep: number }> = [];
 let playhead = 0;
 let theme = loadTheme();
+let scaleId: string | null = null;
 let volume = loadVolume();
 let backing = loadBacking();
 let sections = loadSections();
@@ -161,9 +169,22 @@ let paint: 'add' | 'erase' | null = null;
 let liveMode: LiveMode = 'paint';
 let playheadAt = 0;
 let loopDrag: number | null = null;
-let openPanel: 'fx' | 'share' | 'mixall' | null = null;
+let openPanel: 'fx' | 'share' | 'mixall' | 'beats' | null = null;
 const infoSections: HTMLSpanElement[] = [];
 let infoShownKey = '';
+
+// One level of undo: the pattern and the settings the last preset or Random changed.
+interface Snapshot {
+  cells: Cell[];
+  length: PatternLength;
+  bpm: number;
+  themeId: string;
+  backing: boolean;
+  sections: boolean;
+  scaleId: string | null;
+}
+
+let undoSnapshot: Snapshot | null = null;
 
 window.__drumline = { sequencer, scheduler, audio };
 
@@ -183,7 +204,11 @@ function savePattern(): void {
   try {
     localStorage.setItem(
       PATTERN_KEY,
-      serializePattern({ length: sequencer.length, cells: sequencer.cells }),
+      serializePattern({
+        length: sequencer.length,
+        cells: sequencer.cells,
+        scale: scaleId ?? undefined,
+      }),
     );
   } catch {
     // The pattern still lasts for this visit.
@@ -267,6 +292,21 @@ function renderSampleButtons(): void {
   updateSampler();
 }
 
+function addPresetButton(preset: Preset): void {
+  const button = document.createElement('button');
+  button.className = 'hw';
+  button.type = 'button';
+  button.dataset.preset = preset.id;
+  button.textContent = preset.name;
+  button.addEventListener('click', () => loadPreset(preset));
+  presetList.append(button);
+}
+
+function renderPresetButtons(): void {
+  presetList.replaceChildren();
+  for (const preset of PRESETS) addPresetButton(preset);
+}
+
 // The dock shows one view at a time: an opened panel, else the sampler while Sample is
 // selected, else the mixer.
 function updateDock(): void {
@@ -275,11 +315,24 @@ function updateDock(): void {
   fxPanel.hidden = view !== 'fx';
   sharePanel.hidden = view !== 'share';
   mixAllPanel.hidden = view !== 'mixall';
+  beatsPanel.hidden = view !== 'beats';
   samplerPanel.hidden = view !== 'sampler';
   fxToggle.setAttribute('aria-expanded', String(view === 'fx'));
   shareToggle.setAttribute('aria-expanded', String(view === 'share'));
   mixToggle.setAttribute('aria-expanded', String(view === 'mixall'));
   mixToggle.classList.toggle('selected', view === 'mixall');
+  beatsToggle.setAttribute('aria-expanded', String(view === 'beats'));
+  beatsToggle.classList.toggle('selected', view === 'beats');
+}
+
+// Only scales the app knows can be saved or restored.
+function knownScaleId(id: string | null | undefined): string | null {
+  return id && scaleNotes(id) ? id : null;
+}
+
+function setScale(id: string | null): void {
+  scaleId = id;
+  audio?.setScale(scaleNotes(scaleId));
 }
 
 function pickSample(id: string, audition = true): void {
@@ -306,7 +359,8 @@ function updateSampleLook(): void {
 function selectTool(tool: Instrument): void {
   selected = tool;
   if (openPanel === 'mixall') openPanel = null;
-  if (tool === 'sample') openPanel = null;
+  // Picking an instrument keeps Beats open so you can audition and keep it open.
+  if (tool === 'sample' && openPanel !== 'beats') openPanel = null;
   updateSelection();
   updateDock();
 }
@@ -351,6 +405,10 @@ function cycleBacking(): void {
   }
   updateBackingButton();
   if (!infoBackdrop.hidden) renderInfo();
+  saveBackingSettings();
+}
+
+function saveBackingSettings(): void {
   try {
     localStorage.setItem(BACKING_KEY, backing ? '1' : '0');
     localStorage.setItem(SECTIONS_KEY, sections ? '1' : '0');
@@ -418,6 +476,7 @@ async function startAudio(): Promise<void> {
     await ctx.resume();
     audio = new Audio_(ctx);
     audio.setTheme(theme);
+    audio.setScale(scaleNotes(scaleId));
     audio.setMuted(muted);
     audio.setVolume(volume);
     audio.setFx(fx);
@@ -499,8 +558,8 @@ function updateThemeButton(): void {
   themeButton.textContent = `♪ ${theme.name}`;
 }
 
-function cycleTheme(): void {
-  theme = nextTheme(theme);
+function applyTheme(next: Theme): void {
+  theme = next;
   audio?.setTheme(theme);
   updateThemeButton();
   if (!infoBackdrop.hidden) renderInfo();
@@ -509,6 +568,10 @@ function cycleTheme(): void {
   } catch {
     // The choice just lasts for this visit when storage is unavailable.
   }
+}
+
+function cycleTheme(): void {
+  applyTheme(nextTheme(theme));
 }
 
 function buildInfoMap(): void {
@@ -677,6 +740,11 @@ function toggleMixAll(): void {
   updateDock();
 }
 
+function toggleBeats(): void {
+  openPanel = openPanel === 'beats' ? null : 'beats';
+  updateDock();
+}
+
 function shareUrl(): string {
   const code = encodeShare({
     length: sequencer.length,
@@ -684,6 +752,7 @@ function shareUrl(): string {
     bpm,
     themeId: theme.id,
     sampleId: sample.id,
+    scale: scaleId ?? '',
   });
   return `${location.origin}${location.pathname}#${code}`;
 }
@@ -715,7 +784,7 @@ function exportMidi(): void {
     sequencer.cells,
     sequencer.length,
     bpm,
-    theme.synth.scale,
+    scaleNotes(scaleId) ?? theme.synth.scale,
     (id) => sampleForNote(id ?? sample.id).midiNote,
   );
   download(new Blob([bytes], { type: 'audio/midi' }), `${fileStamp(new Date())}.mid`);
@@ -896,9 +965,74 @@ function togglePlay(): void {
 
 function clearPattern(): void {
   sequencer.clear();
+  setScale(null);
   updateHud();
   updateStepHints();
   savePattern();
+}
+
+function takeSnapshot(): void {
+  undoSnapshot = {
+    cells: sequencer.cells.map((cell) => ({ ...cell })),
+    length: sequencer.length,
+    bpm,
+    themeId: theme.id,
+    backing,
+    sections,
+    scaleId,
+  };
+}
+
+function restoreSnapshot(snapshot: Snapshot): void {
+  loadCells(snapshot.cells);
+  setLength(snapshot.length);
+  setBpm(snapshot.bpm);
+  applyTheme(themeById(snapshot.themeId));
+  backing = snapshot.backing;
+  sections = snapshot.sections;
+  saveBackingSettings();
+  updateBackingButton();
+  setScale(snapshot.scaleId);
+  savePattern();
+  updateHud();
+  updateStepHints();
+  if (!infoBackdrop.hidden) renderInfo();
+}
+
+function loadPreset(preset: Preset): void {
+  takeSnapshot();
+  loadCells(preset.cells);
+  setLength(preset.length);
+  setBpm(preset.bpm);
+  applyTheme(themeById(preset.themeId));
+  backing = preset.backing !== 'off';
+  sections = preset.backing === 'song';
+  saveBackingSettings();
+  updateBackingButton();
+  setScale(preset.scale);
+  savePattern();
+  updateHud();
+  updateStepHints();
+  beatUndo.disabled = false;
+  if (!infoBackdrop.hidden) renderInfo();
+}
+
+function randomize(): void {
+  takeSnapshot();
+  loadCells(randomPattern(Math.random));
+  if (sequencer.length === 32) setLength(16);
+  savePattern();
+  updateHud();
+  updateStepHints();
+  beatUndo.disabled = false;
+}
+
+function undo(): void {
+  if (!undoSnapshot) return;
+  const snapshot = undoSnapshot;
+  undoSnapshot = null;
+  restoreSnapshot(snapshot);
+  beatUndo.disabled = true;
 }
 
 function cellAt(event: PointerEvent | MouseEvent): { col: number; row: number } | null {
@@ -1088,6 +1222,9 @@ for (const input of mixInputs) {
 }
 shareToggle.addEventListener('click', toggleSharePanel);
 mixToggle.addEventListener('click', toggleMixAll);
+beatsToggle.addEventListener('click', toggleBeats);
+beatRandom.addEventListener('click', randomize);
+beatUndo.addEventListener('click', undo);
 shareLinkButton.addEventListener('click', () => void copyShareLink());
 recordButton.addEventListener('click', toggleRecording);
 midiButton.addEventListener('click', exportMidi);
@@ -1251,6 +1388,7 @@ for (let i = 0; i < 16; i += 1) {
 }
 
 renderSampleButtons();
+renderPresetButtons();
 buildInfoMap();
 
 const shared = (() => {
@@ -1269,6 +1407,7 @@ if (shared) {
         : cell,
     ),
   );
+  setScale(knownScaleId(shared.scale));
   setLength(shared.length);
   setBpm(shared.bpm);
   theme = themeById(shared.themeId);
@@ -1297,6 +1436,7 @@ if (shared) {
     }
   })();
   if (saved) loadCells(saved.cells);
+  setScale(knownScaleId(saved?.scale));
   setLength(saved?.length ?? 16);
 }
 updateHud();

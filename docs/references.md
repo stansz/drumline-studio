@@ -25,7 +25,9 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
   the backing layers, and the pure helpers the backing info screen uses (`songMap`,
   `sectionIndexAt`, `describeSwing`, `SECTION_NAMES`).
 - `src/themes.ts`: one entry for each music theme.
-- `src/pattern.ts`: autosave JSON and the `v1.`/`v2.`/`v3.`/`v4.` share-link formats.
+- `src/presets.ts`: the named synth scales and the beat presets (`PRESETS`, `presetById`).
+- `src/random.ts`: the seeded `Rng` and `randomPattern`, which builds a random 16-step groove.
+- `src/pattern.ts`: autosave JSON and the `v1.`/`v2.`/`v3.`/`v4.`/`v5.` share-link formats.
 - `src/midi.ts`: MIDI file writer.
 - `src/recording.ts`: recording type, file names, and timer text.
 - `src/render.ts`: draws the board into a 256×128 buffer, then scales it onto the canvas.
@@ -50,6 +52,8 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
 - `tests/music.test.ts`: MIDI-to-Hz, chords, intensity, layer levels, and arpeggio notes.
 - `tests/pattern.test.ts`: autosave round trips and every share-link version.
 - `tests/pixel.test.ts`: dithering, line and circle points, and bitmap text.
+- `tests/presets.test.ts`: preset ids, themes, tempos, grid and sample checks, and the scales.
+- `tests/random.test.ts`: seeded repeatability and the random groove's rules.
 - `tests/recording.test.ts`: recording type choice, file extensions, file names, and timers.
 - `tests/sampleEdit.test.ts`: the sample mixing, trimming, fading, and normalizing helpers.
 - `tests/samples.test.ts`: preset ids and colors, lookup fallbacks, and the row-to-pitch rate.
@@ -122,6 +126,10 @@ analyser → recording stream
   scaled by the theme's bass level, and connects to `instrumentLevels.bass`. When the pattern holds
   a Bass note, `onStep` passes `{ backingBass: false }` to `playMusicStep`, which skips the backing
   bass part so the two bass lines don't clash.
+- `Audio_.setScale` sets a `scaleOverride`, and `playSynth` and `playBassNote` read
+  `scaleOverride ?? theme.synth.scale`. A preset scale (such as A minor) therefore replaces the
+  theme's synth scale for both the synth and the playable Bass; `setScale(null)` goes back to the
+  theme's own scale.
 - `musicTrim` is set to `musicTrim / trim`, because the master `trim` scales the backing too. The
   backing therefore ends up at `space.musicTrim` whatever the instruments' trim is.
 - The FX panel's sends are taken from `towerBus`, so they shape the instruments and not the backing
@@ -161,12 +169,12 @@ On phones held sideways, the controls sit in a column beside the board, which gi
 screen. `#rotate-hint` on the start screen points players to that layout. These layouts were
 measured in headless Edge at phone sizes, not on a real phone.
 
-The mixer, sampler, FX, and Share panels share one dock slot under the board and show one view
-at a time. `updateDock()` in `main.ts` picks the view: an open panel (FX, Share, or the `mixall`
-view of all seven volume sliders), else the sampler while Sample is selected, else the mixer. The
-mixer shows one slider, for the selected instrument, and `updateMixView()` swaps which one is
-visible. Sample's volume slider lives in the sampler panel, and the Backing volume slider sits
-under the main volume slider in the header.
+The mixer, sampler, FX, Share, and Beats panels share one dock slot under the board and show one
+view at a time. `updateDock()` in `main.ts` picks the view: an open panel (FX, Share, Beats, or the
+`mixall` view of all seven volume sliders), else the sampler while Sample is selected, else the
+mixer. The mixer shows one slider, for the selected instrument, and `updateMixView()` swaps which
+one is visible. Sample's volume slider lives in the sampler panel, and the Backing volume slider
+sits under the main volume slider in the header.
 The dock's height comes from the `--dock-h` custom property, so swapping views never moves the
 board or the controls.
 
@@ -205,7 +213,13 @@ These values are saved to `localStorage` when they change, and come back on the 
 - `drumline-mix`: the mixer levels as JSON, including `bass`.
 - `drumline-sample`: the chosen sample id.
 - `drumline-pattern`: JSON `{ v: 1, length, cells }`, where each cell is
-  `[instrument, col, row]` plus an optional fourth element, the `sample` id, on sample cells.
+  `[instrument, col, row]` plus an optional fourth element, the `sample` id, on sample cells. An
+  optional top-level `scale` holds a preset scale id; it is read only when it matches
+  `/^[a-z0-9-]{1,24}$/`, and unknown ids fall back to the theme's scale.
+
+The Beats panel keeps one level of undo. A preset or Random first copies the cells, length, tempo,
+theme, backing and sections, and scale into a snapshot; Undo restores that snapshot through
+`loadCells`, `setLength`, `setBpm`, `applyTheme`, and `setScale`, then saves it.
 
 Mute, the shown page, whether the panels are open, and whether the info screen is open are not
 saved. Mute zeroes the master gain, before the recording tap, so it also silences recordings.
@@ -216,17 +230,20 @@ never selects `mine`: decoding falls back to the default Clap sound.
 
 Share links put the beat in the URL hash: `v1.<length>.<bpm>.<theme id>.<cells>`,
 `v2.<length>.<bpm>.<theme id>.<sample id>.<cells>`,
-`v3.<length>.<bpm>.<theme id>.<picked sample id>.<sample table>.<cells>`, or
-`v4.<length>.<bpm>.<theme id>.<picked sample id>.<sample table>.<cells>`. In v1 and v2 each cell is
-two bytes, the step and then the row and instrument index, in base64url: `row × 4 + index` in v1 and
-`row × 5 + index` in v2. v2 adds the chosen sample id and gives every sample cell that sound. v3
-adds a sample table: the distinct sample ids used by the pattern's sample cells, in first-use order,
-joined with `_`. Each v3 cell is three bytes: the step, `row × 5 + index`, and the sample-table
-index (0 for non-sample cells and for sample cells with no `sample`). v4 is the same as v3, except
-there are six instruments, so the second byte is `row × 6 + index`. Old links still load: v1 and v2
-links still load, v1 uses the default Clap sound, and v3 keeps its five-instrument encoding. A link
-loads over the autosave, is then autosaved, and is removed from the address bar. Invalid links are
-ignored.
+`v3.<length>.<bpm>.<theme id>.<picked sample id>.<sample table>.<cells>`,
+`v4.<length>.<bpm>.<theme id>.<picked sample id>.<sample table>.<cells>`, or
+`v5.<length>.<bpm>.<theme id>.<picked sample id>.<scale id>.<sample table>.<cells>`. In v1 and v2
+each cell is two bytes, the step and then the row and instrument index, in base64url:
+`row × 4 + index` in v1 and `row × 5 + index` in v2. v2 adds the chosen sample id and gives every
+sample cell that sound. v3 adds a sample table: the distinct sample ids used by the pattern's sample
+cells, in first-use order, joined with `_`. Each v3 cell is three bytes: the step,
+`row × 5 + index`, and the sample-table index (0 for non-sample cells and for sample cells with no
+`sample`). v4 is the same as v3, except there are six instruments, so the second byte is
+`row × 6 + index`. v5 is the same as v4, plus a scale id after the picked sample id: empty for the
+theme's own scale, or a known id from `SCALES`. Old links still load: v1 and v2 links still load,
+v1 uses the default Clap sound, v3 keeps its five-instrument encoding, and v4 has no scale so it
+falls back to the theme's. A link loads over the autosave, is then autosaved, and is removed from
+the address bar. Invalid links are ignored.
 
 Recording uses `MediaRecorder` on a stream from `Audio_.createRecordingStream()`. The format is the
 first supported in `pickRecordingType`'s list. The Record button is disabled until audio starts, and
@@ -234,7 +251,7 @@ hidden where `MediaRecorder` is missing.
 
 MIDI files are type 0, with 96 ticks per quarter and one step at 24 ticks. Drums and the sample are
 on channel 10 (kick 36, snare 38, hat 42, and each sample cell's own preset note), the synth uses
-the theme's scale on channel 1, and Bass uses the theme's scale two octaves down on channel 2. The
+the active scale on channel 1, and Bass uses the active scale two octaves down on channel 2. The
 track ends at the pattern length.
 
 ## Browser testing

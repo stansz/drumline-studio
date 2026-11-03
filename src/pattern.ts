@@ -5,6 +5,7 @@ import { INSTRUMENTS, type Cell, type Instrument, type PatternLength } from './s
 export interface SavedPattern {
   length: PatternLength;
   cells: Cell[];
+  scale?: string;
 }
 
 export interface SharedBeat extends SavedPattern {
@@ -15,6 +16,10 @@ export interface SharedBeat extends SavedPattern {
 
 function validSample(sample: unknown): string | undefined {
   return typeof sample === 'string' && /^[a-z0-9-]{1,24}$/.test(sample) ? sample : undefined;
+}
+
+function validScale(scale: unknown): string | undefined {
+  return typeof scale === 'string' && /^[a-z0-9-]{1,24}$/.test(scale) ? scale : undefined;
 }
 
 function validCell(instrument: unknown, col: unknown, row: unknown, sample?: unknown): Cell | null {
@@ -48,7 +53,7 @@ function cleanCells(cells: Array<Cell | null>): Cell[] {
 }
 
 export function serializePattern(pattern: SavedPattern): string {
-  return JSON.stringify({
+  const data: Record<string, unknown> = {
     v: 1,
     length: pattern.length,
     cells: pattern.cells.map((cell) =>
@@ -56,7 +61,9 @@ export function serializePattern(pattern: SavedPattern): string {
         ? [cell.instrument, cell.col, cell.row, cell.sample]
         : [cell.instrument, cell.col, cell.row],
     ),
-  });
+  };
+  if (pattern.scale !== undefined) data.scale = pattern.scale;
+  return JSON.stringify(data);
 }
 
 export function parsePattern(text: string | null): SavedPattern | null {
@@ -76,7 +83,8 @@ export function parsePattern(text: string | null): SavedPattern | null {
       Array.isArray(entry) ? validCell(entry[0], entry[1], entry[2], entry[3]) : null,
     ),
   );
-  return { length, cells };
+  const scale = validScale(record.scale);
+  return scale === undefined ? { length, cells } : { length, cells, scale };
 }
 
 function toBase64Url(bytes: Uint8Array): string {
@@ -105,6 +113,8 @@ function fromBase64Url(text: string): Uint8Array | null {
 // cell is three bytes: the step, then row * 5 + instrument index, then the sample-table index.
 // v4 is the same as v3, except the instrument index is one of six, so the second byte is
 // row * 6 + instrument index.
+// v5 is the same as v4, plus a scale id after the sample id, empty for the theme's own scale:
+// v5.<length>.<bpm>.<theme id>.<picked sample id>.<scale id>.<sample table>.<cells>.
 const MAX_SAMPLE_TABLE = 16;
 
 export function encodeShare(beat: SharedBeat): string {
@@ -126,11 +136,12 @@ export function encodeShare(beat: SharedBeat): string {
     bytes[i * 3 + 2] = sampleIndex;
   });
   return [
-    'v4',
+    'v5',
     beat.length,
     parseBpm(String(beat.bpm)),
     beat.themeId,
     beat.sampleId,
+    beat.scale ?? '',
     sampleTable.join('_'),
     toBase64Url(bytes),
   ].join('.');
@@ -218,6 +229,38 @@ export function decodeShare(text: string): SharedBeat | null {
       themeId,
       sampleId,
       cells,
+    };
+  }
+  if (parts[0] === 'v5') {
+    if (parts.length !== 8) return null;
+    const [, lengthText, bpmText, themeId, sampleId, scaleText, tableText, cellText] = parts as [
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+    ];
+    if (lengthText !== '16' && lengthText !== '32') return null;
+    if (!/^[a-z0-9-]{1,24}$/.test(themeId)) return null;
+    if (!/^[a-z0-9-]{1,24}$/.test(sampleId)) return null;
+    const scale = scaleText === '' ? undefined : validScale(scaleText);
+    if (scaleText !== '' && scale === undefined) return null;
+    const sampleTable = tableText === '' ? [] : tableText.split('_');
+    for (const id of sampleTable) {
+      if (!/^[a-z0-9-]{1,24}$/.test(id)) return null;
+    }
+    const bytes = fromBase64Url(cellText);
+    if (!bytes || bytes.length % 3 !== 0) return null;
+    return {
+      length: lengthText === '32' ? 32 : 16,
+      bpm: parseBpm(bpmText),
+      themeId,
+      sampleId,
+      ...(scale === undefined ? {} : { scale }),
+      cells: decodeV3Cells(bytes, 6, sampleTable),
     };
   }
   if (parts[0] !== 'v3' && parts[0] !== 'v4') return null;

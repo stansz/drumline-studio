@@ -15,10 +15,11 @@ to paint the selected instrument. Rows are pitch: higher rows tune a kick up, br
 tighten a snare, play higher notes on the synth, pitch the sample up, and play higher bass notes.
 Clicking or dragging over a note removes it, and right-click also removes.
 
-**Bass** plays the theme's synth scale two octaves lower, with the theme's own bass sound: the
-bottom row is the lowest note, and each higher row plays higher. It plays one note at a time, so a
-step with several Bass notes keeps one. While the pattern holds any Bass notes, the backing's own
-bass line is muted so the two bass lines don't clash.
+**Bass** plays the active synth scale two octaves lower, with the theme's own bass sound: the
+bottom row is the lowest note, and each higher row plays higher. The active scale is the theme's
+own, unless a preset has set one. It plays one note at a time, so a step with several Bass notes
+keeps one. While the pattern holds any Bass notes, the backing's own bass line is muted so the two
+bass lines don't clash.
 
 ### Sampler
 
@@ -40,6 +41,24 @@ way, silence at the start and end is trimmed and the level is evened out. The re
 **Mine**, plays like the built-in sounds, is saved on this device, and comes back next visit.
 Mine is a single slot: recording a new one replaces it and changes every Mine note. Share links
 can't carry it: people who open the link hear Clap instead.
+
+### Beats
+
+**Beats** in the transport opens a row of preset beats, one tap each: Four on the Floor, Boom
+Bap, Breakbeat, Trap, Dembow, Funk Groove, and Korobeiniki (Tetris tune). A preset sets the
+pattern (drums, samples, synth, and bass), the pattern length, the tempo, the theme, and the
+Backing mode; some also set a synth scale. Playback keeps going, and the new beat takes over on
+the next step. Picking an instrument does not close Beats; opening FX, Share, or Mix, or pressing
+Beats again, does.
+
+**🎲 Random** replaces the pattern with a fresh 16-step groove: kick on the one, snare on 2 and 4,
+a hat pattern, a bass line that follows the kick, and a few synth notes in key. The theme, tempo,
+length, and scale stay as they are. **Undo** puts back the pattern and the settings changed by
+the last preset or Random; there is one level of undo.
+
+Korobeiniki is a 19th-century Russian folk song in the public domain. Its preset sets an A-minor
+scale for the synth and the bass on top of the Chiptune theme; **Clear** resets the scale to the
+theme's own.
 
 ### Length and pages
 
@@ -91,23 +110,25 @@ adds bit-crush on top of the theme's own. **Reset** sets them all back to off.
 
 ### Saving and sharing
 
-The pattern and its length are saved automatically and come back on your next visit. **Share**
-(key **E**) opens a panel with three ways to keep a beat. Opening Share closes the other dock
-panels. **Copy link** gives anyone who opens the link the same pattern, length, tempo, theme,
-picked sample sound, and per-note sample sounds. Links in the older `v1`, `v2`, and `v3` formats
-still open; they fall back to the default Clap sound where they carry no per-note sound. **Record**
+The pattern, its length, and any preset scale are saved automatically and come back on your next
+visit. **Share** (key **E**) opens a panel with three ways to keep a beat. Opening Share closes
+the other dock panels. **Copy link** gives anyone who opens the link the same pattern, length,
+tempo, theme, picked sample sound, per-note sample sounds, and preset scale. Links in the older
+`v1`, `v2`, `v3`, and `v4` formats still open; they fall back to the default Clap sound where they
+carry no per-note sound and to the theme's scale where they carry no scale. **Record**
 (key **R**) records everything you hear, starting playback if needed; press it again to download
 the audio file, in whatever format the browser records, usually WebM, or M4A on Safari.
 Recordings are taken at full level, before the volume slider, so the slider does not change a
 recording's loudness; **Mute** does silence the recording. **MIDI** downloads one pass of the
 pattern as a `.mid` file: the drums use General MIDI notes (kick 36, snare 38, hat 42), each
-sample note uses its own sound's drum note, and the synth plays the theme's scale.
+sample note uses its own sound's drum note, and the synth and bass use the active scale (a preset
+scale, or else the theme's).
 
 ### The dock
 
-The mixer, sampler, FX, and Share panels share one slot under the board, and only one of them
-shows at a time, so opening one never moves the board. On a phone held sideways, that slot floats
-over the bottom of the board.
+The mixer, sampler, FX, Share, and Beats panels share one slot under the board, and only one of
+them shows at a time, so opening one never moves the board. On a phone held sideways, that slot
+floats over the bottom of the board.
 
 ## Controls
 

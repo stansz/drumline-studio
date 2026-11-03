@@ -50,6 +50,11 @@
           <label class="fx-knob" style="--c: #9b6cff"><small>Bass</small><input type="range" min="0" max="100" step="1" value="100" data-mix-channel="bass" aria-label="Bass volume" /></label>
           <label class="fx-knob" style="--c: var(--cream)"><small>Backing</small><input type="range" min="0" max="100" step="1" value="100" data-mix-channel="backing" aria-label="Backing volume" /></label>
         </div>
+        <div id="beats" class="fx-panel beats-panel" hidden>
+          <div id="preset-list" class="sample-list"></div>
+          <button id="beat-random" class="hw" type="button" title="Random groove">🎲 Random</button>
+          <button id="beat-undo" class="hw" type="button" disabled>Undo</button>
+        </div>
         <div id="fx" class="fx-panel" hidden>
           <label class="fx-knob"><small>Filter</small><input id="fx-filter" type="range" min="-100" max="100" step="1" value="0" aria-label="Filter: left is low-pass, right is high-pass" /></label>
           <label class="fx-knob"><small>Delay</small><input id="fx-delay" type="range" min="0" max="100" step="1" value="0" aria-label="Delay amount" /></label>
@@ -98,6 +103,7 @@
             <button id="mute" class="hw" type="button">Mute</button>
             <button id="clear" class="hw" type="button">Clear</button>
             <button id="length" class="hw" type="button">16 steps</button>
+            <button id="beats-toggle" class="hw" type="button" aria-expanded="false" aria-controls="beats">Beats</button>
           </div>
         </div>
       </div>
