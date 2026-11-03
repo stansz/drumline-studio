@@ -1,29 +1,21 @@
-# Plan: Desktop layout pass, start stopped, and Follow for 32-step patterns
+# Plan: Master volume in the Mix view, and a Theme tab with a theme picker
 
 ## Goal
 
-In Drumline Studio (`C:\Users\sz\Documents\Code\drumline-studio`), make six changes. The
-desktop layout is the priority. Phones must still work: no sideways scroll and no clipped
-labels.
+In Drumline Studio (`C:\Users\sz\Documents\Code\drumline-studio`), make two changes:
 
-1. **Header**: remove the Backing volume slider. Backing volume stays in the Mix view. The
-   header keeps **Vol** only.
-2. **Length button**: move `#length` (16/32 steps) into the header, next to the Step LCD and
-   the Page button.
-3. **Share and Backing swap places**:
-   - **Share** (`#share-toggle`) moves into the transport, where Backing was. It still opens
-     the Share panel in the dock.
-   - **Backing** (`#backing`, Song/Loop/Off) moves into the tab row, between FX and ⓘ.
-4. **Equal heights**: on desktop, the Instruments bank and the Transport bank are the same
-   height, and the transport buttons stretch to match the pads.
-5. **Start stopped**: pressing **Start** (or Enter/Space on the start screen) turns on the
-   audio but does not start playback. The Play button shows **Play**.
-6. **Follow**:
-   - A **Follow** toggle in the header, next to Page, shown only when the length is 32 (like
-     Page). Key **F**.
-   - When on, the board flips to the page the playhead is on as it plays.
-   - Flipping the page by hand (button or **P**) turns Follow off.
-   - Saved as `drumline-follow` (default on).
+1. **Master volume** moves out of the header and into the Mix view, as its first slider,
+   labeled **Master**. The header keeps only **Share**. Mute stays in the transport.
+2. **Theme** moves out of the transport and into the tab row, between FX and Backing. It
+   shows the current theme (e.g. `♪ Neon`). Clicking it opens a **Themes** view in the dock
+   with one button per theme, the current one highlighted. Picking one applies it. Key **T**
+   still cycles themes.
+
+After this:
+
+- **Header**: logo, Notes, Step, Page, Length, Follow, Share.
+- **Tab row**: Mix, Beats, FX, Theme, Backing, ⓘ.
+- **Transport**: Play, Stop, BPM, Mute, Clear.
 
 ## Files to touch
 
@@ -38,111 +30,89 @@ labels.
 
 ### 1. `index.html`
 
-- `.levels`: remove the Backing `<label class="level">…#mix-backing…</label>`. The Mix view's
-  Backing slider (`data-mix-channel="backing"` in `#mix-all`) stays and keeps working.
-- `.lcds`: after `#page`, add the `#length` button, moved from `.keys` with its attributes,
-  then add:
-  `<button id="follow" class="hw" type="button" hidden aria-pressed="true" title="Follow the playhead across pages (F)">Follow</button>`
-- `.keys`: remove `#length`. Move `#backing` out and put `#share-toggle` (from the tab row) in
-  its place, with its attributes but without the `tab` class.
-- `#tabs`: the order is now Mix, Beats, FX, Backing, ⓘ. Move `#backing` (with its
-  `<small>`/`<span id="backing-value">` content) between `#fx-toggle` and `#info-toggle`, and
-  give it `class="hw tab"`.
+- Header `.sys`: remove the whole `.levels` block. `#share-toggle` stays.
+- `#mix-all`: insert as its **first** child:
+  `<label class="fx-knob mix-master" style="--c: var(--cream)"><small>Master</small><input id="volume" type="range" min="0" max="100" step="1" value="100" aria-label="Master volume" title="Master volume" /></label>`
+  This keeps the id `volume`, so the existing volume wiring (`volumeSlider`, `changeVolume`,
+  `drumline-volume`) keeps working. It is **not** a `data-mix-channel` slider.
+- Transport `.keys`: remove `#theme`.
+- `#tabs`: insert
+  `<button id="theme" class="hw tab" type="button" aria-expanded="false" aria-controls="themes" aria-label="Choose music theme">♪ Neon</button>`
+  between `#fx-toggle` and `#backing`.
+- `#dock`: after `#beats`, add
+  `<div id="themes" class="fx-panel themes-panel" hidden><div id="theme-list" class="sample-list"></div></div>`.
 
 ### 2. `src/main.ts`
 
-- **Start stopped**:
-  - In `startAudio()`'s success path, remove the `play()` call. Keep `hideOverlay()`.
-  - `startButton` click and the start-screen Enter/Space call `startAudio()` (via `void`)
-    instead of `play()`.
-  - `play()` when `!started` should start the audio and then play. Change it to
-    `void startAudio().then(() => { if (started) play(); });` and return. Check that this
-    doesn't recurse: `startAudio` no longer calls `play`.
-- **Follow**:
-  - `const FOLLOW_KEY = 'drumline-follow';`
-  - `let follow = loadFollow();`, where `loadFollow()` returns
-    `localStorage.getItem(FOLLOW_KEY) !== '0'` in `try`/`catch`, default `true`.
-  - `followButton` (`#follow`).
-  - `updateFollowButton()`: set `followButton.hidden = sequencer.length === 16`, toggle the
-    `selected` class with `follow`, and set `aria-pressed`.
-  - `setFollow(on)`: store it, save it to `FOLLOW_KEY` in `try`/`catch`, and update the
-    button.
-  - The button click and key `'f'` toggle it. Add `case 'f'` to the keydown `switch`; it is
-    unused today. Check this.
-  - Call `updateFollowButton()` from `setLength`, and once at startup.
-  - Manual page flips turn Follow off: the page button click and key `'p'` call
-    `setFollow(false)` before flipping. The automatic flip must not.
-  - In `frame()`, after `playhead` is updated from a step mark: if `follow`, `playing`, and
-    `sequencer.length === 32` are all true and `Math.floor(playhead / GRID_COLS) !== page`,
-    call `setPage(Math.floor(playhead / GRID_COLS))`.
-- Nothing else changes: ids are kept, so the existing wiring finds every moved button.
+- `openPanel` gains `'themes'`.
+- `updateDock`:
+  - `themesPanel.hidden = view !== 'themes'`
+  - set `aria-expanded` on `#theme`
+  - toggle the `selected` class on `#theme` while its view is open, like the Mix and Beats
+    tabs
+- `toggleThemes()` works like `toggleMixAll`: it closes FX, Share, Mix, and Beats, and they
+  close it. Picking an instrument does not close it.
+- `themeButton` click → `toggleThemes()` (it no longer calls `cycleTheme`).
+- Build the theme buttons once at startup from `THEMES`: one
+  `<button class="hw" type="button" data-theme="<id>">` per theme with `theme.name` as its
+  text and `theme.blurb` as its `title`. Clicking one calls
+  `applyTheme(themeById(button.dataset.theme ?? null))`. Keep the panel open, so the player
+  can audition themes.
+- Add `updateThemeList()`, which toggles `selected` on the button whose `data-theme` equals
+  `theme.id`. Call it from `applyTheme` and at startup.
+- Key **T** still calls `cycleTheme()`. The list follows, because `applyTheme` updates it.
+- `updateThemeButton()` keeps setting the tab text to `♪ ${theme.name}`.
+- The volume code needs no change beyond working with the moved element. Check that
+  `volumeSlider.value` is still set at startup.
+- The keydown guard already ignores events from `HTMLInputElement`s, so the Master slider is
+  covered.
 
 ### 3. `src/style.css`
 
-- **Header**:
-  - `.lcds` keeps `#page`, `#length`, and `#follow` the same height as the LCDs. Apply the
-    existing `#page` sizing rule (`min-height: 0; padding: 2px 10px;`) to `#length` and
-    `#follow` too. `#length` shows "16 steps" or "32 steps" on one line, so add
-    `white-space: nowrap`.
-  - `.levels` now holds one slider. Keep its width, and center it vertically in `.sys`.
-- **Tab row**:
-  - `.tabs` becomes `grid-template-columns: repeat(4, minmax(0, 1fr)) auto;`, which still fits
-    (Mix, Beats, FX, Backing, then ⓘ).
-  - The Backing button's caption layout (`#backing` column flex, small caption) must fit the
-    tab height. Set `#backing.tab { min-height: 32px; padding-block: 2px; }`.
-- **Transport**: base `.keys` uses `repeat(7, 1fr)`: Play, Stop, tempo (span 2), Share, Mute,
-  Clear.
-- **Equal heights (desktop)**:
-  - `.deck { align-items: stretch; }`.
-  - Each `.bank` fills the row (`height: 100%`), and its content area grows.
-  - `.pads` and `.keys` get `flex: 1;` and `align-content: stretch;`.
-  - Their direct buttons (and `.tempo`'s children) stretch to the full height
-    (`height: 100%` or `align-self: stretch`).
-  - The transport buttons end up as tall as the pads, with labels vertically centered.
-  - Keep each `.cap` label above its bank. The goal is that the two banks' top edges and
-    bottom edges line up.
-- **Narrow** (`@media (max-width: 760px)`):
-  - `.keys { grid-template-columns: repeat(6, 1fr); }`.
-  - `.hw.go`, `#stop`, and `.tempo` span 2 each (row 1).
-  - `.keys > .hw:not(.go):not(#stop)` span 2 (row 2: Share, Mute, Clear).
-  - Remove the old 8-column narrow rules that this replaces.
-  - Turn off the equal-height stretch when the deck is one column. The deck stacks there, so
-    each bank keeps its natural height.
-- **Phones held sideways**: keep it working. If `.keys` there is 2 columns, Play/Stop, tempo,
-  Share/Mute, and Clear may leave one empty cell. That's acceptable.
+- Remove the `.levels` and `.level` rules, and any media-query rules that size `.levels`.
+  `#volume`'s own `accent-color` rule can stay.
+- Header `.sys`: holds only Share. Keep it right-aligned and the same height as the LCD row.
+- `.mix-all-panel`: 8 columns, `repeat(8, minmax(0, 1fr))` (Master plus seven channels).
+  `.mix-master small { color: var(--cream); }` and `.mix-master input { accent-color: var(--cream); }`.
+- `.tabs`: 6 buttons, `grid-template-columns: repeat(5, minmax(0, 1fr)) auto;`. `#theme.tab`
+  shows the theme name on one line (`white-space: nowrap; overflow: hidden; text-overflow: ellipsis;`).
+  - Inside `@media (max-width: 760px)`: `.tabs .hw { font-size: 0.58rem; padding-inline: 2px; }`.
+  - Phones held sideways: `#tabs` has 6 columns, `repeat(6, minmax(0, 1fr))`.
+- `.themes-panel`: `grid-template-columns: 1fr;`. The list reuses `.sample-list`, so it scrolls
+  sideways on narrow screens. Give its buttons the same height rules as the sample buttons
+  (`min-height: 0; height: 34px; padding-block: 0;`) and `flex: 1 0 auto`.
+- **Transport**: base `.keys` `repeat(6, 1fr)`: Play, Stop, tempo (span 2), Mute, Clear.
+  - Inside `@media (max-width: 760px)`: keep 6 columns. Play, Stop, and tempo span 2 each
+    (row 1). Mute and Clear span 3 each (row 2). Update the selectors that set spans so
+    Mute and Clear get `span 3`.
+  - Phones held sideways (2 columns): Play and Stop; tempo across both; Mute and Clear.
+    Check that the selectors give exactly that.
+- Desktop: the Instruments and Transport banks must still be equal height. That rule exists;
+  check it still applies with fewer transport buttons.
 
 ### 4. Docs
 
-- `README.md`, updated to match:
-  - The Length and Follow buttons sit by the Step counter.
-  - Follow (key **F**): the board follows the playhead across pages; flipping the page by hand
-    turns it off; it is remembered.
-  - Share is in the transport.
-  - Backing (Song/Loop/Off) is in the tab row.
-  - Backing volume is in the Mix view only.
-  - Start opens stopped; press Play.
-  - Add **F** to Controls.
-- `docs/references.md`:
-  - Update the layout description.
-  - Add `drumline-follow` to the storage keys.
-  - Note that Start no longer plays.
+- `README.md`:
+  - The master volume is the **Master** slider in the Mix view. Mute is in the transport.
+  - Theme is a tab in the tab row that opens a theme picker. **T** cycles.
+  - Update the layout description (header, tab row, transport).
+- `docs/references.md`: update the layout and dock paragraphs. Add the `themes` dock view to
+  the `updateDock()` description.
 
 ## Acceptance
 
 - `npm run typecheck` exits 0.
 - `npm run test:sandbox` exits 0.
-- `git grep -n -F 'id="follow"' -- index.html` prints one line.
-- PowerShell: `(Select-String -Path index.html -Pattern 'id="mix-backing"').Count` prints 0.
-- PowerShell: `(Select-String -Path index.html -Pattern 'class="hw tab"').Count` prints 5.
-- PowerShell: `Select-String -Path src/main.ts -Pattern 'drumline-follow'` prints at least one
-  line.
+- `git grep -n -F 'id="themes"' -- index.html` prints one line.
+- PowerShell: `(Select-String -Path index.html -Pattern 'class="hw tab"').Count` prints 6.
+- PowerShell: `Select-String -Path index.html -Pattern 'class="levels"'` prints nothing.
+- `git grep -n -F 'id="volume"' -- index.html` prints one line, and it is inside `#mix-all`.
 
 Verifier only:
 
 - `npm test` exits 0.
 - `npm run build` exits 0.
-- A browser check: desktop bank heights, Start opens stopped, Follow flips pages, and phones
-  have no overflow.
+- A browser check of the theme picker, Master volume, and the layouts.
 
 ## Parallel work
 
@@ -152,8 +122,7 @@ None — do it sequentially.
 
 - Do not commit, push, or switch branches.
 - Do not touch files outside **Files to touch**, except `.handoff/report.md`.
-- Do not change sounds, panel contents, saved keys other than adding `drumline-follow`,
-  or existing shortcuts.
+- Do not change sounds, saved keys, ids, or other shortcuts.
 - Do not run the `Verifier only:` commands. If any command fails with `spawn EPERM`, stop and
   report it. Do not request wider sandbox access, set `NODE_OPTIONS`, or stub modules to get
   past it.
@@ -163,8 +132,8 @@ None — do it sequentially.
 
 ## Out of scope
 
-- New features beyond Follow.
-- Restyling pads or the board.
+- New themes.
+- Other layout changes.
 
 ## If blocked
 

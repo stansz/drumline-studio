@@ -48,8 +48,8 @@ can't carry it: people who open the link hear Clap instead.
 Bap, Breakbeat, Trap, Dembow, Funk Groove, and Korobeiniki (Tetris tune). A preset sets the
 pattern (drums, samples, synth, and bass), the pattern length, the tempo, the theme, and the
 Backing mode; some also set a synth scale. Playback keeps going, and the new beat takes over on
-the next step. Picking an instrument does not close Beats; opening FX, Share, or Mix, or pressing
-Beats again, does.
+the next step. Picking an instrument does not close Beats; opening FX, Share, Mix, or Theme, or
+pressing Beats again, does.
 
 **Random** replaces the pattern with a fresh 16-step groove: kick on the one, snare on 2 and 4,
 a hat pattern, a bass line that follows the kick, and a few synth notes in key. The theme, tempo,
@@ -80,9 +80,10 @@ under a small **Backing** caption.
 Song moves through verse, chorus, verse, chorus, and a break, with a short snare fill before each
 change; the chorus uses a second chord progression. Loop plays the theme's steady verse loop. Off
 plays only your pattern, plus a metronome click while the grid is empty. **Mute** silences
-everything, and **Clear** empties the pattern. **Theme** switches between the Neon, Chiptune,
-Lo-fi, Techno, and Funk soundtracks at any time; themes change the sound only, never the pattern
-or the tempo.
+everything, and **Clear** empties the pattern. **Theme** in the tab row opens a picker with one
+button per theme, the current one highlighted: Neon, Chiptune, Lo-fi, Techno, and Funk. Picking one
+applies it and leaves the picker open so you can audition them; key **T** still cycles through them.
+Themes change the sound only, never the pattern or the tempo.
 
 ### The Backing info screen
 
@@ -99,12 +100,13 @@ The slot under the board shows the selected instrument's volume slider: Kick, Ha
 or Bass. Picking another instrument swaps which slider shows. Each slider also scales the reverb
 that its part feeds, and the synth's delay, so turning a part down turns its tail down too, and
 the levels are remembered between visits. Selecting Sample, or opening FX or Share, uses the same
-slot. Sample's volume is in the sampler panel. The header keeps only the main volume; the Backing
-volume is in the **Mix** view. On a phone held sideways, the per-instrument slider is hidden, but
-the main volume is not. **Mix** in the tab row above the dock shows all seven volumes at once, each
-labeled in its color: Kick, Hat, Synth, Snare, Sample, Bass, and Backing. Picking an instrument, or
-pressing Mix again, goes back to the single slider. It also works on a phone held sideways, so it
-is where the Backing volume is set there. All sliders for a part stay in sync.
+slot. Sample's volume is in the sampler panel. **Master** is the first slider in the **Mix** view,
+and the Backing volume is there too. On a phone held sideways, the per-instrument slider is hidden,
+but Master is not. **Mix** in the tab row above the dock shows the Master volume and all seven
+channel volumes at once, each channel labeled in its color: Kick, Hat, Synth, Snare, Sample, Bass,
+and Backing. Picking an instrument, or pressing Mix again, goes back to the single slider. It also
+works on a phone held sideways, so it is where Master and the Backing volume are set there. All
+sliders for a part stay in sync.
 
 ### FX
 
@@ -132,13 +134,13 @@ scale, or else the theme's).
 
 ### The dock
 
-The tab row directly above the dock holds Mix, Beats, FX, Backing, and ⓘ. The header holds the
-logo, the Notes and Step readouts, Share, the Vol slider, and the Length and Follow buttons. The
-transport holds Play, Stop, BPM, Theme, Mute, and Clear.
+The tab row directly above the dock holds Mix, Beats, FX, Theme, Backing, and ⓘ. The header holds
+the logo, the Notes and Step readouts, Share, and the Length and Follow buttons. The transport
+holds Play, Stop, BPM, Mute, and Clear.
 
-The mixer, sampler, FX, Share, and Beats panels share one slot under the board, and only one of
-them shows at a time, so opening one never moves the board. On a phone held sideways, that slot
-floats over the bottom of the board.
+The mixer, sampler, FX, Share, Beats, and Themes panels share one slot under the board, and only
+one of them shows at a time, so opening one never moves the board. On a phone held sideways, that
+slot floats over the bottom of the board.
 
 ## Controls
 
@@ -160,8 +162,8 @@ floats over the bottom of the board.
 
 While the backing info screen is open, **Esc** or **I** closes it, and every other key is ignored.
 On the start screen, **Enter** or **Space** turns on the audio without starting playback, and **T**
-changes the theme. The on-screen buttons provide the same actions, and the slider beside the theme
-button sets the volume. Your theme, volume, tempo, backing setting, Follow setting, FX, mixer
+changes the theme. The on-screen buttons provide the same actions. **Master** in the Mix view sets
+the volume. Your theme, volume, tempo, backing setting, Follow setting, FX, mixer
 levels, and picked sample are remembered between visits.
 
 On a phone, tap instead of clicking, and turn the phone sideways for a bigger board.

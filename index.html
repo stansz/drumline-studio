@@ -21,9 +21,6 @@
         </div>
         <div class="sys">
           <button id="share-toggle" class="hw" type="button" aria-expanded="false" aria-controls="share">Share</button>
-          <div class="levels">
-            <label class="level"><small>Vol</small><input id="volume" type="range" min="0" max="100" step="1" value="100" aria-label="Volume" title="Volume" /></label>
-          </div>
         </div>
       </header>
       <main id="stage">
@@ -34,6 +31,7 @@
         <button id="mix-toggle" class="hw tab" type="button" aria-expanded="false" aria-controls="mix-all">Mix</button>
         <button id="beats-toggle" class="hw tab" type="button" aria-expanded="false" aria-controls="beats">Beats</button>
         <button id="fx-toggle" class="hw tab" type="button" aria-expanded="false" aria-controls="fx">FX</button>
+        <button id="theme" class="hw tab" type="button" aria-expanded="false" aria-controls="themes" aria-label="Choose music theme">♪ Neon</button>
         <button id="backing" class="hw tab" type="button"><small>Backing</small><span id="backing-value">Song</span></button>
         <button id="info-toggle" class="hw tab" type="button" aria-haspopup="dialog" aria-controls="backing-info" title="About the backing music (I)">ⓘ</button>
       </nav>
@@ -46,6 +44,7 @@
           <label class="fx-knob mix-channel" data-channel="bass" style="--c: #9b6cff"><small>Bass volume</small><input id="mix-bass" type="range" min="0" max="100" step="1" value="100" data-mix-channel="bass" aria-label="Bass volume" /></label>
         </div>
         <div id="mix-all" class="fx-panel mix-all-panel" hidden>
+          <label class="fx-knob mix-master" style="--c: var(--cream)"><small>Master</small><input id="volume" type="range" min="0" max="100" step="1" value="100" aria-label="Master volume" title="Master volume" /></label>
           <label class="fx-knob" style="--c: var(--red)"><small>Kick</small><input type="range" min="0" max="100" step="1" value="100" data-mix-channel="kick" aria-label="Kick volume" /></label>
           <label class="fx-knob" style="--c: var(--amber)"><small>Hat</small><input type="range" min="0" max="100" step="1" value="100" data-mix-channel="hat" aria-label="Hat volume" /></label>
           <label class="fx-knob" style="--c: var(--teal)"><small>Synth</small><input type="range" min="0" max="100" step="1" value="100" data-mix-channel="synth" aria-label="Synth volume" /></label>
@@ -59,6 +58,7 @@
           <button id="beat-random" class="hw" type="button" title="Random groove">Random</button>
           <button id="beat-undo" class="hw" type="button" disabled>Undo</button>
         </div>
+        <div id="themes" class="fx-panel themes-panel" hidden><div id="theme-list" class="sample-list"></div></div>
         <div id="fx" class="fx-panel" hidden>
           <label class="fx-knob"><small>Filter</small><input id="fx-filter" type="range" min="-100" max="100" step="1" value="0" aria-label="Filter: left is low-pass, right is high-pass" /></label>
           <label class="fx-knob"><small>Delay</small><input id="fx-delay" type="range" min="0" max="100" step="1" value="0" aria-label="Delay amount" /></label>
@@ -103,7 +103,6 @@
               <button id="bpm-up" class="hw" type="button" aria-label="Faster" title="Faster (Shift: 10 BPM)">+</button>
             </div>
             <button id="live" class="hw" type="button" title="Paint, Live, or Rec (V)">Paint</button>
-            <button id="theme" class="hw" type="button" aria-label="Change music theme">♪ Neon</button>
             <button id="mute" class="hw" type="button">Mute</button>
             <button id="clear" class="hw" type="button">Clear</button>
           </div>

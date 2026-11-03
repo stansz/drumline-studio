@@ -174,16 +174,17 @@ On phones held sideways, the controls sit in a column beside the board, which gi
 screen. `#rotate-hint` on the start screen points players to that layout. These layouts were
 measured in headless Edge at phone sizes, not on a real phone.
 
-The tab row directly above the dock holds the Mix, Beats, FX, Backing, and ⓘ buttons. The header
-holds the logo, the Notes and Step readouts, the Share button, the Vol slider, and the Length and
-Follow buttons; the transport holds Play, Stop, BPM, Theme, Mute, and Clear.
+The tab row directly above the dock holds the Mix, Beats, FX, Theme, Backing, and ⓘ buttons. The
+header holds the logo, the Notes and Step readouts, the Share button, and the Length and Follow
+buttons; the transport holds Play, Stop, BPM, Mute, and Clear. The Master volume is the first
+slider in the `mixall` view of the dock, and the theme picker is the `themes` view.
 
-The mixer, sampler, FX, Share, and Beats panels share one dock slot under the board and show one
-view at a time. `updateDock()` in `main.ts` picks the view: an open panel (FX, Share, Beats, or the
-`mixall` view of all seven volume sliders), else the sampler while Sample is selected, else the
-mixer. The mixer shows one slider, for the selected instrument, and `updateMixView()` swaps which
-one is visible. Sample's volume slider lives in the sampler panel, and the Backing volume slider is
-in the `mixall` view of the dock.
+The mixer, sampler, FX, Share, Beats, and Themes panels share one dock slot under the board and
+show one view at a time. `updateDock()` in `main.ts` picks the view: an open panel (FX, Share,
+Beats, Themes, or the `mixall` view of the Master and all seven channel volume sliders), else the
+sampler while Sample is selected, else the mixer. The mixer shows one slider, for the selected
+instrument, and `updateMixView()` swaps which one is visible. Sample's volume slider lives in the
+sampler panel, and the Master and Backing volume sliders are in the `mixall` view of the dock.
 The dock's height comes from the `--dock-h` custom property, so swapping views never moves the
 board or the controls.
 
