@@ -129,6 +129,25 @@ body {
   accent-color: var(--amber);
 }
 
+/* ---- Dock ---- */
+.dock {
+  --dock-h: 46px;
+  height: var(--dock-h);
+  display: grid;
+  min-width: 0;
+}
+
+.dock > * {
+  height: var(--dock-h);
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+.dock > [hidden] {
+  display: none;
+}
+
 /* ---- FX panel ---- */
 .fx-panel {
   display: grid;
@@ -137,7 +156,7 @@ body {
   align-items: center;
   background: #1f1d25;
   box-shadow: inset 0 2px 0 #000, inset 0 -1px 0 #3a3743;
-  padding: 6px 10px;
+  padding: 4px 10px;
 }
 
 .fx-panel[hidden] {
@@ -169,6 +188,14 @@ body {
   padding-inline: 14px;
 }
 
+.share-panel .hw,
+#fx-reset,
+.sample-list .hw {
+  min-height: 0;
+  height: 34px;
+  padding-block: 0;
+}
+
 .share-status {
   font: 400 1.1rem/1.1 var(--lcd);
   color: #cfe8c8;
@@ -179,12 +206,7 @@ body {
 }
 
 .sampler-panel {
-  grid-template-columns: auto minmax(0, 1fr);
-}
-
-.sampler-cap {
-  font: 400 0.6rem/1 var(--label);
-  color: var(--mute);
+  grid-template-columns: 1fr;
 }
 
 .sample-list {
@@ -297,6 +319,8 @@ body {
   font: 400 1.1rem/1.1 var(--lcd);
   padding: 3px 10px;
   min-height: 0;
+  display: block;
+  line-height: var(--dock-h);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -655,28 +679,28 @@ body {
     width: 100%;
   }
 
-  .fx-panel {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .dock {
+    --dock-h: 44px;
   }
 
-  .sampler-panel {
-    grid-template-columns: 1fr;
+  .fx-panel {
+    gap: 6px;
+    padding: 4px 6px;
   }
 
   .sample-list {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
   }
 
-  .share-panel {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .sample-list .hw,
+  .share-panel .hw,
+  #fx-reset {
+    font-size: 0.6rem;
+    padding-inline: 4px;
   }
 
   .share-status {
-    grid-column: 1 / -1;
-  }
-
-  #fx-reset {
-    grid-column: 1 / -1;
+    display: none;
   }
 }
 
@@ -737,7 +761,7 @@ body {
     flex: none;
   }
 
-  #info,
+  #dock:has(> #info:not([hidden])),
   .cap,
   .steps em {
     display: none;
@@ -786,7 +810,7 @@ body {
   }
 
   #hud,
-  #info,
+  #dock,
   #controls {
     margin-inline: 8px;
   }
@@ -904,18 +928,11 @@ body {
     height: 20px;
   }
 
-  #fx,
-  #share,
-  #sampler {
+  #dock {
     position: fixed;
     left: 8px;
     right: 206px;
     bottom: 8px;
     z-index: 5;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
-  }
-
-  #share {
-    grid-template-columns: auto auto auto minmax(0, 1fr);
   }
 }

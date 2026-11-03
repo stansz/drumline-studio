@@ -28,21 +28,23 @@
         <div id="steps" class="steps" title="Drag to loop a section. Tap to clear the loop."></div>
         <canvas id="game" width="256" height="128" aria-label="Pattern grid"></canvas>
       </main>
-      <p id="info" class="readout"></p>
-      <div id="fx" class="fx-panel" hidden>
-        <label class="fx-knob"><small>Filter</small><input id="fx-filter" type="range" min="-100" max="100" step="1" value="0" aria-label="Filter: left is low-pass, right is high-pass" /></label>
-        <label class="fx-knob"><small>Delay</small><input id="fx-delay" type="range" min="0" max="100" step="1" value="0" aria-label="Delay amount" /></label>
-        <label class="fx-knob"><small>Reverb</small><input id="fx-reverb" type="range" min="0" max="100" step="1" value="0" aria-label="Reverb amount" /></label>
-        <label class="fx-knob"><small>Crush</small><input id="fx-crush" type="range" min="0" max="100" step="1" value="0" aria-label="Crush amount" /></label>
-        <button id="fx-reset" class="hw" type="button">Reset</button>
+      <div id="dock" class="dock">
+        <p id="info" class="readout"></p>
+        <div id="fx" class="fx-panel" hidden>
+          <label class="fx-knob"><small>Filter</small><input id="fx-filter" type="range" min="-100" max="100" step="1" value="0" aria-label="Filter: left is low-pass, right is high-pass" /></label>
+          <label class="fx-knob"><small>Delay</small><input id="fx-delay" type="range" min="0" max="100" step="1" value="0" aria-label="Delay amount" /></label>
+          <label class="fx-knob"><small>Reverb</small><input id="fx-reverb" type="range" min="0" max="100" step="1" value="0" aria-label="Reverb amount" /></label>
+          <label class="fx-knob"><small>Crush</small><input id="fx-crush" type="range" min="0" max="100" step="1" value="0" aria-label="Crush amount" /></label>
+          <button id="fx-reset" class="hw" type="button">Reset</button>
+        </div>
+        <div id="share" class="fx-panel share-panel" hidden>
+          <button id="share-link" class="hw" type="button">Copy link</button>
+          <button id="record" class="hw" type="button">Record</button>
+          <button id="midi" class="hw" type="button">MIDI</button>
+          <span id="share-status" class="share-status" aria-live="polite"></span>
+        </div>
+        <div id="sampler" class="fx-panel sampler-panel" hidden><div id="sample-list" class="sample-list"></div></div>
       </div>
-      <div id="share" class="fx-panel share-panel" hidden>
-        <button id="share-link" class="hw" type="button">Copy link</button>
-        <button id="record" class="hw" type="button">Record</button>
-        <button id="midi" class="hw" type="button">MIDI</button>
-        <span id="share-status" class="share-status" aria-live="polite"></span>
-      </div>
-      <div id="sampler" class="fx-panel sampler-panel" hidden><small class="sampler-cap">Sample</small><div id="sample-list" class="sample-list"></div></div>
       <div id="controls" class="deck">
         <div class="bank">
           <div class="cap">Instruments</div>

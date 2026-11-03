@@ -93,6 +93,11 @@ screen. `#rotate-hint` on the start screen points players to that layout. These 
 measured in headless Edge at phone sizes, not on a real phone. The info line under the board is one
 fixed line and truncates when its text is too long.
 
+The info line, sampler, FX, and Share panels share one dock slot under the board and show one view
+at a time. `updateDock()` in `main.ts` picks the view: an open panel (FX or Share), else the sampler
+while Sample is selected, else the info line. The dock's height comes from the `--dock-h` custom
+property, so swapping views never moves the board or the controls.
+
 ## Audio load
 
 Each sound costs audio CPU, and phones run out long before desktops. On one desktop core, a 75-note

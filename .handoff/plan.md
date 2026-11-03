@@ -1,183 +1,194 @@
-# Plan: Separate backing-music level per theme, and loudness checks for it
+# Plan: Fixed-height dock so panels stop shifting the layout
 
 ## Goal
 
-In Drumline Studio (`C:\Users\sz\Documents\Code\drumline-studio`), each theme's
-`space.trim` boosts the whole mix. It was tuned for the instruments, so themes with big
-trims (Chiptune 2.7, Funk 2.4) have backing music far louder than the others. Measured on
-the live site with an empty grid: Neon −25.7 dB, Chiptune −18.8, Lo-fi −23.4, Techno −27.2,
-Funk −21.8.
+In Drumline Studio (`C:\Users\sz\Documents\Code\drumline-studio`), the sampler, FX, and
+Share panels currently appear as extra rows under the info line. Opening or closing one moves
+the board and the controls. Selecting Sample opens the sampler, and picking another
+instrument closes it, so the layout jumps every time.
 
-Make two changes:
+Replace the info line and the three panels with one **dock**: a slot with a fixed height that
+shows exactly one view at a time:
 
-1. **Audio:**
-   - Add `space.musicTrim` to each theme. It sets the backing music's level on its own:
-     the backing ends up scaled by `musicTrim` no matter what `trim` is.
-   - `trim` keeps scaling the instruments.
-2. **Loudness harness (`tests/loudness.ts`):** measure the two separately.
-   - **Instrument boards** render with no backing music, and are checked against `trim`.
-   - **Backing boards** render backing music only, with no notes, and are checked against
-     `musicTrim`, by comparing each theme with Neon rendered in the same run.
+- the **info** line (default)
+- the **sampler**, while Sample is the selected instrument
+- **FX**, while the FX panel is open
+- **Share**, while the Share panel is open
 
-The final `musicTrim` and `trim` numbers are tuned afterwards by the verifier in a browser.
-This plan sets the starting values below.
+Swapping views never changes the dock's height, so nothing else on the page moves. Each view
+fits in a single row at every width.
 
 ## Files to touch
 
-- `src/themes.ts`
-- `src/audio.ts`
-- `tests/loudness.ts`
-- `tests/loudness-baseline.ts`
-- `tests/themes.test.ts`
-- `docs/themes.md`
+- `index.html`
+- `src/main.ts`
+- `src/style.css`
+- `README.md`
 - `docs/references.md`
-- `AGENTS.md`
 - `.handoff/report.md`
 
 ## Steps
 
-### 1. `src/themes.ts`
+### 1. `index.html`
 
-- In the `Theme` type's `space`, add `musicTrim: number;` directly after `trim: number;`,
-  with this comment on the line above it:
-  `// Backing-music level, independent of trim. Neon stays at 1.`
-- Add `musicTrim` to every theme's `space`, directly after `trim`:
-  - Neon 1
-  - Chiptune 1.22
-  - Lo-fi 0.77
-  - Techno 1.19
-  - Funk 1.53
-- Change no other theme values.
+Wrap the existing `#info`, `#fx`, `#share`, and `#sampler` elements, in that order, in:
 
-### 2. `src/audio.ts`
+```html
+<div id="dock" class="dock">
+  ...the four existing elements, unchanged except as below...
+</div>
+```
 
-- Add a private field `musicTrim: GainNode`.
-- In the constructor:
-  - Create `this.musicTrim = ctx.createGain()` with `gain.value = 1`.
-  - Change the wiring so the music bus goes through it:
-    - Replace `this.musicBus.connect(this.master);` with
-      `this.musicBus.connect(this.musicTrim); this.musicTrim.connect(this.master);`.
-    - Replace `this.musicBus.connect(this.musicReverbSend);` with
-      `this.musicTrim.connect(this.musicReverbSend);`.
-  - Leave every other connection as it is. Kick ducking keeps automating `musicBus.gain`.
-- In `setTheme`, next to the line that sets `this.trim.gain`, add:
+- `#sampler`: delete the `<small class="sampler-cap">Sample</small>` element, so the panel
+  holds only `#sample-list`.
+- Keep every id and every existing child otherwise unchanged.
+
+### 2. `src/main.ts`
+
+- Add `let openPanel: 'fx' | 'share' | null = null;`.
+- Add one function that decides what the dock shows, and call it wherever panel visibility
+  used to change:
 
   ```ts
-  // The master trim also scales the backing, so divide it back out: the backing ends up at
-  // musicTrim whatever the instruments' trim is.
-  this.musicTrim.gain.setTargetAtTime(space.musicTrim / space.trim, now, 0.02);
-  ```
-
-- Add a public method for the harness only:
-
-  ```ts
-  // Silences the backing music, for loudness checks of the instruments alone.
-  setMusicEnabled(enabled: boolean): void {
-    this.musicBus.gain.cancelScheduledValues(this.ctx.currentTime);
-    this.musicBus.gain.value = enabled ? 1 : 0;
+  // The dock shows one view at a time: an opened panel, else the sampler while Sample is
+  // selected, else the info line.
+  function updateDock(): void {
+    const view = openPanel ?? (selected === 'sample' ? 'sampler' : 'info');
+    infoEl.hidden = view !== 'info';
+    fxPanel.hidden = view !== 'fx';
+    sharePanel.hidden = view !== 'share';
+    samplerPanel.hidden = view !== 'sampler';
+    fxToggle.setAttribute('aria-expanded', String(view === 'fx'));
+    shareToggle.setAttribute('aria-expanded', String(view === 'share'));
   }
   ```
 
-  Not used by `main.ts`. Rendering in the harness without calling `playMusicStep` is the main
-  way to skip music. This method exists so that the kick ducking can't bring music back. It
-  is not strictly needed. If it complicates anything, skip it and say so in the report.
-
-### 3. `tests/loudness.ts`
-
-- `renderBoard` gains a fourth-position options parameter, before `theme`:
-  `mode: 'notes' | 'backing'`, plus an optional `intensityLevel?: number`.
-  - `'notes'`: render the board's notes only. Do not call `audio.playMusicStep`.
-  - `'backing'`: render only `audio.playMusicStep` with
-    `layerLevels(intensityLevel ?? intensity(0, 5))`, and no notes. The board is ignored.
-
-  Use this signature:
-  `renderBoard(name, board, bpm, mode, theme, intensityLevel?)`.
-- Add backing boards:
+- Replace these functions:
 
   ```ts
-  // Backing music alone, at the level an empty grid gets and at the fullest it gets.
-  const BACKING_BOARDS: Record<string, number> = {
-    'backing quiet': intensity(0, 5),
-    'backing full': 1,
-  };
+  function toggleFxPanel(): void {
+    openPanel = openPanel === 'fx' ? null : 'fx';
+    updateDock();
+  }
+
+  function toggleSharePanel(): void {
+    openPanel = openPanel === 'share' ? null : 'share';
+    updateDock();
+  }
   ```
 
-- `runLoudness`:
-  - Neon's non-theme pass (all `BOARDS`, both BPMs) uses mode `'notes'`.
-  - For every theme in the run (the `?theme=` filter as now), render `THEME_BOARDS` with
-    mode `'notes'`.
-  - For every theme in the run **and always for Neon**, render each `BACKING_BOARDS` entry
-    at both BPMs with mode `'backing'`.
-  - Neon must be included in the backing pass even when `?theme=` names another theme, so
-    each run has its own Neon backing reference.
-- `themeOffsets`: unchanged in logic. It only uses results whose board is in
-  `NEON_BASELINE`, so backing results are excluded automatically.
-- Add `musicOffsets(results)`:
-  - For each theme other than Neon, take the mean of
-    `result.rmsDb − neonBacking[board][bpm]` over its backing results, where `neonBacking`
-    comes from Neon's backing results in the same run.
-  - Return `{ [theme name]: offset }`, rounded to 0.1.
-- Add `suggestedMusicTrims(offsets)`: like `suggestedTrims`, but
-  `theme.space.musicTrim * 10 ** (-offset / LIMITER_RESPONSE / 20)`.
-- Report object: add `musicOffsets` and `suggestedMusicTrims` after `suggestedTrims`.
-- Title: `PASS` requires nothing clipped, every `offsets` value within
-  `LOUDNESS_TOLERANCE_DB`, **and** every `musicOffsets` value within it.
-- Rename the result field `towers` to `notes`.
-- Update the header comment to describe both checks.
+- In `updateSampler`, remove the `samplerPanel.hidden = ...` line. Keep the button
+  highlighting.
+- In `selectTool`:
+  - When the tool is `'sample'`, set `openPanel = null` so the sampler shows.
+  - Call `updateDock()` after `updateSelection()`.
+- Call `updateDock()` once at startup, after `updateSelection()`.
+- Recording: while recording, the share toggle already shows the timer. No change.
+- The `shareStatus` messages ("Link copied." and so on) stay in the Share view.
 
-### 4. `tests/loudness-baseline.ts`
+### 3. `src/style.css`
 
-Keep the existing numbers. Change the comment to:
+- Add a dock rule. Use one custom property for the height, so every view matches it:
 
-```ts
-// Neon's average level in dB for the instrument boards, rendered without backing music. Refresh
-// from the loudness page's `baseline` output whenever Neon, the shared audio chain, or the way
-// boards are rendered changes. Backing levels need no baseline: each run renders Neon's backing.
-```
+  ```css
+  .dock {
+    --dock-h: 46px;
+    height: var(--dock-h);
+    display: grid;
+    min-width: 0;
+  }
 
-The verifier will refresh the numbers in a browser after this change.
+  .dock > * {
+    height: var(--dock-h);
+    min-width: 0;
+    box-sizing: border-box;
+    margin: 0;
+  }
 
-### 5. `tests/themes.test.ts`
+  .dock > [hidden] {
+    display: none;
+  }
+  ```
 
-Add these assertions:
+- `.readout` (the info line): keep its look. Inside the dock it fills the full dock height
+  and centers its text vertically: add `display: flex; align-items: center;`. Keep the
+  `white-space: nowrap; overflow: hidden; text-overflow: ellipsis` behavior. Because the
+  readout becomes a flex container, put the ellipsis on the text. Make sure long text still
+  truncates: if `text-overflow` stops working on the flex container, wrap the text in a
+  `<span>` from `main.ts`, or use `display: block` with `line-height: var(--dock-h)`.
+  Pick whichever keeps the ellipsis, and say which in the report.
+- `.fx-panel`: keep the background, shadow, and padding. Use `padding: 4px 10px` and
+  `align-items: center` so content fits the dock height.
+- `.share-panel .hw`, `#fx-reset`, and the sample buttons inside the dock: set
+  `min-height: 0; height: 34px; padding-block: 0;`, so the buttons fit the 46px dock.
+- `.sampler-panel`: `grid-template-columns: 1fr;`. `.sample-list` stays at 6 equal columns.
+- Delete the `.sampler-cap` rule.
+- Inside `@media (max-width: 760px)`:
+  - Delete the rules that turned the panels into several rows: the `.fx-panel` two-column
+    rule, `.sampler-panel`, `.sample-list` three-column, `.share-panel` three-column,
+    `.share-status { grid-column: 1 / -1; }`, and `#fx-reset { grid-column: 1 / -1; }`.
+  - Instead add, so everything stays in one row:
 
-- `DEFAULT_THEME.space.musicTrim` is 1.
-- Every theme's `space.musicTrim` is a finite number between 0.25 and 4.
+    ```css
+    .dock { --dock-h: 44px; }
+    .fx-panel { gap: 6px; padding: 4px 6px; }
+    .sample-list { gap: 4px; }
+    .sample-list .hw,
+    .share-panel .hw,
+    #fx-reset { font-size: 0.6rem; padding-inline: 4px; }
+    .share-status { display: none; }
+    ```
 
-### 6. Docs
+  - Delete the `#info { min-height: ... }` rule if one still exists there.
+- Inside `@media (max-width: 760px) and (max-height: 600px)`: the `#info` font-size rule can
+  stay.
+- Inside `@media (max-height: 520px)` (short screens): the existing rule hides `#info`. Change
+  it so the dock does not take space while showing the info view: replace `#info` in that
+  `display: none` selector list with `#dock:has(> #info:not([hidden]))`. Keep `.cap` and
+  `.steps em` in the list.
+- Inside `@media (max-height: 520px) and (orientation: landscape)`:
+  - Replace the `#fx, #share, #sampler { position: fixed; ... }` rule and the `#share` rule
+    after it with one rule on the dock:
 
-- `docs/themes.md`: rewrite "Keeping volume consistent" and "Adding or changing a theme" so
-  they describe two levels:
-  - `space.trim` sets the instruments' level. It is checked on instrument boards rendered
-    without backing, against `NEON_BASELINE`.
-  - `space.musicTrim` sets the backing's level on its own. It is checked on the "backing
-    quiet" and "backing full" boards, against Neon rendered in the same run. Read
-    `musicOffsets` and `suggestedMusicTrims` on the loudness page.
-  - Both targets are within 1 dB of Neon.
-  - Keep Neon at 1 for both.
-  - Keep the existing notes about the limiter and the volume slider.
-- `docs/references.md`, **Audio chain**:
-  - Add `musicTrim` to the diagram: the music bus goes through its own trim before the
-    master.
-  - Add one sentence: the master `trim` scales everything, so `setTheme` sets the music trim
-    to `musicTrim / trim`.
-- `AGENTS.md`: change "Keep Neon's `space.trim` at 1. It is the loudness reference." to "Keep
-  Neon's `space.trim` and `space.musicTrim` at 1. Neon is the loudness reference."
+    ```css
+    #dock {
+      position: fixed;
+      left: 8px;
+      right: 206px;
+      bottom: 8px;
+      z-index: 5;
+    }
+    ```
+
+  - In the `#hud, #info, #controls { margin-inline: 8px; }` selector list, replace `#info`
+    with `#dock`.
+
+### 4. Docs
+
+- `README.md`:
+  - Replace the sentence about panels opening over the board when the phone is held
+    sideways with: "The info line, sampler, FX, and Share panels share one slot under the
+    board, so opening one never moves the board. Held sideways, that slot floats over the
+    bottom of the board."
+  - Mention that opening FX or Share closes the other, and that selecting Sample shows the
+    sampler.
+- `docs/references.md`, **Visuals**: add one paragraph about the dock: one fixed-height slot,
+  one view at a time, decided by `updateDock()` in `main.ts` (open panel, else sampler while
+  Sample is selected, else info).
 
 ## Acceptance
 
 - `npm run typecheck` exits 0.
 - `npm run test:sandbox` exits 0.
-- PowerShell: `(Select-String -Path src/themes.ts -Pattern 'musicTrim:').Count` prints 6 (the
-  type plus five themes).
-- `git grep -n -F 'musicTrim' -- src/audio.ts` prints at least three lines.
-- `git grep -n -F 'musicOffsets' -- tests/loudness.ts` prints at least two lines.
+- `git grep -n -F 'id="dock"' -- index.html` prints one line.
+- `git grep -n -F 'function updateDock' -- src/main.ts` prints one line.
+- PowerShell: `Select-String -Path src/style.css -Pattern 'sampler-cap'` prints nothing.
 
 Verifier only:
 
 - `npm test` exits 0.
 - `npm run build` exits 0.
-- The loudness page check in a browser (the verifier tunes the values).
+- A browser check that the board does not move when switching dock views.
 
 ## Parallel work
 
@@ -187,8 +198,8 @@ None — do it sequentially.
 
 - Do not commit, push, or switch branches.
 - Do not touch files outside **Files to touch**, except `.handoff/report.md`.
-- Do not change any theme value other than adding `musicTrim`.
-- Do not change instrument sounds, FX, the sampler, or the UI.
+- Do not change behavior other than panel visibility. Keep sounds, FX values, recording,
+  sharing, the sampler presets, and keyboard shortcuts as they are.
 - Do not run the `Verifier only:` commands. If any command fails with `spawn EPERM`, stop and
   report it. Do not request wider sandbox access, set `NODE_OPTIONS`, or stub modules to get
   past it.
@@ -198,8 +209,8 @@ None — do it sequentially.
 
 ## Out of scope
 
-- Tuning the final numbers (the verifier does this in a browser).
-- Refreshing `NEON_BASELINE` values.
+- New panels or controls.
+- Restyling the panels beyond fitting them in one row.
 
 ## If blocked
 

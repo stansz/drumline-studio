@@ -116,6 +116,7 @@ let paint: 'add' | 'erase' | null = null;
 let liveMode: LiveMode = 'paint';
 let playheadAt = 0;
 let loopDrag: number | null = null;
+let openPanel: 'fx' | 'share' | null = null;
 
 window.__drumline = { sequencer, scheduler, audio };
 
@@ -180,10 +181,21 @@ function updateSelection(): void {
 }
 
 function updateSampler(): void {
-  samplerPanel.hidden = selected !== 'sample';
   sampleList.querySelectorAll<HTMLButtonElement>('button').forEach((button) => {
     button.classList.toggle('selected', button.dataset.sample === sample.id);
   });
+}
+
+// The dock shows one view at a time: an opened panel, else the sampler while Sample is
+// selected, else the info line.
+function updateDock(): void {
+  const view = openPanel ?? (selected === 'sample' ? 'sampler' : 'info');
+  infoEl.hidden = view !== 'info';
+  fxPanel.hidden = view !== 'fx';
+  sharePanel.hidden = view !== 'share';
+  samplerPanel.hidden = view !== 'sampler';
+  fxToggle.setAttribute('aria-expanded', String(view === 'fx'));
+  shareToggle.setAttribute('aria-expanded', String(view === 'share'));
 }
 
 function pickSample(id: string): void {
@@ -200,7 +212,9 @@ function pickSample(id: string): void {
 
 function selectTool(tool: Instrument): void {
   selected = tool;
+  if (tool === 'sample') openPanel = null;
   updateSelection();
+  updateDock();
 }
 
 function updateBackingButton(): void {
@@ -419,13 +433,13 @@ function readFxSliders(): FxSettings {
 }
 
 function toggleFxPanel(): void {
-  fxPanel.hidden = !fxPanel.hidden;
-  fxToggle.setAttribute('aria-expanded', String(!fxPanel.hidden));
+  openPanel = openPanel === 'fx' ? null : 'fx';
+  updateDock();
 }
 
 function toggleSharePanel(): void {
-  sharePanel.hidden = !sharePanel.hidden;
-  shareToggle.setAttribute('aria-expanded', String(!sharePanel.hidden));
+  openPanel = openPanel === 'share' ? null : 'share';
+  updateDock();
 }
 
 function shareUrl(): string {
@@ -921,6 +935,7 @@ if (shared) {
 }
 updateHud();
 updateSelection();
+updateDock();
 setLiveMode('paint');
 liveButton.hidden = !LIVE_TOOLS;
 stepsEl.classList.toggle('loopable', LIVE_TOOLS);
