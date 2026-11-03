@@ -30,7 +30,7 @@ import {
   type PatternLength,
 } from './sequencer';
 import { PIXEL_COLORS, type SpriteName } from './sprites';
-import { DEFAULT_THEME, nextTheme, themeById, type Theme } from './themes';
+import { DEFAULT_THEME, nextTheme, previousTheme, themeById, type Theme } from './themes';
 import './style.css';
 
 declare global {
@@ -116,6 +116,13 @@ const screenSounds = byId<HTMLButtonElement>('screen-sounds');
 const beatsPage = byId<HTMLDivElement>('beats-page');
 const backingPage = byId<HTMLDivElement>('backing-page');
 const soundsPage = byId<HTMLDivElement>('sounds-page');
+const musicPrev = byId<HTMLButtonElement>('music-prev');
+const musicNext = byId<HTMLButtonElement>('music-next');
+const musicTheme = byId<HTMLSpanElement>('music-theme');
+const musicSong = byId<HTMLButtonElement>('music-song');
+const musicLoop = byId<HTMLButtonElement>('music-loop');
+const musicOff = byId<HTMLButtonElement>('music-off');
+const musicModeButtons = [musicSong, musicLoop, musicOff];
 const beatsClose = byId<HTMLButtonElement>('beats-close');
 const beatsList = byId<HTMLDivElement>('beats-list');
 const beatsName = byId<HTMLParagraphElement>('beats-name');
@@ -484,6 +491,12 @@ function updateBackingButton(): void {
   backingButton.title = title;
   backingButton.classList.toggle('selected', backing);
   backingButton.setAttribute('aria-pressed', String(backing));
+  const mode = backingMode();
+  for (const button of musicModeButtons) {
+    const active = button.dataset.mode === mode;
+    button.classList.toggle('selected', active);
+    button.setAttribute('aria-checked', String(active));
+  }
 }
 
 function loadBacking(): boolean {
@@ -526,18 +539,24 @@ function setFollow(on: boolean): void {
   updateFollowButton();
 }
 
-function cycleBacking(): void {
-  if (!backing) {
-    backing = true;
-    sections = true;
-  } else if (sections) {
-    sections = false;
-  } else {
-    backing = false;
-  }
+type BackingMode = 'song' | 'loop' | 'off';
+
+function backingMode(): BackingMode {
+  if (!backing) return 'off';
+  return sections ? 'song' : 'loop';
+}
+
+function setBacking(mode: BackingMode): void {
+  backing = mode !== 'off';
+  sections = mode === 'song';
   updateBackingButton();
   if (backingShown()) renderInfo();
   saveBackingSettings();
+}
+
+function cycleBacking(): void {
+  const next: Record<BackingMode, BackingMode> = { off: 'song', song: 'loop', loop: 'off' };
+  setBacking(next[backingMode()]);
 }
 
 function saveBackingSettings(): void {
@@ -688,6 +707,8 @@ function loadSample(): SamplePreset {
 function updateThemeButton(): void {
   themeButton.textContent = `♪ ${theme.name}`;
   themeButton.title = `${theme.name}: ${theme.blurb} Tap for the next theme (T).`;
+  musicTheme.textContent = theme.name;
+  musicTheme.title = theme.blurb;
 }
 
 function applyTheme(next: Theme): void {
@@ -704,6 +725,10 @@ function applyTheme(next: Theme): void {
 
 function cycleTheme(): void {
   applyTheme(nextTheme(theme));
+}
+
+function previousThemeStep(): void {
+  applyTheme(previousTheme(theme));
 }
 
 function buildInfoMap(): void {
@@ -1328,6 +1353,11 @@ clearButton.addEventListener('click', clearPattern);
 liveButton.addEventListener('click', () => setLiveMode(nextLiveMode(liveMode)));
 startButton.addEventListener('click', () => void startAudio());
 themeButton.addEventListener('click', cycleTheme);
+musicPrev.addEventListener('click', previousThemeStep);
+musicNext.addEventListener('click', cycleTheme);
+for (const button of musicModeButtons) {
+  button.addEventListener('click', () => setBacking(button.dataset.mode as BackingMode));
+}
 volumeSlider.addEventListener('input', changeVolume);
 fxToggle.addEventListener('click', toggleFxPanel);
 for (const slider of [fxFilter, fxDelay, fxReverb, fxCrush]) {
@@ -1367,7 +1397,7 @@ fileButton.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', loadSampleFile);
 
 window.addEventListener('keydown', (event) => {
-  // The Beats screen takes the keyboard while it is open.
+  // The Menu screen takes the keyboard while it is open.
   if (!beatsScreen.hidden) {
     if (event.key === 'Escape') {
       closeScreen();
@@ -1377,6 +1407,10 @@ window.addEventListener('keydown', (event) => {
     } else if (event.code === 'Space') {
       event.preventDefault();
       if (!event.repeat) togglePlay();
+    } else if (event.key.toLowerCase() === 't') {
+      if (!event.repeat) cycleTheme();
+    } else if (event.key.toLowerCase() === 'b') {
+      if (!event.repeat) cycleBacking();
     } else if (screenPage === 'beats') {
       if (event.key === 'ArrowUp') {
         event.preventDefault();
@@ -1400,6 +1434,24 @@ window.addEventListener('keydown', (event) => {
           sampleChosenThisVisit = true;
           pickSample(id);
         }
+      } else if (event.key === 'Enter') {
+        event.preventDefault();
+        closeScreen();
+      }
+    } else if (screenPage === 'backing') {
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        previousThemeStep();
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        cycleTheme();
+      } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        event.preventDefault();
+        const modes: BackingMode[] = ['song', 'loop', 'off'];
+        const index = modes.indexOf(backingMode());
+        const step = event.key === 'ArrowUp' ? -1 : 1;
+        const next = modes[(index + step + modes.length) % modes.length] ?? 'song';
+        setBacking(next);
       } else if (event.key === 'Enter') {
         event.preventDefault();
         closeScreen();

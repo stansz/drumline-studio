@@ -22,7 +22,7 @@ a time. For a quick overview, see the [README](../README.md).
 2. Pick an instrument from the pads, such as **Kick**, then click cells on the grid to paint notes.
 3. Press **Play**.
 
-Or open **Beats** and pick a preset to hear a full groove right away, then change it.
+Or open **Menu** and pick a preset to hear a full groove right away, then change it.
 
 ## The screen
 
@@ -31,7 +31,7 @@ Or open **Beats** and pick a preset to hear a full groove right away, then chang
 - **Header:** the logo, the **Notes** and **Step** readouts, **Length** (16 or 32 steps), **Page**
   and **Follow** (with 32 steps), and **Share**.
 - **Board:** the grid. Each column is one step (a sixteenth note), and each row is a pitch.
-- **Tab row:** **Mix**, **FX**, **♪ Theme**, **Backing**, and **Beats**.
+- **Tab row:** **Mix**, **FX**, **♪ Theme**, **Backing**, and **Menu**.
 - **Dock:** the slot under the tab row. It shows one panel at a time: the selected instrument's
   volume, the Sample sound and volume, or whichever of Mix, FX, or Share is open. Opening a panel
   never moves the board.
@@ -84,25 +84,26 @@ House, Synthwave, and Clean. Themes change the sound only, never your pattern or
 - **Loop** repeats the theme's verse.
 - **Off** plays only your pattern, plus a metronome click while the grid is empty.
 
-The **Backing** page of the Beats screen (tap **Beats**, then the **Backing** tab, or press **I**)
-shows the description, the current mode, the song map with the playing section highlighted, the
-chords, the feel, and the tempo. **I** again, **Esc**, **✕**, or a click outside closes it; the
-music keeps playing.
+The **Music** page of the Menu screen (tap **Menu**, then the **Music** tab, or press **I**) has
+Theme **◀** / **▶** and **Song** / **Loop** / **Off** at the top, above the description, the current
+mode, the song map with the playing section highlighted, the chords, the feel, and the tempo. **I**
+again, **Esc**, **✕**, or a click outside closes it; the music keeps playing.
 
-![The Backing page of the Beats screen](images/info.png)
+![The Music page of the Menu screen](images/info.png)
 
 ## Beats: grooves, tunes, and Random
 
-![The Beats screen](images/beats.png)
+![The Beats page of the Menu screen](images/beats.png)
 
-**Beats** opens the Beats screen, with three lists: **Grooves** (Four on the Floor, Boom Bap,
+Open **Menu** for the Menu screen, which has three pages: **Beats**, **Music**, and **Sounds**. The
+**Beats** page comes first, with three lists: **Grooves** (Four on the Floor, Boom Bap,
 Breakbeat, Trap, Dembow, Funk Groove), **Tunes** (Korobeiniki, In the Hall of the Mountain King,
 Ode to Joy, Für Elise, Can-Can), and **Holiday** (Jingle Bells, Deck the Halls, Joy to the World,
 God Rest Ye Merry Gentlemen). The Holiday tunes are public-domain carols. A preset sets the pattern,
 its length, the tempo, the theme, and the Backing mode, and some set a scale for the synth. The
 music keeps playing, and the new beat takes over on the next step.
 
-The screen shows the highlighted preset's tempo, theme, length, Backing mode, and a one-line
+The Beats page shows the highlighted preset's tempo, theme, length, Backing mode, and a one-line
 description. **▲** and **▼** (or the arrow keys) move the highlight without loading. **Load**
 (or **Enter**) loads the highlighted preset and closes the screen; tapping a preset loads it and
 keeps the screen open so you can try others. **Space** plays or pauses while the screen is open.
@@ -189,7 +190,7 @@ Backing mode, Follow setting, FX, and picked sample sound.
 | **-** / **=** | Slower or faster by 1 BPM (with Shift, by 10) |
 | **T** | Next theme |
 | **B** | Backing: Song, Loop, or Off |
-| **I** | Backing page of the Beats screen |
+| **I** | Music page of the Menu screen |
 | **X** | FX panel |
 | **E** | Share panel |
 | **R** | Start or stop recording |
@@ -200,9 +201,10 @@ Backing mode, Follow setting, FX, and picked sample sound.
 | **F** | Follow on or off (32 steps) |
 
 On the start screen, **Enter** or **Space** turns on the sound without starting the beat, and **T**
-changes the theme. While the Beats screen is open, **Esc** closes it, **I** switches to or closes
-the Backing page, **Space** plays or pauses, and the arrow keys and **Enter** work on the Beats
-page; other keys are ignored.
+changes the theme. While the Menu screen is open, **Esc** closes it, **I** switches to or closes the
+Music page, **Space** plays or pauses, and **T** steps to the next theme and **B** cycles the backing
+on any page. On the Beats page the arrow keys and **Enter** work, and on the Music page **←** / **→**
+change the theme, **↑** / **↓** change the backing, and **Enter** closes; other keys are ignored.
 
 ## On a phone
 

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { ARP_STEPS, BASS_STEPS, MIX, MUSIC_CHORDS, STEPS_PER_BAR } from '../src/config';
-import { DEFAULT_THEME, DRUM_PARTS, THEMES, nextTheme, themeById } from '../src/themes';
+import {
+  DEFAULT_THEME,
+  DRUM_PARTS,
+  THEMES,
+  nextTheme,
+  previousTheme,
+  themeById,
+} from '../src/themes';
 
 describe('themes', () => {
   it('keeps the default theme identical to the original music', () => {
@@ -128,6 +135,13 @@ describe('themes', () => {
     }
     expect(seen).toEqual(THEMES.map((item) => item.id));
     expect(nextTheme(theme)).toBe(DEFAULT_THEME);
+  });
+
+  it('cycles backward through every theme and wraps to the last', () => {
+    expect(previousTheme(DEFAULT_THEME)).toBe(THEMES[THEMES.length - 1]);
+    for (const theme of THEMES) {
+      expect(previousTheme(nextTheme(theme))).toBe(theme);
+    }
   });
 
   it('gives every theme a short blurb', () => {

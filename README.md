@@ -30,7 +30,7 @@ pick a backing band, and share it with a link. There's nothing to install and no
 ## Quick start
 
 1. [Open the app](https://stansz.github.io/drumline-studio/) and press **Start**.
-2. Pick an instrument and click the grid to paint notes, or open **Beats** and pick a preset.
+2. Pick an instrument and click the grid to paint notes, or open **Menu** and pick a preset.
 3. Press **Play** (or **Space**).
 
 **[Read the full guide →](docs/guide.md)** It covers every panel, the keyboard shortcuts, and

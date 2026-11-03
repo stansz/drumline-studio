@@ -32,7 +32,7 @@
         <button id="fx-toggle" class="hw tab" type="button" aria-expanded="false" aria-controls="fx">FX</button>
         <button id="theme" class="hw tab" type="button" aria-label="Next music theme" title="Tap for the next theme (T)">♪ Neon</button>
         <button id="backing" class="hw tab" type="button"><small>Backing</small><span id="backing-value">Song</span></button>
-        <button id="beats-toggle" class="hw tab" type="button" aria-haspopup="dialog" aria-controls="beats-screen" title="Beats and backing info (I)">Beats</button>
+        <button id="beats-toggle" class="hw tab" type="button" aria-haspopup="dialog" aria-controls="beats-screen" title="Beats, music, and sounds">Menu</button>
       </nav>
       <div id="dock" class="dock">
         <div id="mix" class="fx-panel mix-panel">
@@ -100,11 +100,11 @@
       </div>
     </div>
     <div id="beats-screen" class="info-backdrop" hidden>
-      <div class="info-panel beats-panel" role="dialog" aria-modal="true" aria-label="Beats, backing, and sounds">
+      <div class="info-panel beats-panel" role="dialog" aria-modal="true" aria-label="Menu">
         <div class="info-head">
           <div class="screen-tabs" role="tablist">
             <button id="screen-beats" class="hw" type="button" role="tab" aria-controls="beats-page">Beats</button>
-            <button id="screen-backing" class="hw" type="button" role="tab" aria-controls="backing-page">Backing</button>
+            <button id="screen-backing" class="hw" type="button" role="tab" aria-controls="backing-page">Music</button>
             <button id="screen-sounds" class="hw" type="button" role="tab" aria-controls="sounds-page">Sounds</button>
           </div>
           <button id="beats-close" class="hw" type="button" aria-label="Close">✕</button>
@@ -127,6 +127,20 @@
           </div>
         </div>
         <div id="backing-page" class="screen-page" role="tabpanel" hidden>
+          <div class="music-controls">
+            <span class="music-label">Theme</span>
+            <div class="music-row">
+              <button id="music-prev" class="hw" type="button" aria-label="Previous theme">◀</button>
+              <span id="music-theme" class="music-lcd" aria-live="polite"></span>
+              <button id="music-next" class="hw" type="button" aria-label="Next theme">▶</button>
+            </div>
+            <span class="music-label">Backing</span>
+            <div class="music-row music-modes" role="radiogroup" aria-label="Backing music">
+              <button id="music-song" class="hw" type="button" role="radio" data-mode="song">Song</button>
+              <button id="music-loop" class="hw" type="button" role="radio" data-mode="loop">Loop</button>
+              <button id="music-off" class="hw" type="button" role="radio" data-mode="off">Off</button>
+            </div>
+          </div>
           <h3 id="info-title" class="info-title">Backing</h3>
           <p id="info-blurb" class="info-blurb"></p>
           <p id="info-mode" class="info-line"></p>

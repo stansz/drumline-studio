@@ -700,3 +700,8 @@ export function nextTheme(current: Theme): Theme {
   const index = THEMES.indexOf(current);
   return THEMES[(index + 1) % THEMES.length] ?? DEFAULT_THEME;
 }
+
+export function previousTheme(current: Theme): Theme {
+  const index = Math.max(0, THEMES.indexOf(current));
+  return THEMES[(index - 1 + THEMES.length) % THEMES.length] ?? DEFAULT_THEME;
+}
