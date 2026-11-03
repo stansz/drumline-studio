@@ -19,6 +19,7 @@
         </div>
         <div class="sys">
           <button id="theme" class="hw" type="button" aria-label="Change music theme">♪ Neon</button>
+          <button id="info-toggle" class="hw" type="button" aria-haspopup="dialog" aria-controls="backing-info" title="About the backing music (I)">ⓘ</button>
           <button id="fx-toggle" class="hw" type="button" aria-expanded="false" aria-controls="fx">FX</button>
           <button id="share-toggle" class="hw" type="button" aria-expanded="false" aria-controls="share">Share</button>
           <button id="mix-toggle" class="hw" type="button" aria-expanded="false" aria-controls="mix-all">Mix</button>
@@ -96,6 +97,24 @@
             <button id="length" class="hw" type="button">16 steps</button>
           </div>
         </div>
+      </div>
+    </div>
+    <div id="backing-info" class="info-backdrop" hidden>
+      <div class="info-panel" role="dialog" aria-modal="true" aria-labelledby="info-title">
+        <div class="info-head">
+          <h2 id="info-title">Backing</h2>
+          <button id="info-close" class="hw" type="button" aria-label="Close">✕</button>
+        </div>
+        <p id="info-blurb" class="info-blurb"></p>
+        <p id="info-mode" class="info-line"></p>
+        <div id="info-map" class="info-map" aria-label="Song sections"></div>
+        <p id="info-position" class="info-line"></p>
+        <dl class="info-facts">
+          <dt>Verse chords</dt><dd id="info-verse"></dd>
+          <dt>Chorus chords</dt><dd id="info-chorus"></dd>
+          <dt>Feel</dt><dd id="info-feel"></dd>
+          <dt>Tempo</dt><dd id="info-tempo"></dd>
+        </dl>
       </div>
     </div>
     <div id="overlay">

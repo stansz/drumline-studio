@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { STEPS_PER_BAR } from '../src/config';
 import { layerLevels } from '../src/music';
-import { FILL_STEPS, sectionAt, sectionLevels } from '../src/song';
+import { FILL_STEPS, describeSwing, sectionAt, sectionIndexAt, sectionLevels, songMap } from '../src/song';
 
 const barStep = (bar: number): number => bar * STEPS_PER_BAR;
 
@@ -77,5 +77,31 @@ describe('song sections', () => {
 
   it('runs the fill on the last four sixteenths', () => {
     expect(FILL_STEPS).toEqual([12, 13, 14, 15]);
+  });
+});
+
+describe('song map and info helpers', () => {
+  it('maps the song form with the bar each section starts on', () => {
+    expect(songMap()).toHaveLength(5);
+    expect(songMap()).toEqual([
+      { kind: 'verse', bars: 8, startBar: 0 },
+      { kind: 'chorus', bars: 8, startBar: 8 },
+      { kind: 'verse', bars: 8, startBar: 16 },
+      { kind: 'chorus', bars: 8, startBar: 24 },
+      { kind: 'break', bars: 4, startBar: 32 },
+    ]);
+    expect(songMap().map((entry) => entry.startBar)).toEqual([0, 8, 16, 24, 32]);
+  });
+
+  it('finds the section index for a step and repeats after the last bar', () => {
+    expect(sectionIndexAt(0)).toBe(0);
+    expect(sectionIndexAt(barStep(8))).toBe(1);
+    expect(sectionIndexAt(barStep(33))).toBe(4);
+    expect(sectionIndexAt(barStep(36))).toBe(0);
+  });
+
+  it('describes swing as straight or as a percentage', () => {
+    expect(describeSwing(0)).toBe('Straight');
+    expect(describeSwing(0.22)).toBe('Swung 22%');
   });
 });

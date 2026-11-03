@@ -9,6 +9,7 @@ export const DRUM_PARTS: DrumPart[] = ['kick', 'snare', 'hat'];
 export interface Theme {
   id: string;
   name: string;
+  blurb: string;
   chords: ReadonlyArray<{ name: string; pad: number[]; bass: number }>;
   chorusChords: ReadonlyArray<{ name: string; pad: number[]; bass: number }>;
   swing: number;
@@ -87,6 +88,7 @@ export interface Theme {
 const NEON: Theme = {
   id: 'neon',
   name: 'Neon',
+  blurb: 'Warm sawtooth pads over a soft triangle bass in A minor. No backing drums, so your beat leads.',
   chords: MUSIC_CHORDS,
   chorusChords: [
     { name: 'Fmaj7', pad: [53, 57, 60, 64], bass: 41 },
@@ -147,6 +149,7 @@ const NEON: Theme = {
 const CHIPTUNE: Theme = {
   id: 'chiptune',
   name: 'Chiptune',
+  blurb: 'A bouncy triangle bass and a fast pulse-wave arpeggio in C major, with 8-bit grit and simple drums.',
   chords: [
     { name: 'C', pad: [60, 64, 67, 72], bass: 48 },
     { name: 'G', pad: [59, 62, 67, 71], bass: 43 },
@@ -219,6 +222,7 @@ const CHIPTUNE: Theme = {
 const LOFI: Theme = {
   id: 'lofi',
   name: 'Lo-fi',
+  blurb: 'Mellow jazzy chords with a lazy swing, a muffled tone, and vinyl crackle.',
   chords: [
     { name: 'Dm9', pad: [53, 57, 60, 64], bass: 38 },
     { name: 'G13', pad: [53, 59, 64, 69], bass: 43 },
@@ -284,6 +288,7 @@ const LOFI: Theme = {
 const TECHNO: Theme = {
   id: 'techno',
   name: 'Techno',
+  blurb: 'Dark minor stabs, a four-on-the-floor kick, and a big, spacious reverb.',
   chords: [
     { name: 'Am', pad: [57, 60, 64], bass: 45 },
     { name: 'Am', pad: [57, 60, 64], bass: 45 },
@@ -349,6 +354,7 @@ const TECHNO: Theme = {
 const FUNK: Theme = {
   id: 'funk',
   name: 'Funk',
+  blurb: 'Bright ninth and thirteenth chord stabs, a bass with ghost notes, and a light swing.',
   chords: [
     { name: 'E9', pad: [56, 62, 66, 71], bass: 40 },
     { name: 'A13', pad: [55, 61, 66, 71], bass: 45 },

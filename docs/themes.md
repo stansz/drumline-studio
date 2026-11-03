@@ -1,9 +1,37 @@
 # Music themes
 
 Each theme is one entry in `src/themes.ts`. It sets the arrangement, instrument sounds, space, and
-tone. Themes never change the tempo or the pattern. Its `chords` are the verse and loop progression,
-and its `chorusChords` are the chorus progression; the section form that uses them is in
-`src/song.ts`. The playable snare uses each theme's `drumKit.snareHz` and `drumKit.snareDecay`.
+tone. Themes never change the tempo or the pattern.
+
+## Fields that matter for authors
+
+- `blurb`: one line describing the backing music, shown on the Backing info screen. Keep it true to
+  the theme's values and under 140 characters; `tests/themes.test.ts` checks the length.
+- `chords`: the verse and loop progression, one chord per bar. `chorusChords` is the chorus
+  progression. A chord's `pad` notes are what the backing pad and the arpeggio play, and `bass`
+  is its bass note.
+- `swing`: 0 is straight, and up to 0.3 delays the off-beat sixteenths by that fraction of a step.
+  `describeSwing` in `src/song.ts` turns it into the `Straight` or `Swung 22%` text on the info
+  screen.
+- `space.trim`: the instruments' level against Neon.
+- `space.musicTrim`: the backing music's level against Neon, independent of `trim`.
+
+The rest of the theme shapes its sound: `chord`, `bass`, `arp`, `drums`, `drumLevels`, `drumKit`,
+`kick`, `hat`, `synth`, and the other `space` values (`reverbSend`, `reverbSeconds`, `delaySend`,
+`delayFeedback`, `toneHz`, `crush`), plus `crackle`. The playable snare uses each theme's
+`drumKit.snareHz` and `drumKit.snareDecay`.
+
+## The section form
+
+`SONG_FORM` in `src/song.ts` is verse (8 bars), chorus (8), verse (8), chorus (8), break (4), which
+loops every 36 bars. The last bar of each section is a fill: `FILL_STEPS` replace the regular
+backing snare with a snare fill over the last four sixteenths.
+
+- A verse plays the theme's `chords` and `layerLevels` as they are.
+- A chorus uses `chorusChords` and raises the pad, bass, and arp levels without lowering any.
+- A break keeps the pad only: the bass and arp drop out and no backing drums play.
+
+With sections off, the backing is the steady verse loop, with the theme's `chords` and no fill.
 
 ## Keeping volume consistent
 

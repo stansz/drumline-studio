@@ -18,7 +18,7 @@ import {
 } from './samples';
 import { loadUserSample, saveUserSample } from './sampleStore';
 import { Scheduler } from './scheduler';
-import { sectionAt } from './song';
+import { SECTION_NAMES, describeSwing, sectionAt, sectionIndexAt, songMap } from './song';
 import {
   Sequencer,
   INSTRUMENTS,
@@ -77,6 +77,18 @@ const clearButton = byId<HTMLButtonElement>('clear');
 const liveButton = byId<HTMLButtonElement>('live');
 const startButton = byId<HTMLButtonElement>('start');
 const themeButton = byId<HTMLButtonElement>('theme');
+const infoToggle = byId<HTMLButtonElement>('info-toggle');
+const infoBackdrop = byId<HTMLDivElement>('backing-info');
+const infoClose = byId<HTMLButtonElement>('info-close');
+const infoTitle = byId<HTMLHeadingElement>('info-title');
+const infoBlurb = byId<HTMLParagraphElement>('info-blurb');
+const infoMode = byId<HTMLParagraphElement>('info-mode');
+const infoMap = byId<HTMLDivElement>('info-map');
+const infoPosition = byId<HTMLParagraphElement>('info-position');
+const infoVerse = byId<HTMLElement>('info-verse');
+const infoChorus = byId<HTMLElement>('info-chorus');
+const infoFeel = byId<HTMLElement>('info-feel');
+const infoTempo = byId<HTMLElement>('info-tempo');
 const volumeSlider = byId<HTMLInputElement>('volume');
 const fxToggle = byId<HTMLButtonElement>('fx-toggle');
 const fxPanel = byId<HTMLDivElement>('fx');
@@ -118,7 +130,8 @@ let selected: Instrument = 'kick';
 let hover: { col: number; row: number } | null = null;
 let queued: Array<{ at: number; note: NoteEvent }> = [];
 let musicStep = 0;
-let stepMarks: Array<{ at: number; step: number }> = [];
+let heardMusicStep = 0;
+let stepMarks: Array<{ at: number; step: number; musicStep: number }> = [];
 let playhead = 0;
 let theme = loadTheme();
 let volume = loadVolume();
@@ -148,6 +161,8 @@ let liveMode: LiveMode = 'paint';
 let playheadAt = 0;
 let loopDrag: number | null = null;
 let openPanel: 'fx' | 'share' | 'mixall' | null = null;
+const infoSections: HTMLSpanElement[] = [];
+let infoShownKey = '';
 
 window.__drumline = { sequencer, scheduler, audio };
 
@@ -333,6 +348,7 @@ function cycleBacking(): void {
     backing = false;
   }
   updateBackingButton();
+  if (!infoBackdrop.hidden) renderInfo();
   try {
     localStorage.setItem(BACKING_KEY, backing ? '1' : '0');
     localStorage.setItem(SECTIONS_KEY, sections ? '1' : '0');
@@ -377,7 +393,7 @@ function onStep(time: number, duration: number): void {
     audio.playMetronome(time, sequencer.stepIndex === 0);
   }
   audio.setTempo(duration);
-  stepMarks.push({ at: time, step: sequencer.stepIndex });
+  stepMarks.push({ at: time, step: sequencer.stepIndex, musicStep });
   const notes = sequencer.step();
   const voices = pickVoices(notes);
   for (const voice of voices) {
@@ -441,6 +457,7 @@ function setBpm(value: number): void {
   bpm = parseBpm(String(value));
   if (scheduler) scheduler.bpm = bpm;
   bpmInput.value = String(bpm);
+  if (!infoBackdrop.hidden) renderInfo();
   try {
     localStorage.setItem(BPM_KEY, String(bpm));
   } catch {
@@ -482,11 +499,78 @@ function cycleTheme(): void {
   theme = nextTheme(theme);
   audio?.setTheme(theme);
   updateThemeButton();
+  if (!infoBackdrop.hidden) renderInfo();
   try {
     localStorage.setItem(THEME_KEY, theme.id);
   } catch {
     // The choice just lasts for this visit when storage is unavailable.
   }
+}
+
+function buildInfoMap(): void {
+  for (const entry of songMap()) {
+    const span = document.createElement('span');
+    span.className = `info-section info-${entry.kind}`;
+    span.textContent = `${SECTION_NAMES[entry.kind]} ${entry.bars}`;
+    span.style.flexGrow = String(entry.bars);
+    infoMap.append(span);
+    infoSections.push(span);
+  }
+}
+
+function renderInfo(): void {
+  infoTitle.textContent = `♪ ${theme.name} backing`;
+  infoBlurb.textContent = theme.blurb;
+  infoMode.textContent = !backing
+    ? 'Off: no backing music.'
+    : sections
+      ? 'Song: verse, chorus, verse, chorus, then a break, with a snare fill before each change.'
+      : 'Loop: the verse chords on repeat.';
+  infoVerse.textContent = theme.chords.map((chord) => chord.name).join(' · ');
+  infoChorus.textContent = theme.chorusChords.map((chord) => chord.name).join(' · ');
+  infoFeel.textContent = describeSwing(theme.swing);
+  infoTempo.textContent = `${bpm} BPM`;
+}
+
+// The song map's highlight and the "Now:" line, refreshed cheaply while the screen is open.
+function updateInfoPosition(): void {
+  const songOn = backing && sections;
+  let key: string;
+  let text: string;
+  let current = -1;
+  if (songOn && playing) {
+    const section = sectionAt(heardMusicStep, true);
+    current = sectionIndexAt(heardMusicStep);
+    text = `Now: ${SECTION_NAMES[section.kind]}, bar ${section.bar + 1} of ${section.bars}`;
+    key = `song:${current}:${section.bar}`;
+  } else if (songOn) {
+    text = 'Press Play to hear the song.';
+    key = 'song:paused';
+  } else if (backing) {
+    text = 'Sections are off.';
+    key = 'loop';
+  } else {
+    text = '';
+    key = 'off';
+  }
+  if (key === infoShownKey) return;
+  infoShownKey = key;
+  infoSections.forEach((span, index) => span.classList.toggle('current', index === current));
+  infoMap.classList.toggle('dim', !songOn);
+  infoPosition.textContent = text;
+}
+
+function openInfo(): void {
+  renderInfo();
+  infoBackdrop.hidden = false;
+  infoShownKey = '';
+  updateInfoPosition();
+  infoClose.focus();
+}
+
+function closeInfo(): void {
+  infoBackdrop.hidden = true;
+  infoToggle.focus();
 }
 
 function loadVolume(): number {
@@ -793,6 +877,7 @@ function stop(): void {
   pause();
   sequencer.rewind();
   musicStep = 0;
+  heardMusicStep = 0;
   playhead = sequencer.stepIndex;
   playheadAt = 0;
 }
@@ -976,6 +1061,11 @@ clearButton.addEventListener('click', clearPattern);
 liveButton.addEventListener('click', () => setLiveMode(nextLiveMode(liveMode)));
 startButton.addEventListener('click', play);
 themeButton.addEventListener('click', cycleTheme);
+infoToggle.addEventListener('click', openInfo);
+infoClose.addEventListener('click', closeInfo);
+infoBackdrop.addEventListener('click', (event) => {
+  if (event.target === infoBackdrop) closeInfo();
+});
 volumeSlider.addEventListener('input', changeVolume);
 fxToggle.addEventListener('click', toggleFxPanel);
 for (const slider of [fxFilter, fxDelay, fxReverb, fxCrush]) {
@@ -1001,6 +1091,13 @@ fileButton.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', loadSampleFile);
 
 window.addEventListener('keydown', (event) => {
+  // The backing info screen takes the keyboard while it is open.
+  if (!infoBackdrop.hidden) {
+    if (event.key === 'Escape' || event.key.toLowerCase() === 'i') closeInfo();
+    // Space would otherwise click the focused close button.
+    if (event.code === 'Space') event.preventDefault();
+    return;
+  }
   // Typing a tempo or moving a slider must not trigger the shortcuts.
   if (event.target instanceof HTMLInputElement) return;
   if (event.code === 'Minus' || event.code === 'NumpadSubtract') {
@@ -1058,6 +1155,9 @@ window.addEventListener('keydown', (event) => {
     case 'e':
       toggleSharePanel();
       break;
+    case 'i':
+      openInfo();
+      break;
     case 'l':
       setLength(sequencer.length === 16 ? 32 : 16);
       break;
@@ -1093,7 +1193,9 @@ function frame(): void {
     stepMarks.shift();
     playhead = mark.step;
     playheadAt = mark.at;
+    heardMusicStep = mark.musicStep;
   }
+  if (!infoBackdrop.hidden) updateInfoPosition();
   const lit = Math.floor(playhead / GRID_COLS) === page ? playhead % GRID_COLS : -1;
   if (lit !== litStep) {
     stepLeds[litStep]?.classList.remove('on');
@@ -1141,6 +1243,7 @@ for (let i = 0; i < 16; i += 1) {
 }
 
 renderSampleButtons();
+buildInfoMap();
 
 const shared = (() => {
   try {

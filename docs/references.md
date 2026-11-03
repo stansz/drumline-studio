@@ -4,8 +4,10 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
 
 ## Files
 
-- `src/config.ts`: tunable values, including `MAX_STEPS`, `MIX`, `LIVE_TOOLS`, `VOICE_LIMITS`,
-  and `INSTRUMENT_INFO`.
+`src/`:
+
+- `src/config.ts`: tunable values, including `MAX_STEPS`, `STEPS_PER_BAR`, `MIX`, `LIVE_TOOLS`,
+  `VOICE_LIMITS`, `INSTRUMENT_INFO`, the chord progressions, and `parseBpm`.
 - `src/sequencer.ts`: the pattern. `step()` returns the notes on the current step and moves on to
   `stepAfter()`.
 - `src/scheduler.ts`: step clock that runs on `AudioContext` time, slightly ahead of playback.
@@ -19,8 +21,9 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
 - `src/mix.ts`: mixer channels, saving, parsing, and the slider-to-gain curve.
 - `src/live.ts`: live-play modes, key rows, and nearest-step quantizing; hidden by `LIVE_TOOLS`.
 - `src/music.ts`: chords, arpeggios, and how the backing music builds up.
-- `src/song.ts`: the song form's sections, the section a step falls in, and how each section
-  changes the backing layers.
+- `src/song.ts`: the song form's sections, the section a step falls in, how each section changes
+  the backing layers, and the pure helpers the backing info screen uses (`songMap`,
+  `sectionIndexAt`, `describeSwing`, `SECTION_NAMES`).
 - `src/themes.ts`: one entry for each music theme.
 - `src/pattern.ts`: autosave JSON and the `v1.`/`v2.`/`v3.` share-link formats.
 - `src/midi.ts`: MIDI file writer.
@@ -28,16 +31,46 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
 - `src/render.ts`: draws the board into a 256×128 buffer, then scales it onto the canvas.
 - `src/sprites.ts`: colors, sprites, and bitmap letters, stored as data.
 - `src/pixel.ts`: pixel line, circle, and dither helpers with no DOM.
-- `src/style.css`: the page layout and the look of the controls and panels.
-- `src/fonts/`: self-hosted fonts and their licenses.
-- `src/main.ts`: connects everything, and handles input, the HUD, and saved settings.
-- `index.html`: the page markup, the HUD, and the panel buttons.
-- `public/`: static files served as-is, such as `favicon.svg`.
-- `tests/sampleEdit.test.ts`: unit tests for the sample trimming helpers.
+- `src/style.css`: the page layout and the look of the controls, panels, and info screen.
+- `src/fonts/`: self-hosted Silkscreen and VT323 fonts and their licenses.
+- `src/main.ts`: connects everything, and handles input, the HUD, the dock, the info screen, and
+  saved settings.
+
+`tests/`:
+
+- `tests/audio.test.ts`: the soft-clip and crush curves, volume gain, and volume parsing.
+- `tests/fx.test.ts`: FX parsing, the filter cutoffs, and the crush mix.
+- `tests/live.test.ts`: live modes, live key rows, and nearest-step quantizing.
+- `tests/loudness-baseline.ts`: Neon's target average levels for the browser loudness check.
+- `tests/loudness.html`: the browser page that runs the loudness check.
+- `tests/loudness.ts`: browser-only audio check, rendering boards and backing music faster than
+  real time.
+- `tests/midi.test.ts`: the MIDI header, tempo, notes, sample notes, and track length.
+- `tests/mix.test.ts`: mixer channel order, parsing, and the gain curve.
+- `tests/music.test.ts`: MIDI-to-Hz, chords, intensity, layer levels, and arpeggio notes.
+- `tests/pattern.test.ts`: autosave round trips and every share-link version.
+- `tests/pixel.test.ts`: dithering, line and circle points, and bitmap text.
+- `tests/recording.test.ts`: recording type choice, file extensions, file names, and timers.
+- `tests/sampleEdit.test.ts`: the sample mixing, trimming, fading, and normalizing helpers.
+- `tests/samples.test.ts`: preset ids and colors, lookup fallbacks, and the row-to-pitch rate.
+- `tests/scheduler.test.ts`: the step clock, stalls, and lookahead.
+- `tests/sequencer.test.ts`: pattern editing, length, loops, live skips, and per-note samples.
+- `tests/song.test.ts`: the song form, sections, fills, section levels, song map, section index,
+  and swing text.
+- `tests/sprites.test.ts`: sprite rectangles, colors, sizes, and the glyph coverage.
+- `tests/tempo.test.ts`: tempo parsing and clamping.
+- `tests/themes.test.ts`: each theme's chords, scales, recipes, levels, swing, blurbs, and order.
+- `tests/voices.test.ts`: the per-instrument voice limits and chord spreading.
+
+Elsewhere:
+
+- `index.html`: the page markup, the HUD, the panel buttons, and the backing info dialog.
+- `package.json`: the scripts and the Vite, Vitest, and TypeScript versions.
+- `vite.config.ts`: Vite config; `base: './'` keeps the build working from any path.
+- `tsconfig.json`: strict TypeScript for `src` and `tests`.
 - `vitest.sandbox.config.mjs`: runs the tests inside the Windows `dsh` sandbox, through
   `npm run test:sandbox`.
-- `tests/loudness.ts`: browser-only audio check, with Neon's target levels stored in
-  `tests/loudness-baseline.ts`.
+- `public/`: static files served as-is, such as `favicon.svg`.
 - `.handoff/`: `plan.md` is tracked and holds the most recent spec; earlier specs are in git
   history. `report.md` and `last-run.log` are ignored.
 - `.github/workflows/deploy.yml`: tests and builds `main`, then deploys the result to GitHub Pages.
@@ -48,14 +81,19 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
 1. `Scheduler` calls `onStep` in `src/main.ts` slightly before the step is due to play. That lead is
    `LOOKAHEAD_SECONDS`.
 2. `onStep` schedules the backing music and the metronome, calls `sequencer.step()`, and schedules
-   each voice at the step's audio time. It passes the current section to `playMusicStep`, so the
-   backing follows the song form in `src/song.ts` when sections are on, or the steady verse loop
-   when they are off. `sequencer.step()` returns only notes on steps inside the pattern length (and
-   inside the loop when one is set), then moves the playhead to `stepAfter()`.
+   each voice at the step's audio time. It passes `musicStep` and the current section to
+   `playMusicStep`, so the backing follows the song form in `src/song.ts` when sections are on, or
+   the steady verse loop when they are off. `sequencer.step()` returns only notes on steps inside
+   the pattern length (and inside the loop when one is set), then moves the playhead to
+   `stepAfter()`. Each note carries its own `sample` id on Sample cells, so it plays the sound it
+   was painted with.
 3. Notes wait in `queued`, and `frame()` flashes them on the board once audio time reaches them.
+   `onStep` also pushes `{ at, step, musicStep }` onto `stepMarks`; `frame()` consumes the marks
+   against the audio time being heard, which moves the playhead and, while the info screen is
+   open, the highlighted section.
 
-Pause stops the scheduler and keeps the step. Stop also rewinds. Notes already scheduled within
-`LOOKAHEAD_SECONDS` still sound after a pause.
+Pause stops the scheduler and keeps the step. Stop also rewinds and resets `musicStep`. Notes
+already scheduled within `LOOKAHEAD_SECONDS` still sound after a pause.
 
 The sequencer always runs slightly ahead of what the player sees and hears, so read visuals against
 audio time, not against the sequencer's current state.
@@ -63,20 +101,35 @@ audio time, not against the sequencer's current state.
 ## Audio chain
 
 ```text
-instrument level gains → instrument and fx buses → master → trim → crusher → theme filter → FX low-pass → FX high-pass → limiter → soft clip → analyser → volume → output
-music bus → musicTrim → backing level → master
+instrument level gains → towerBus (instrument bus) → master
+instrument level gains → towerBus → towerReverbSend → reverb → fxBus → master
+synth → instrumentDelaySends.synth → delaySend → delay → fxBus → master
+towerBus → fxDelaySend → delay → delayFeedback → delay
+towerBus → fxReverbSend → reverb
+musicBus → musicTrim → backingLevel → master
+backingLevel → musicReverbSend → reverb
+stab / arp → backingDelaySend → delaySend → delay
+crackleGain → master
+master → trim → crusher (dry/wet crossfade) → theme filter (toneHz) → FX low-pass → FX high-pass
+       → limiter → soft clip → analyser → volume → output
+analyser → recording stream
 ```
 
-The recording stream is tapped from the analyser. The FX delay and reverb sends are taken from the
-instrument bus, which is still named `towerBus` in code.
-
+- Each instrument's level gain feeds `towerBus`; the mixer scales those gains and the backing
+  level. The delay send is per instrument (`instrumentDelaySends`), and only the synth connects to
+  it, so the mixer covers every voice.
+- `musicTrim` is set to `musicTrim / trim`, because the master `trim` scales the backing too. The
+  backing therefore ends up at `space.musicTrim` whatever the instruments' trim is.
+- The FX panel's sends are taken from `towerBus`, so they shape the instruments and not the backing
+  music, which has its own reverb and delay sends driven by the theme.
+- A kick ducks `musicBus` by `MIX.duckAmount` for `MIX.duckRelease` seconds.
 - A `WaveShaper` curve can only be set once, so themes crossfade the crusher in and out instead of
   replacing its curve.
-- The master `trim` scales everything, so `setTheme` sets the music trim to `musicTrim / trim`.
 - The limiter lets through only about 0.4 dB for each 1 dB of `space.trim`, so loudness has to be
   measured, not worked out. [themes.md](themes.md) has the steps.
-- The player's volume slider sits after the limiter, so it never changes the mix. It only turns the
-  sound down from full level, and the loudness page renders at full level.
+- The player's volume slider sits after the analyser and the limiter, so it never changes the mix.
+  It only turns the sound down from full level, and the loudness page renders at full level.
+- Mute zeroes the master gain before the analyser, so it silences recordings as well as output.
 - Changing Neon or the shared chain means refreshing `tests/loudness-baseline.ts`.
 
 ## Visuals
@@ -95,7 +148,7 @@ other page are skipped, and the playhead only draws while it is on the shown pag
 When the pointer is over a note, the renderer draws a red outline around that cell instead of the
 sprite preview, to show that a click removes the note.
 
-Sample notes use the color of the chosen sound: `SamplePreset.color` keys into `PIXEL_COLORS`, and
+Sample notes use the color of their own sound: `SamplePreset.color` keys into `PIXEL_COLORS`, and
 the renderer bakes one Sample sprite variant per color for the board, the preview, and the pad
 icon.
 
@@ -112,6 +165,15 @@ visible. Sample's volume slider lives in the sampler panel, and the Backing volu
 under the main volume slider in the header.
 The dock's height comes from the `--dock-h` custom property, so swapping views never moves the
 board or the controls.
+
+The backing info screen is a separate fixed overlay, `#backing-info`, outside the dock. `ⓘ` in the
+header (key **I**) opens it; `main.ts` builds the song map once from `songMap()` at startup, and
+`renderInfo()` fills the title, blurb, backing mode, chord names, feel, and tempo. While it is
+open, each `frame()` compares the heard `musicStep` against the last rendered section index and bar
+and only then touches the DOM: the map's `current` class and the `Now:` line follow the song, and
+the map dims with a short message when the backing is a loop or off. Opening moves focus to the
+close button, closing returns it to `ⓘ`, and the keyboard closes the screen on **Esc** or **I**
+while ignoring other keys.
 
 ## Audio load
 
@@ -141,8 +203,8 @@ These values are saved to `localStorage` when they change, and come back on the 
 - `drumline-pattern`: JSON `{ v: 1, length, cells }`, where each cell is
   `[instrument, col, row]` plus an optional fourth element, the `sample` id, on sample cells.
 
-Mute, the shown page, and whether the panels are open are not saved. Mute zeroes the master
-gain, before the recording tap, so it also silences recordings.
+Mute, the shown page, whether the panels are open, and whether the info screen is open are not
+saved. Mute zeroes the master gain, before the recording tap, so it also silences recordings.
 
 The recorded or loaded user sample lives in IndexedDB: database `drumline`, store `samples`, key
 `mine`, holding `{ sampleRate, data: Float32Array }`. It is not in a share link, and a share link
@@ -179,3 +241,5 @@ uses the theme's scale on channel 1. The track ends at the pattern length.
 - Navigating to the same URL with only a new `#hash` doesn't reload the page. Load `about:blank`
   first when testing share links.
 - Downloads in headless Edge need `Page.setDownloadBehavior`.
+- Press **I** during playback to check that the info screen's highlighted section and bar advance,
+  and check that **Esc**, **I**, **✕**, and a backdrop click each close it.

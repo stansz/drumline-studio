@@ -116,6 +116,13 @@ describe('themes', () => {
     expect(nextTheme(theme)).toBe(DEFAULT_THEME);
   });
 
+  it('gives every theme a short blurb', () => {
+    for (const theme of THEMES) {
+      expect(theme.blurb.length).toBeGreaterThan(0);
+      expect(theme.blurb.length).toBeLessThan(140);
+    }
+  });
+
   it('finds a saved theme and falls back on an unknown one', () => {
     expect(themeById('techno').name).toBe('Techno');
     expect(themeById('missing')).toBe(DEFAULT_THEME);

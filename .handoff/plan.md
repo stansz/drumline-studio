@@ -1,219 +1,334 @@
-# Plan: Song sections and a second chord progression for the backing
+# Plan: Backing info screen, and a full docs refresh
 
 ## Goal
 
-In Drumline Studio (`C:\Users\sz\Documents\Code\drumline-studio`), each theme's backing is
-one 4-bar loop forever. Make it a song:
+In Drumline Studio (`C:\Users\sz\Documents\Code\drumline-studio`):
 
-- **Sections**: the backing cycles through **verse** (8 bars), **chorus** (8), **verse** (8),
-  **chorus** (8), and **break** (4), then repeats. That's 36 bars.
-  - **Verse** is exactly today's arrangement.
-  - **Chorus** uses the theme's new second chord progression, with more energy: fuller pad,
-    bass always in, and the arpeggio on where the theme has one.
-  - **Break** is the pad alone: no bass, arpeggio, or drums.
-  - The last bar of each section ends with a **snare fill** on its last four sixteenths.
-- **Backing button** cycles through three states: **Song** (sections on), **Loop** (sections
-  off: today's steady loop), and **Off** (no backing). The default is Song. Key **B** cycles
-  the same way.
-- Stop restarts the song at the first verse. Pause keeps its place.
+1. Add a **Backing info** screen. An **ⓘ** button next to the theme button (key **I**) opens
+   a modal about the current theme's backing music:
+   - the theme's name and a one-line description
+   - the Backing mode (Song / Loop / Off) and what it means
+   - a song map showing the five sections, with the current section and bar highlighted live
+     while playing
+   - the verse and chorus chord names
+   - the feel (straight or swung) and the tempo
 
-Your own pattern, the tempo, and the instrument sounds don't change.
+   It closes with a ✕ button, **Esc**, **I**, or a click on the backdrop.
+2. Do a **full docs refresh**: `README.md`, `AGENTS.md`, `docs/references.md`, and
+   `docs/themes.md` must describe the app as it is after this change, checked against the
+   code.
 
 ## Files to touch
 
-- `src/song.ts` (new)
+- `src/song.ts`
 - `src/themes.ts`
-- `src/audio.ts`
 - `src/main.ts`
-- `tests/song.test.ts` (new)
+- `src/style.css`
+- `index.html`
+- `tests/song.test.ts`
 - `tests/themes.test.ts`
-- `tests/loudness.ts`
 - `README.md`
 - `AGENTS.md`
-- `docs/themes.md`
 - `docs/references.md`
+- `docs/themes.md`
 - `.handoff/report.md`
 
 ## Steps
 
-### 1. `src/song.ts` (new; no DOM, no audio, no storage)
+### 1. `src/song.ts`
+
+Add pure helpers:
 
 ```ts
-import { STEPS_PER_BAR } from './config';
-import type { layerLevels } from './music';
-
-export type SectionKind = 'verse' | 'chorus' | 'break';
-
-export interface Section {
-  kind: SectionKind;
-  bar: number; // bar within the section, from 0
-  bars: number; // length of the section in bars
-  fill: boolean; // true in the section's last bar while sections are on
+// Each section with the bar it starts on, for drawing the song map.
+export function songMap(): Array<{ kind: SectionKind; bars: number; startBar: number }> {
+  let startBar = 0;
+  return SONG_FORM.map((part) => {
+    const entry = { kind: part.kind, bars: part.bars, startBar };
+    startBar += part.bars;
+    return entry;
+  });
 }
 
-export const SONG_FORM: ReadonlyArray<{ kind: SectionKind; bars: number }> = [
-  { kind: 'verse', bars: 8 },
-  { kind: 'chorus', bars: 8 },
-  { kind: 'verse', bars: 8 },
-  { kind: 'chorus', bars: 8 },
-  { kind: 'break', bars: 4 },
-];
-
-const SONG_BARS = SONG_FORM.reduce((sum, part) => sum + part.bars, 0);
-
-// With sections off the backing is today's loop: always a verse, never a fill.
-export function sectionAt(musicStep: number, sectionsOn: boolean): Section {
-  if (!sectionsOn) return { kind: 'verse', bar: 0, bars: 1, fill: false };
+// Index into SONG_FORM of the section playing at this step (sections on).
+export function sectionIndexAt(musicStep: number): number {
   let bar = Math.floor(Math.max(0, musicStep) / STEPS_PER_BAR) % SONG_BARS;
-  for (const part of SONG_FORM) {
-    if (bar < part.bars) return { kind: part.kind, bar, bars: part.bars, fill: bar === part.bars - 1 };
+  for (let i = 0; i < SONG_FORM.length; i += 1) {
+    const part = SONG_FORM[i];
+    if (!part) break;
+    if (bar < part.bars) return i;
     bar -= part.bars;
   }
-  return { kind: 'verse', bar: 0, bars: 1, fill: false };
+  return 0;
 }
 
-type Levels = ReturnType<typeof layerLevels>;
-
-// How each section changes the layer levels. Verse leaves them as they are.
-export function sectionLevels(levels: Levels, kind: SectionKind): Levels {
-  if (kind === 'break') return { pad: levels.pad, bass: 0, arp: 0 };
-  if (kind === 'chorus') {
-    return {
-      pad: Math.min(1, levels.pad + 0.15),
-      bass: Math.max(levels.bass, 0.6),
-      arp: Math.max(levels.arp, 0.6),
-    };
-  }
-  return levels;
+export function describeSwing(swing: number): string {
+  return swing <= 0 ? 'Straight' : `Swung ${Math.round(swing * 100)}%`;
 }
 
-export const FILL_STEPS: readonly number[] = [12, 13, 14, 15];
+export const SECTION_NAMES: Record<SectionKind, string> = {
+  verse: 'Verse',
+  chorus: 'Chorus',
+  break: 'Break',
+};
 ```
 
 ### 2. `src/themes.ts`
 
-- Add `chorusChords: ReadonlyArray<{ name: string; pad: number[]; bass: number }>;` to
-  `Theme`, directly after `chords`.
-- Add `chorusChords` to each theme, after `chords`. Use exactly these values:
-  - **Neon**:
-    `[{ name: 'Fmaj7', pad: [53, 57, 60, 64], bass: 41 }, { name: 'G', pad: [55, 59, 62, 67], bass: 43 }, { name: 'Em7', pad: [52, 55, 59, 62], bass: 40 }, { name: 'Am', pad: [57, 60, 64, 69], bass: 45 }]`
-  - **Chiptune**:
-    `[{ name: 'F', pad: [57, 60, 65, 69], bass: 41 }, { name: 'C', pad: [60, 64, 67, 72], bass: 48 }, { name: 'Dm', pad: [57, 62, 65, 69], bass: 38 }, { name: 'G', pad: [59, 62, 67, 71], bass: 43 }]`
-  - **Lo-fi**:
-    `[{ name: 'Fmaj9', pad: [57, 60, 64, 67], bass: 41 }, { name: 'Em7', pad: [55, 59, 62, 64], bass: 40 }, { name: 'Dm9', pad: [53, 57, 60, 64], bass: 38 }, { name: 'G13', pad: [53, 59, 64, 69], bass: 43 }]`
-  - **Techno**:
-    `[{ name: 'Dm', pad: [57, 62, 65], bass: 38 }, { name: 'Dm', pad: [57, 62, 65], bass: 38 }, { name: 'Am', pad: [57, 60, 64], bass: 45 }, { name: 'G', pad: [55, 59, 62], bass: 43 }]`
-  - **Funk**:
-    `[{ name: 'A13', pad: [55, 61, 66, 71], bass: 45 }, { name: 'A13', pad: [55, 61, 66, 71], bass: 45 }, { name: 'B9', pad: [57, 61, 63, 66], bass: 47 }, { name: 'E9', pad: [56, 62, 66, 71], bass: 40 }]`
-- Change no other theme values.
+- Add `blurb: string;` to `Theme`, directly after `name`.
+- Add a `blurb` to each theme. Use these drafts, but **check each claim against that theme's
+  values** (chord style and level, bass wave, arp steps and level, drum steps and levels,
+  swing, crackle, `toneHz`, `crush`, `reverbSend`). Correct any wording that a value
+  contradicts, and list each correction in the report:
+  - Neon: `'Warm sawtooth pads over a soft triangle bass in A minor. No backing drums, so your beat leads.'`
+  - Chiptune: `'A bouncy triangle bass and a fast pulse-wave arpeggio in C major, with 8-bit grit and simple drums.'`
+  - Lo-fi: `'Mellow jazzy chords with a lazy swing, a muffled tone, and vinyl crackle.'`
+  - Techno: `'Dark minor stabs, a four-on-the-floor kick, and a big, spacious reverb.'`
+  - Funk: `'Bright ninth and thirteenth chord stabs, a bass with ghost notes, and a light swing.'`
 
-### 3. `src/audio.ts`
+### 3. `index.html`
 
-- Import `FILL_STEPS, sectionLevels, type Section` from `./song`.
-- `playMusicStep(musicStep, time, duration, levels, section: Section)`. Inside:
-  - `const chords = section.kind === 'chorus' ? theme.chorusChords : theme.chords;`.
-    Use `chords` everywhere the function used `theme.chords`: the chord lookup and
-    `arpNote`.
-  - `const layers = sectionLevels(levels, section.kind);`. Use `layers` in place of `levels`
-    for the pad, bass, arp, and backing drums.
-  - **Arp**: keep `Math.max(layers.arp, theme.arp.minLevel)`. Themes with no arp steps stay
-    silent, because the existing `steps.includes` check covers that.
-  - **Drums**: skip all backing drums when `section.kind === 'break'`. When `section.fill`
-    and `FILL_STEPS.includes(local)`:
-    - Play the snare on that step at level `layers.pad * (0.55 + 0.15 * FILL_STEPS.indexOf(local))`,
-      so the fill rises.
-    - Skip that step's regular snare, so it isn't doubled.
-    - Kick and hat follow their normal pattern.
-  - The **hold-style pad** uses `chord.pad` from the section's chords. The verse/chorus switch
-    happens on a bar boundary, the same as chord changes today.
-- Nothing else changes.
+- In `.sys`, directly after `#theme`, add
+  `<button id="info-toggle" class="hw" type="button" aria-haspopup="dialog" aria-controls="backing-info" title="About the backing music (I)">ⓘ</button>`.
+- Before `<div id="overlay">`, add:
+
+  ```html
+  <div id="backing-info" class="info-backdrop" hidden>
+    <div class="info-panel" role="dialog" aria-modal="true" aria-labelledby="info-title">
+      <div class="info-head">
+        <h2 id="info-title">Backing</h2>
+        <button id="info-close" class="hw" type="button" aria-label="Close">✕</button>
+      </div>
+      <p id="info-blurb" class="info-blurb"></p>
+      <p id="info-mode" class="info-line"></p>
+      <div id="info-map" class="info-map" aria-label="Song sections"></div>
+      <p id="info-position" class="info-line"></p>
+      <dl class="info-facts">
+        <dt>Verse chords</dt><dd id="info-verse"></dd>
+        <dt>Chorus chords</dt><dd id="info-chorus"></dd>
+        <dt>Feel</dt><dd id="info-feel"></dd>
+        <dt>Tempo</dt><dd id="info-tempo"></dd>
+      </dl>
+    </div>
+  </div>
+  ```
 
 ### 4. `src/main.ts`
 
-- Imports: `sectionAt` from `./song`.
-- Constant `SECTIONS_KEY = 'drumline-sections'`, and
-  `let sections = loadSections();` (`localStorage.getItem(SECTIONS_KEY) !== '0'` in
-  `try`/`catch`, default `true`).
-- In `onStep`, pass `sectionAt(musicStep, sections)` as the new last argument of
-  `audio.playMusicStep`.
-- **Backing button** (three states). Replace `toggleBacking` with `cycleBacking`:
-  - The order is Song (backing on, sections on) → Loop (backing on, sections off) → Off
-    (backing off) → Song.
-  - Save both `BACKING_KEY` (as now) and `SECTIONS_KEY` in `try`/`catch`.
-  - `updateBackingButton()`:
-    - Set the button text to `Song`, `Loop`, or `Off`, with a `title` of "Backing music:
-      song with sections", "Backing music: steady loop", or "Backing music off".
-    - Keep the `selected` class whenever the backing is on.
-    - Keep `aria-pressed` as `String(backing)`.
-  - The button click and the **B** key both call `cycleBacking()`.
-- Nothing else changes: Stop already resets `musicStep` to 0, and Pause keeps it.
+- Imports: `songMap, sectionIndexAt, describeSwing, SECTION_NAMES` from `./song`.
+- Elements: `infoToggle`, `infoBackdrop` (`#backing-info`), `infoClose`, `infoBlurb`,
+  `infoMode`, `infoMap`, `infoPosition`, `infoVerse`, `infoChorus`, `infoFeel`, `infoTempo`,
+  and the `#info-title` heading.
+- Build the map once at startup: for each entry of `songMap()`, append a `<span>` to
+  `infoMap` with class `info-section info-<kind>`, the text `` `${SECTION_NAMES[kind]} ${bars}` ``,
+  and `style.flexGrow = String(bars)`.
+- `renderInfo()` fills everything from the current state:
+  - title: `` `♪ ${theme.name} backing` ``
+  - blurb: `theme.blurb`
+  - mode text:
+    - `backing && sections`: `'Song: verse, chorus, verse, chorus, then a break, with a snare fill before each change.'`
+    - `backing && !sections`: `'Loop: the verse chords on repeat.'`
+    - `!backing`: `'Off: no backing music.'`
+  - verse and chorus chord names: `theme.chords.map((c) => c.name).join(' · ')`, and the same
+    for `chorusChords`
+  - feel: `describeSwing(theme.swing)`
+  - tempo: `` `${bpm} BPM` ``
+  - Call it from `openInfo()`, and also after the theme, backing mode, or tempo changes while
+    the screen is open.
+- **Live position** (cheap: only while open). In `frame()`, when `!infoBackdrop.hidden`:
+  - Take the music step being heard: track the `musicStep` of the step mark currently
+    shown. If no such value exists, add `musicStep` to each `stepMarks` entry where
+    `onStep` pushes it, and keep the latest shown one in a `heardMusicStep` variable.
+  - With Song on and playing:
+    - mark the span at `sectionIndexAt(heardMusicStep)` with class `current` (and none
+      otherwise)
+    - set `infoPosition` to `` `Now: ${SECTION_NAMES[kind]}, bar ${bar + 1} of ${bars}` ``, using
+      `sectionAt(heardMusicStep, true)`
+  - With Song on but stopped or paused: no `current` class, and the position text is
+    `'Press Play to hear the song.'`
+  - With Loop: the map gets class `dim`, and the text is `'Sections are off.'`
+  - With backing off: the map gets class `dim`, and the text is `''`
+  - Only touch the DOM when the section index, bar, or mode changed since the last frame.
+- **Open and close**:
+  - `openInfo()`: render, then show it (`infoBackdrop.hidden = false`) and focus `infoClose`.
+  - `closeInfo()`: hide it and return focus to `infoToggle`.
+  - `infoToggle` click → open. `infoClose` click → close. A click on the backdrop itself
+    (`event.target === infoBackdrop`) → close.
+  - Keyboard, at the top of the `keydown` handler, before other handling:
+    - If the info screen is open, **Esc** or **I** closes it and returns. Every other key is
+      ignored while it is open, so Space doesn't play and so on.
+    - Otherwise **I** opens it. Add it to the `switch` as `case 'i'`.
+  - **Esc** keeps its existing Stop behavior when the screen is closed.
+- Playback continues while the screen is open.
 
-### 5. `tests/loudness.ts`
+### 5. `src/style.css`
 
-- In `renderBoard`, pass `sectionAt(musicStep, false)` to `audio.playMusicStep` for both
-  modes, so loudness is measured on the verse/loop arrangement as before. Import
-  `sectionAt` from `../src/song`.
+```css
+.info-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(20, 19, 26, 0.8);
+}
+
+.info-backdrop[hidden] {
+  display: none;
+}
+
+.info-panel {
+  width: min(520px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  background: linear-gradient(180deg, #2b2933, #24222b);
+  border: 2px solid #000;
+  box-shadow: inset 0 2px 0 #45414f, inset 0 -3px 0 #16151b;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--cream);
+}
+
+.info-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.info-head h2 {
+  margin: 0;
+  font: 400 0.9rem/1.2 var(--label);
+  color: var(--amber);
+}
+
+.info-head .hw {
+  min-height: 32px;
+  padding-inline: 10px;
+}
+
+.info-blurb,
+.info-line {
+  margin: 0;
+  font: 400 1.15rem/1.25 var(--lcd);
+  color: #cfe8c8;
+}
+
+.info-map {
+  display: flex;
+  gap: 3px;
+}
+
+.info-section {
+  font: 400 0.55rem/1 var(--label);
+  text-align: center;
+  padding: 8px 2px;
+  background: #3a3743;
+  color: var(--mute);
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.info-chorus { background: #4c3c2f; }
+.info-break { background: #2c2b30; }
+
+.info-section.current {
+  background: var(--amber);
+  color: #1d1a10;
+}
+
+.info-map.dim { opacity: 0.45; }
+
+.info-facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  font: 400 1.1rem/1.2 var(--lcd);
+}
+
+.info-facts dt { color: var(--mute); }
+.info-facts dd { margin: 0; color: var(--cream); }
+```
+
+Check that `--amber`, `--mute`, `--cream`, and `--label`/`--lcd` exist. On a phone held
+upright, the header must still fit on one row of buttons. If adding ⓘ makes the `.sys` row
+wrap at 360px width, reduce the ⓘ button's horizontal padding to 6px.
 
 ### 6. Tests
 
-- `tests/song.test.ts` (new):
-  - With sections on, the bars map like this (check the first step of each bar):
-    - bars 0–7: verse
-    - bars 8–15: chorus
-    - bars 16–23: verse
-    - bars 24–31: chorus
-    - bars 32–35: break
-    - bar 36: verse again, with `bar` 0
-  - `fill` is true only for bars 7, 15, 23, 31, and 35.
-  - `bar` and `bars` are right for bar 10: chorus, `bar` 2, `bars` 8.
-  - With sections off, `sectionAt(anything, false)` is
-    `{ kind: 'verse', bar: 0, bars: 1, fill: false }`.
-  - `sectionAt(-5, true)` is a verse at `bar` 0.
-  - `sectionLevels`:
-    - verse returns the input unchanged
-    - break keeps `pad` and zeroes `bass` and `arp`
-    - chorus raises each layer as specified, stays at most 1, and never lowers a layer
-  - `FILL_STEPS` equals `[12, 13, 14, 15]`.
-- `tests/themes.test.ts`: every theme has 4 `chorusChords`. Every pad note is between 36 and
-  84, and every bass note is between 28 and 60.
+- `tests/song.test.ts`:
+  - `songMap()` returns 5 entries, starting at bars 0, 8, 16, 24, and 32.
+  - `sectionIndexAt`: step 0 → 0, the first step of bar 8 → 1, bar 33 → 4, bar 36 → 0.
+  - `describeSwing(0)` is `'Straight'`, and `describeSwing(0.22)` is `'Swung 22%'`.
+- `tests/themes.test.ts`: every theme has a non-empty `blurb` under 140 characters.
 
-### 7. Docs
+### 7. Full docs refresh
 
-- `README.md`, `### Playing`:
-  - Replace the Backing sentence. **Backing** cycles through **Song**, **Loop**, and **Off**
-    (key **B**).
-  - Song moves through verse, chorus, and a break, with a short snare fill before each
-    change; the chorus uses a second chord progression.
-  - Loop plays the theme's steady 4-bar loop.
-  - Stop restarts the song from the top.
-  - Update the Controls line for **B**.
-- `AGENTS.md`: add `src/song.ts` to the list of files kept free of the DOM, audio, and
-  `localStorage`. Add: "Loudness is measured with sections off (`sectionAt(step, false)`),
-  which is the verse arrangement."
-- `docs/themes.md`:
-  - Each theme has `chords` (verse and loop) and `chorusChords` (chorus).
-  - The section form is in `src/song.ts`.
-  - Loudness is checked with sections off.
-- `docs/references.md`:
-  - Add `src/song.ts` to Files.
-  - Add `drumline-sections` to the storage keys.
-  - In "How a step works", note that `onStep` passes the current section to `playMusicStep`.
+Read the current source first: `src/*.ts`, `index.html`, `package.json`, and
+`.github/workflows/deploy.yml`. Then rewrite the docs so every statement is true now.
+Remove anything stale.
+
+- **`README.md`**:
+  - Keep the structure: intro with the live link, How to use (subsections), Controls,
+    Commands, Hidden features, Credits.
+  - How to use must cover, in this order, each briefly:
+    - painting (five instruments, rows as pitch, removing notes)
+    - the sampler (six built-in sounds with colors, each note keeps its sound, Mic and File
+      into **Mine**, Mine is one slot saved on the device, share links fall back to Clap)
+    - length and pages
+    - playing (Play/Pause, Stop, tempo, Backing Song/Loop/Off with sections, Mute, Clear,
+      Theme)
+    - the Backing info screen
+    - the mixer (the selected instrument's slider in the dock, Sample's volume in the
+      sampler, Backing under Vol in the header, the **Mix** button showing all six in sync)
+    - FX
+    - saving and sharing (autosave, Copy link, Record, MIDI)
+    - the dock (one slot under the board, one view at a time, floating when the phone is held
+      sideways)
+  - Controls: check every key against the `keydown` handler, and add **I**.
+- **`AGENTS.md`**:
+  - Keep every rule that is still true, and update any that aren't.
+  - Make sure the pure-module list includes every module that is free of the DOM, audio, and
+    storage. Check each file's imports: `sequencer`, `live`, `fx`, `pattern`, `midi`,
+    `recording`, `samples`, `sampleEdit`, `mix`, `song`.
+- **`docs/references.md`**:
+  - Files: every file in `src/` and `tests/`, with one line each.
+  - How a step works: include sections and per-note samples.
+  - Audio chain: matches the constructor, including instrument levels and sends, the backing
+    level, music trim, and FX.
+  - Visuals: the dock views and the info screen.
+  - Saving and sharing: every `localStorage` key in `main.ts`, the IndexedDB store, and the
+    current share-link format plus the older versions that still decode.
+  - Browser testing tips.
+- **`docs/themes.md`**:
+  - The theme fields that matter for authors: `blurb`, `chords`, `chorusChords`, `swing`,
+    `space.trim`, `space.musicTrim`.
+  - The section form.
+  - The loudness workflow (sections off, backing and instrument checks).
 
 ## Acceptance
 
 - `npm run typecheck` exits 0.
 - `npm run test:sandbox` exits 0.
-- `git ls-files --others --exclude-standard -- src/song.ts tests/song.test.ts` prints both
-  paths.
-- PowerShell: `(Select-String -Path src/themes.ts -Pattern 'chorusChords').Count` prints 6.
-- PowerShell: `Select-String -Path src/song.ts -Pattern 'document|window|localStorage|AudioContext'`
-  prints nothing.
+- `git grep -n -F 'id="backing-info"' -- index.html` prints one line.
+- PowerShell: `(Select-String -Path src/themes.ts -Pattern 'blurb').Count` prints 6.
+- PowerShell: `Select-String -Path README.md -Pattern '\*\*I\*\*'` prints at least one line.
+- PowerShell: for each storage key name, `Select-String -Path docs/references.md -Pattern '<key>'`
+  prints at least one line. The keys are `drumline-theme`, `drumline-backing`,
+  `drumline-volume`, `drumline-bpm`, `drumline-fx`, `drumline-pattern`, `drumline-sample`,
+  `drumline-mix`, and `drumline-sections`.
 
 Verifier only:
 
 - `npm test` exits 0.
 - `npm run build` exits 0.
-- The loudness page still passes, and a browser check of the button states and sections.
+- A browser check of the info screen, live position, and keys.
 
 ## Parallel work
 
@@ -223,8 +338,8 @@ None — do it sequentially.
 
 - Do not commit, push, or switch branches.
 - Do not touch files outside **Files to touch**, except `.handoff/report.md`.
-- Do not change existing theme values, instrument sounds, the mixer, FX, the sampler, or the
-  share-link format.
+- Do not change sound, theme values other than adding `blurb`, the song form, the mixer, the
+  sampler, or the share format.
 - Do not run the `Verifier only:` commands. If any command fails with `spawn EPERM`, stop and
   report it. Do not request wider sandbox access, set `NODE_OPTIONS`, or stub modules to get
   past it.
@@ -234,9 +349,7 @@ None — do it sequentially.
 
 ## Out of scope
 
-- New themes or genres.
-- A key or transpose control.
-- Showing the current section on screen.
+- New themes or sections.
 - Jumping to a section by hand.
 
 ## If blocked

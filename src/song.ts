@@ -20,6 +20,38 @@ export const SONG_FORM: ReadonlyArray<{ kind: SectionKind; bars: number }> = [
 
 const SONG_BARS = SONG_FORM.reduce((sum, part) => sum + part.bars, 0);
 
+// Each section with the bar it starts on, for drawing the song map.
+export function songMap(): Array<{ kind: SectionKind; bars: number; startBar: number }> {
+  let startBar = 0;
+  return SONG_FORM.map((part) => {
+    const entry = { kind: part.kind, bars: part.bars, startBar };
+    startBar += part.bars;
+    return entry;
+  });
+}
+
+// Index into SONG_FORM of the section playing at this step (sections on).
+export function sectionIndexAt(musicStep: number): number {
+  let bar = Math.floor(Math.max(0, musicStep) / STEPS_PER_BAR) % SONG_BARS;
+  for (let i = 0; i < SONG_FORM.length; i += 1) {
+    const part = SONG_FORM[i];
+    if (!part) break;
+    if (bar < part.bars) return i;
+    bar -= part.bars;
+  }
+  return 0;
+}
+
+export function describeSwing(swing: number): string {
+  return swing <= 0 ? 'Straight' : `Swung ${Math.round(swing * 100)}%`;
+}
+
+export const SECTION_NAMES: Record<SectionKind, string> = {
+  verse: 'Verse',
+  chorus: 'Chorus',
+  break: 'Break',
+};
+
 // With sections off the backing is today's loop: always a verse, never a fill.
 export function sectionAt(musicStep: number, sectionsOn: boolean): Section {
   if (!sectionsOn) return { kind: 'verse', bar: 0, bars: 1, fill: false };

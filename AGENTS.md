@@ -18,8 +18,9 @@ Commands: `npm run dev`, `npm test`, `npm run test:sandbox`, `npm run typecheck`
 ## Rules
 
 - Keep `src/sequencer.ts`, `src/live.ts`, `src/fx.ts`, `src/mix.ts`, `src/pattern.ts`,
-  `src/midi.ts`, `src/recording.ts`, `src/sampleEdit.ts`, `src/samples.ts`, and `src/song.ts` free
-  of the DOM, audio, and `localStorage`. `src/sequencer.ts` also stays free of randomness.
+  `src/midi.ts`, `src/recording.ts`, `src/sampleEdit.ts`, `src/samples.ts`, `src/song.ts`,
+  `src/config.ts`, `src/music.ts`, `src/themes.ts`, and `src/sprites.ts` free of the DOM, audio,
+  and `localStorage`. `src/sequencer.ts` also stays free of randomness.
 - Each note plays only on its own step, and only while that step is within the pattern
   length and the loop. A note recorded live skips its next pass because it already sounded.
 - Live play and the loop are hidden behind `LIVE_TOOLS` in `src/config.ts`; when turning them
