@@ -33,8 +33,8 @@ Or open **Beats** and pick a preset to hear a full groove right away, then chang
 - **Board:** the grid. Each column is one step (a sixteenth note), and each row is a pitch.
 - **Tab row:** **Mix**, **FX**, **♪ Theme**, **Backing**, and **Beats**.
 - **Dock:** the slot under the tab row. It shows one panel at a time: the selected instrument's
-  volume, the sampler, or whichever of Mix, FX, or Share is open. Opening a panel never moves the
-  board.
+  volume, the Sample sound and volume, or whichever of Mix, FX, or Share is open. Opening a panel
+  never moves the board.
 - **Instruments:** Kick, Hat, Synth, Snare, Bass, and Sample.
 - **Transport:** Play, Stop, BPM, Mute, and Clear.
 
@@ -74,8 +74,8 @@ that.
 ## Backing music
 
 Each theme brings its own backing band: chords, a bass line, an arpeggio, and drums. Tap
-**♪ Theme** (or press **T**) to step to the next one: Neon, Chiptune, Lo-fi, Techno, and Funk.
-Themes change the sound only, never your pattern or the tempo.
+**♪ Theme** (or press **T**) to step to the next one: Neon, Chiptune, Lo-fi, Techno, Funk, Hip-hop,
+House, Synthwave, and Clean. Themes change the sound only, never your pattern or the tempo.
 
 **Backing** cycles through three modes:
 
@@ -95,11 +95,12 @@ music keeps playing.
 
 ![The Beats screen](images/beats.png)
 
-**Beats** opens the Beats screen, with two lists: **Grooves** (Four on the Floor, Boom Bap,
-Breakbeat, Trap, Dembow, Funk Groove) and **Tunes** (Korobeiniki, In the Hall of the Mountain King,
-Ode to Joy, Für Elise, Can-Can). A preset sets the pattern, its length, the tempo, the theme, and
-the Backing mode, and some set a scale for the synth. The music keeps playing, and the new beat
-takes over on the next step.
+**Beats** opens the Beats screen, with three lists: **Grooves** (Four on the Floor, Boom Bap,
+Breakbeat, Trap, Dembow, Funk Groove), **Tunes** (Korobeiniki, In the Hall of the Mountain King,
+Ode to Joy, Für Elise, Can-Can), and **Holiday** (Jingle Bells, Deck the Halls, Joy to the World,
+God Rest Ye Merry Gentlemen). The Holiday tunes are public-domain carols. A preset sets the pattern,
+its length, the tempo, the theme, and the Backing mode, and some set a scale for the synth. The
+music keeps playing, and the new beat takes over on the next step.
 
 The screen shows the highlighted preset's tempo, theme, length, Backing mode, and a one-line
 description. **▲** and **▼** (or the arrow keys) move the highlight without loading. **Load**
@@ -117,11 +118,14 @@ own scale.
 
 ## Sampler
 
-![The sampler panel](images/sampler.png)
+![The Sounds page of the screen](images/sampler.png)
 
-Select **Sample** to open the sampler, with six built-in sounds: Clap, Cowbell, Rimshot, Tom,
-Shaker, and Zap, each with its own color. Click a sound to hear it and to paint with it. The bottom
-row plays the sound as recorded, and each higher row plays it higher, up to an octave at the top.
+Select **Sample** to show the sampler in the dock: the current sound's button and the Sample
+volume. Tap the sound's button to open the **Sounds** page of the screen, with the sound list,
+**Mic**, and **File**. There are six built-in sounds: Clap, Cowbell, Rimshot, Tom, Shaker, and Zap,
+each with its own color. Tapping a sound plays it and keeps the screen open; the arrow keys step
+through sounds and **Enter** closes. The bottom row plays the sound as recorded, and each higher row
+plays it higher, up to an octave at the top.
 
 Each Sample note keeps the sound it was painted with, so picking a new sound only changes the notes
 you paint next. The Sample pad's icon and light show the sound you'll paint.

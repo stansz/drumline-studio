@@ -6,6 +6,8 @@ export const SCALES: Readonly<Record<string, readonly number[]>> = {
   'mountain-king': [69, 70, 71, 72, 74, 75, 76, 79], // A4 A#4 B4 C5 D5 D#5 E5 G5
   'c-major': [72, 74, 76, 77, 79, 81, 83, 84], // C5 D5 E5 F5 G5 A5 B5 C6
   'fur-elise': [64, 68, 69, 71, 72, 74, 75, 76], // E4 G#4 A4 B4 C5 D5 D#5 E5
+  'deck-the-halls': [71, 72, 74, 76, 77, 79, 81, 83], // B4 C5 D5 E5 F5 G5 A5 B5
+  'god-rest-ye': [67, 69, 71, 72, 74, 76, 77, 79], // G4 A4 B4 C5 D5 E5 F5 G5
 };
 
 export function scaleNotes(id: string | null | undefined): readonly number[] | null {
@@ -17,7 +19,7 @@ export type BackingMode = 'song' | 'loop' | 'off';
 export interface Preset {
   id: string;
   name: string;
-  kind: 'groove' | 'tune';
+  kind: 'groove' | 'tune' | 'holiday';
   blurb: string;
   themeId: string;
   bpm: number;
@@ -38,8 +40,9 @@ function melody(instrument: Instrument, notes: ReadonlyArray<readonly [number, n
 }
 
 // Grooves are original beats named by style. Tunes are public-domain melodies: Korobeiniki
-// (1861), Grieg (1875), Beethoven (1810, 1824), and Offenbach (1858). Do not add copyrighted
-// songs.
+// (1861), Grieg (1875), Beethoven (1810, 1824), and Offenbach (1858). Holiday tunes are
+// public-domain carols: Pierpont (1857), Mason (1839), and traditional English and Welsh carols.
+// Do not add copyrighted songs.
 export const PRESETS: readonly Preset[] = [
   {
     id: 'four-floor',
@@ -388,6 +391,164 @@ export const PRESETS: readonly Preset[] = [
       ]),
       ...line('kick', 4, [0, 4, 8, 12, 16, 20, 24, 28]),
       ...line('snare', 2, [2, 6, 10, 14, 18, 22, 26, 30]),
+    ],
+  },
+  {
+    id: 'jingle-bells',
+    name: 'Jingle Bells',
+    kind: 'holiday',
+    blurb: 'James Lord Pierpont, 1857. Sleigh bells on every beat.',
+    themeId: 'clean',
+    bpm: 70,
+    length: 32,
+    backing: 'off',
+    scale: 'c-major',
+    cells: [
+      ...melody('synth', [
+        [0, 5],
+        [2, 5],
+        [4, 5],
+        [8, 5],
+        [10, 5],
+        [12, 5],
+        [16, 5],
+        [18, 3],
+        [20, 7],
+        [23, 6],
+        [24, 5],
+      ]),
+      ...melody('bass', [
+        [0, 7],
+        [4, 3],
+        [8, 7],
+        [12, 3],
+        [16, 7],
+        [20, 3],
+        [24, 7],
+        [28, 3],
+      ]),
+      ...line('hat', 0, [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]),
+      ...line('kick', 6, [0, 8, 16, 24]),
+      ...line('snare', 2, [4, 12, 20, 28]),
+    ],
+  },
+  {
+    id: 'deck-the-halls',
+    name: 'Deck the Halls',
+    kind: 'holiday',
+    blurb: 'Welsh carol, 1700s. Fa-la-la by the fire.',
+    themeId: 'lofi',
+    bpm: 72,
+    length: 32,
+    backing: 'off',
+    scale: 'deck-the-halls',
+    cells: [
+      ...melody('synth', [
+        [0, 2],
+        [3, 3],
+        [4, 4],
+        [6, 5],
+        [8, 6],
+        [10, 5],
+        [12, 4],
+        [14, 6],
+        [16, 5],
+        [17, 4],
+        [18, 3],
+        [19, 5],
+        [20, 4],
+        [23, 5],
+        [24, 6],
+        [26, 7],
+        [28, 6],
+      ]),
+      ...melody('bass', [
+        [0, 6],
+        [4, 2],
+        [8, 2],
+        [12, 6],
+        [16, 2],
+        [20, 2],
+        [24, 2],
+        [30, 6],
+      ]),
+      ...line('kick', 1, [0, 8, 16, 24]),
+      ...line('snare', 0, [4, 12, 20, 28]),
+    ],
+  },
+  {
+    id: 'joy-to-the-world',
+    name: 'Joy to the World',
+    kind: 'holiday',
+    blurb: 'Isaac Watts and Lowell Mason, 1839. A whole scale, top to bottom.',
+    themeId: 'house',
+    bpm: 120,
+    length: 32,
+    backing: 'off',
+    scale: 'c-major',
+    cells: [
+      ...melody('synth', [
+        [0, 0],
+        [4, 1],
+        [7, 2],
+        [8, 3],
+        [14, 4],
+        [16, 5],
+        [20, 6],
+        [24, 7],
+      ]),
+      ...melody('bass', [
+        [0, 7],
+        [4, 7],
+        [8, 4],
+        [12, 3],
+        [16, 7],
+        [20, 3],
+        [28, 7],
+      ]),
+      ...line('kick', 6, [0, 8, 16, 24]),
+      ...line('snare', 2, [4, 12, 20, 28]),
+    ],
+  },
+  {
+    id: 'god-rest-ye',
+    name: 'God Rest Ye Merry Gentlemen',
+    kind: 'holiday',
+    blurb: 'English carol, 1700s. A minor-key march.',
+    themeId: 'synthwave',
+    bpm: 75,
+    length: 32,
+    backing: 'off',
+    scale: 'god-rest-ye',
+    cells: [
+      ...melody('synth', [
+        [0, 6],
+        [2, 6],
+        [4, 2],
+        [6, 2],
+        [8, 3],
+        [10, 4],
+        [12, 5],
+        [14, 6],
+        [16, 7],
+        [18, 6],
+        [20, 5],
+        [22, 4],
+        [24, 3],
+        [26, 2],
+      ]),
+      ...melody('bass', [
+        [1, 6],
+        [5, 6],
+        [9, 3],
+        [13, 2],
+        [17, 7],
+        [21, 4],
+        [25, 3],
+        [29, 2],
+      ]),
+      ...line('kick', 1, [0, 8, 16, 24]),
+      ...line('snare', 0, [4, 12, 20, 28]),
     ],
   },
 ];

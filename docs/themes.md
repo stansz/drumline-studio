@@ -3,6 +3,11 @@
 Each theme is one entry in `src/themes.ts`. It sets the arrangement, instrument sounds, space, and
 tone. Themes never change the tempo or the pattern.
 
+## The themes
+
+There are nine themes: Neon, Chiptune, Lo-fi, Techno, Funk, Hip-hop, House, Synthwave, and Clean.
+Neon is the loudness reference. Clean keeps its effects near zero, so every note sounds as written.
+
 ## Fields that matter for authors
 
 - `blurb`: one line describing the backing music, shown on the Backing info screen. Keep it true to

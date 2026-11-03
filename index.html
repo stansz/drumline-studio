@@ -66,10 +66,7 @@
           <span id="share-status" class="share-status" aria-live="polite"></span>
         </div>
         <div id="sampler" class="fx-panel sampler-panel" hidden>
-          <div id="sample-list" class="sample-list"></div>
-          <button id="sample-mic" class="hw" type="button" title="Record up to 2 seconds from the microphone">● Mic</button>
-          <button id="sample-file" class="hw" type="button" title="Load a short sound file">File</button>
-          <input id="sample-file-input" type="file" accept="audio/*" hidden />
+          <button id="sample-pick" class="hw sample-pick" type="button" title="Choose the Sample sound">♪ Clap</button>
           <label class="sampler-volume" title="Sample volume"><small>Vol</small><input id="mix-sample" type="range" min="0" max="100" step="1" value="100" data-mix-channel="sample" aria-label="Sample volume" /></label>
         </div>
       </div>
@@ -103,11 +100,12 @@
       </div>
     </div>
     <div id="beats-screen" class="info-backdrop" hidden>
-      <div class="info-panel beats-panel" role="dialog" aria-modal="true" aria-label="Beats and backing">
+      <div class="info-panel beats-panel" role="dialog" aria-modal="true" aria-label="Beats, backing, and sounds">
         <div class="info-head">
           <div class="screen-tabs" role="tablist">
             <button id="screen-beats" class="hw" type="button" role="tab" aria-controls="beats-page">Beats</button>
             <button id="screen-backing" class="hw" type="button" role="tab" aria-controls="backing-page">Backing</button>
+            <button id="screen-sounds" class="hw" type="button" role="tab" aria-controls="sounds-page">Sounds</button>
           </div>
           <button id="beats-close" class="hw" type="button" aria-label="Close">✕</button>
         </div>
@@ -140,6 +138,16 @@
             <dt>Feel</dt><dd id="info-feel"></dd>
             <dt>Tempo</dt><dd id="info-tempo"></dd>
           </dl>
+        </div>
+        <div id="sounds-page" class="screen-page" role="tabpanel" hidden>
+          <div class="beats-lcd">
+            <div id="sample-list" class="beats-list sound-list" role="listbox" aria-label="Sample sounds"></div>
+          </div>
+          <div class="sounds-controls">
+            <button id="sample-mic" class="hw" type="button" title="Record up to 2 seconds from the microphone">● Mic</button>
+            <button id="sample-file" class="hw" type="button" title="Load a short sound file">File</button>
+            <input id="sample-file-input" type="file" accept="audio/*" hidden />
+          </div>
         </div>
       </div>
     </div>

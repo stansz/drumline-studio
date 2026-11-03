@@ -273,9 +273,6 @@ body {
 
 .share-panel .hw,
 #fx-reset,
-.sample-list .hw,
-#sample-mic,
-#sample-file,
 #beat-random,
 #beat-undo {
   min-height: 0;
@@ -293,7 +290,7 @@ body {
 }
 
 .sampler-panel {
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 6px;
 }
 
@@ -316,16 +313,32 @@ body {
   accent-color: var(--c);
 }
 
-.sample-list {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
+.sample-pick {
+  min-height: 0;
+  height: 34px;
+  padding-block: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.sample-list .hw {
-  flex: 1 0 auto;
-  min-width: 64px;
+.sound-item::before {
+  content: '■ ';
+  color: var(--c);
+}
+
+.sound-item.active::before {
+  color: #1d1a10;
+}
+
+.sounds-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.sounds-controls .hw {
+  min-height: 40px;
 }
 
 #sample-mic.rec {
@@ -1063,22 +1076,11 @@ body {
   }
 
   .sampler-volume {
-    width: 72px;
+    width: 110px;
   }
 
-  .sampler-volume small {
-    display: none;
-  }
-
-  .sample-list {
-    gap: 4px;
-  }
-
-  .sample-list .hw,
   .share-panel .hw,
   #fx-reset,
-  #sample-mic,
-  #sample-file,
   #beat-random,
   #beat-undo {
     font-size: 0.6rem;

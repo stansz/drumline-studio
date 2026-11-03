@@ -63,6 +63,7 @@ const snareButton = byId<HTMLButtonElement>('tool-snare');
 const sampleButton = byId<HTMLButtonElement>('tool-sample');
 const bassButton = byId<HTMLButtonElement>('tool-bass');
 const samplerPanel = byId<HTMLDivElement>('sampler');
+const samplePick = byId<HTMLButtonElement>('sample-pick');
 const sampleList = byId<HTMLDivElement>('sample-list');
 const micButton = byId<HTMLButtonElement>('sample-mic');
 const fileButton = byId<HTMLButtonElement>('sample-file');
@@ -111,8 +112,10 @@ const mixAllPanel = byId<HTMLDivElement>('mix-all');
 const beatsScreen = byId<HTMLDivElement>('beats-screen');
 const screenBeats = byId<HTMLButtonElement>('screen-beats');
 const screenBacking = byId<HTMLButtonElement>('screen-backing');
+const screenSounds = byId<HTMLButtonElement>('screen-sounds');
 const beatsPage = byId<HTMLDivElement>('beats-page');
 const backingPage = byId<HTMLDivElement>('backing-page');
+const soundsPage = byId<HTMLDivElement>('sounds-page');
 const beatsClose = byId<HTMLButtonElement>('beats-close');
 const beatsList = byId<HTMLDivElement>('beats-list');
 const beatsName = byId<HTMLParagraphElement>('beats-name');
@@ -186,7 +189,7 @@ const infoSections: HTMLSpanElement[] = [];
 let infoShownKey = '';
 let beatsCursor = 0;
 let loadedPresetId: string | null = null;
-let screenPage: 'beats' | 'backing' = 'beats';
+let screenPage: 'beats' | 'backing' | 'sounds' = 'beats';
 
 // One level of undo: the pattern and the settings the last preset or Random changed.
 interface Snapshot {
@@ -283,17 +286,21 @@ function updateSelection(): void {
 }
 
 function updateSampler(): void {
-  sampleList.querySelectorAll<HTMLButtonElement>('button').forEach((button) => {
-    button.classList.toggle('selected', button.dataset.sample === sample.id);
+  sampleList.querySelectorAll<HTMLButtonElement>('.sound-item').forEach((button) => {
+    const active = button.dataset.sample === sample.id;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-selected', String(active));
   });
 }
 
 function addSampleButton(name: string, id: string): void {
   const button = document.createElement('button');
-  button.className = 'hw';
+  button.className = 'beats-item sound-item';
   button.type = 'button';
+  button.setAttribute('role', 'option');
   button.dataset.sample = id;
   button.textContent = name;
+  button.style.setProperty('--c', PIXEL_COLORS[sampleById(id, hasUserSample).color] ?? '');
   button.addEventListener('click', () => {
     sampleChosenThisVisit = true;
     pickSample(id);
@@ -313,6 +320,7 @@ function renderBeatsList(): void {
   for (const [kind, label] of [
     ['groove', 'Grooves'],
     ['tune', 'Tunes'],
+    ['holiday', 'Holiday'],
   ] as const) {
     const group = document.createElement('div');
     group.className = 'beats-group';
@@ -364,26 +372,33 @@ function backingShown(): boolean {
   return !beatsScreen.hidden && screenPage === 'backing';
 }
 
-function showPage(page: 'beats' | 'backing'): void {
+function showPage(page: 'beats' | 'backing' | 'sounds'): void {
   screenPage = page;
   beatsPage.hidden = page !== 'beats';
   backingPage.hidden = page !== 'backing';
+  soundsPage.hidden = page !== 'sounds';
   screenBeats.classList.toggle('selected', page === 'beats');
   screenBeats.setAttribute('aria-selected', String(page === 'beats'));
   screenBacking.classList.toggle('selected', page === 'backing');
   screenBacking.setAttribute('aria-selected', String(page === 'backing'));
+  screenSounds.classList.toggle('selected', page === 'sounds');
+  screenSounds.setAttribute('aria-selected', String(page === 'sounds'));
   if (page === 'beats') {
     updateBeatsScreen();
     beatsList.querySelector<HTMLElement>(`.beats-item[data-index="${beatsCursor}"]`)?.focus();
-  } else {
+  } else if (page === 'backing') {
     renderInfo();
     infoShownKey = '';
     updateInfoPosition();
     screenBacking.focus();
+  } else {
+    updateSampler();
+    const active = sampleList.querySelector<HTMLButtonElement>('.sound-item.active');
+    (active ?? screenSounds).focus();
   }
 }
 
-function openScreen(page: 'beats' | 'backing'): void {
+function openScreen(page: 'beats' | 'backing' | 'sounds'): void {
   if (page === 'beats') {
     const index = PRESETS.findIndex((preset) => preset.id === loadedPresetId);
     if (index >= 0) beatsCursor = index;
@@ -445,6 +460,7 @@ function updateSampleLook(): void {
   sampleButton.style.setProperty('--c', PIXEL_COLORS[sample.color] ?? '');
   samplerPanel.querySelector<HTMLElement>('.sampler-volume')?.style.setProperty('--c', PIXEL_COLORS[sample.color] ?? '');
   mixAllPanel.querySelector<HTMLElement>('.mix-all-sample')?.style.setProperty('--c', PIXEL_COLORS[sample.color] ?? '');
+  samplePick.textContent = `♪ ${sample.name}`;
   const icon = sampleButton.querySelector('canvas');
   if (icon) drawIcon(icon, 'sample', sample.color);
 }
@@ -1332,6 +1348,8 @@ mixToggle.addEventListener('click', toggleMixAll);
 beatsToggle.addEventListener('click', () => openScreen('beats'));
 screenBeats.addEventListener('click', () => showPage('beats'));
 screenBacking.addEventListener('click', () => showPage('backing'));
+screenSounds.addEventListener('click', () => showPage('sounds'));
+samplePick.addEventListener('click', () => openScreen('sounds'));
 beatsClose.addEventListener('click', closeScreen);
 beatsScreen.addEventListener('click', (event) => {
   if (event.target === beatsScreen) closeScreen();
@@ -1369,6 +1387,22 @@ window.addEventListener('keydown', (event) => {
       } else if (event.key === 'Enter') {
         event.preventDefault();
         loadHighlighted();
+      }
+    } else if (screenPage === 'sounds') {
+      if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        event.preventDefault();
+        const buttons = Array.from(sampleList.querySelectorAll<HTMLButtonElement>('.sound-item'));
+        const current = buttons.findIndex((button) => button.dataset.sample === sample.id);
+        const step = event.key === 'ArrowUp' ? -1 : 1;
+        const next = buttons[(current + step + buttons.length) % buttons.length];
+        const id = next?.dataset.sample;
+        if (id) {
+          sampleChosenThisVisit = true;
+          pickSample(id);
+        }
+      } else if (event.key === 'Enter') {
+        event.preventDefault();
+        closeScreen();
       }
     }
     return;

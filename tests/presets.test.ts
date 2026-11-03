@@ -77,18 +77,19 @@ describe('presets', () => {
 
   it('gives every preset a kind and a short blurb', () => {
     for (const preset of PRESETS) {
-      expect(['groove', 'tune']).toContain(preset.kind);
+      expect(['groove', 'tune', 'holiday']).toContain(preset.kind);
       expect(typeof preset.blurb).toBe('string');
       expect(preset.blurb.length).toBeGreaterThan(0);
       expect(preset.blurb.length).toBeLessThanOrEqual(80);
     }
   });
 
-  it('lists the grooves before the tunes', () => {
-    let seenTune = false;
+  it('lists grooves, then tunes, then holiday tunes', () => {
+    const group = { groove: 0, tune: 1, holiday: 2 } as const;
+    let highest = 0;
     for (const preset of PRESETS) {
-      if (preset.kind === 'tune') seenTune = true;
-      if (preset.kind === 'groove') expect(seenTune).toBe(false);
+      highest = Math.max(highest, group[preset.kind]);
+      expect(group[preset.kind]).toBe(highest);
     }
   });
 
@@ -106,6 +107,26 @@ describe('presets', () => {
       expect(preset?.scale).toBeDefined();
       expect(SCALES[preset?.scale ?? '']).toBeDefined();
       expect(preset?.length).toBe(32);
+      const synth = (preset?.cells ?? []).filter((cell) => cell.instrument === 'synth');
+      const first = synth.reduce((best, cell) => (cell.col < best.col ? cell : best), synth[0]!);
+      expect(first).toEqual({ instrument: 'synth', col: 0, row });
+    }
+  });
+
+  it('writes the four holiday tunes', () => {
+    const expected = [
+      ['jingle-bells', 5],
+      ['deck-the-halls', 2],
+      ['joy-to-the-world', 0],
+      ['god-rest-ye', 6],
+    ] as const;
+    for (const [id, row] of expected) {
+      const preset = PRESETS.find((entry) => entry.id === id);
+      expect(preset).toBeDefined();
+      expect(preset?.kind).toBe('holiday');
+      expect(SCALES[preset?.scale ?? '']).toBeDefined();
+      expect(preset?.length).toBe(32);
+      expect(THEME_IDS.has(preset?.themeId ?? '')).toBe(true);
       const synth = (preset?.cells ?? []).filter((cell) => cell.instrument === 'synth');
       const first = synth.reduce((best, cell) => (cell.col < best.col ? cell : best), synth[0]!);
       expect(first).toEqual({ instrument: 'synth', col: 0, row });

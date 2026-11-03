@@ -97,9 +97,23 @@ describe('themes', () => {
     }
   });
 
-  it('swings only Lo-fi and Funk', () => {
+  it('lists the nine themes in order', () => {
+    expect(THEMES.map((theme) => theme.id)).toEqual([
+      'neon',
+      'chiptune',
+      'lofi',
+      'techno',
+      'funk',
+      'hiphop',
+      'house',
+      'synthwave',
+      'clean',
+    ]);
+  });
+
+  it('swings only Lo-fi, Funk, and Hip-hop', () => {
     const swung = THEMES.filter((theme) => theme.swing > 0).map((theme) => theme.id);
-    expect(swung).toEqual(['lofi', 'funk']);
+    expect(swung).toEqual(['lofi', 'funk', 'hiphop']);
     for (const theme of THEMES) {
       expect(theme.swing).toBeLessThanOrEqual(0.3);
     }

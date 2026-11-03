@@ -184,22 +184,26 @@ The mixer, sampler, FX, and Share panels share one dock slot under the board and
 show one view at a time. `updateDock()` in `main.ts` picks the view: an open panel (FX, Share,
 or the `mixall` view of the Master and all seven channel volume sliders), else the
 sampler while Sample is selected, else the mixer. The mixer shows one slider, for the selected
-instrument, and `updateMixView()` swaps which one is visible. Sample's volume slider lives in the
-sampler panel, and the Master and Backing volume sliders are in the `mixall` view of the dock.
+instrument, and `updateMixView()` swaps which one is visible. The sampler view holds
+`#sample-pick`, a button with the current sound's name that opens the Sounds page, and the Sample
+volume slider. The Master and Backing volume sliders are in the `mixall` view of the dock.
 The dock's height comes from the `--dock-h` custom property, so swapping views never moves the
 board or the controls.
 
-The Beats screen (`#beats-screen`) is a fixed overlay outside the dock with two pages, **Beats**
-(`#beats-page`) and **Backing** (`#backing-page`). The **Beats** button in the tab row (key **I**)
-opens it. `openScreen(page)` shows the screen on a page, `showPage(page)` switches pages and updates
-the tabs, `closeScreen()` hides it, and `backingShown()` reports whether the Backing page is open.
-`renderBeatsList()` builds the preset list from `PRESETS` grouped by `kind`, and
-`updateBeatsScreen()` shows the highlighted preset (`beatsCursor`) and marks the loaded one
-(`loadedPresetId`). **Load** (or **Enter**) loads the highlighted preset and closes the screen;
-tapping a preset loads it and keeps the screen open. The screen takes the keyboard while open:
-**Esc** closes it, **I** switches to or closes the Backing page, **Space** plays or pauses, and the
-arrow keys and **Enter** work on the Beats page; other keys are ignored. Opening the screen moves
-focus to the active preset or the Backing tab, and closing returns it to the Beats button.
+The Beats screen (`#beats-screen`) is a fixed overlay outside the dock with three pages, **Beats**
+(`#beats-page`), **Backing** (`#backing-page`), and **Sounds** (`#sounds-page`). The **Beats**
+button in the tab row (key **I**) opens it. `openScreen(page)` shows the screen on a page,
+`showPage(page)` switches pages and updates the tabs, `closeScreen()` hides it, and
+`backingShown()` reports whether the Backing page is open. `renderBeatsList()` builds the preset
+list from `PRESETS` grouped by `kind`, and `updateBeatsScreen()` shows the highlighted preset
+(`beatsCursor`) and marks the loaded one (`loadedPresetId`). `renderSampleButtons()` fills
+`#sample-list` on the Sounds page, and `updateSampler()` marks the current sound. **Load** (or
+**Enter**) loads the highlighted preset and closes the screen; tapping a preset loads it and keeps
+the screen open. The screen takes the keyboard while open: **Esc** closes it, **I** switches to or
+closes the Backing page, **Space** plays or pauses, and the arrow keys and **Enter** work on the
+Beats page; on the Sounds page the arrow keys step through the sounds and **Enter** closes. Other
+keys are ignored. Opening the screen moves focus to the active preset, the active sound, or the
+Backing or Sounds tab, and closing returns it to the Beats button.
 
 The Backing page holds the backing info: `main.ts` builds the song map once from `songMap()` at
 startup, and `renderInfo()` fills the title, blurb, backing mode, chord names, feel, and tempo.
