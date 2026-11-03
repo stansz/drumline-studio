@@ -31,7 +31,7 @@
         <button id="mix-toggle" class="hw tab" type="button" aria-expanded="false" aria-controls="mix-all">Mix</button>
         <button id="beats-toggle" class="hw tab" type="button" aria-expanded="false" aria-controls="beats">Beats</button>
         <button id="fx-toggle" class="hw tab" type="button" aria-expanded="false" aria-controls="fx">FX</button>
-        <button id="theme" class="hw tab" type="button" aria-expanded="false" aria-controls="themes" aria-label="Choose music theme">♪ Neon</button>
+        <button id="theme" class="hw tab" type="button" aria-label="Next music theme" title="Tap for the next theme (T)">♪ Neon</button>
         <button id="backing" class="hw tab" type="button"><small>Backing</small><span id="backing-value">Song</span></button>
         <button id="info-toggle" class="hw tab" type="button" aria-haspopup="dialog" aria-controls="backing-info" title="About the backing music (I)">ⓘ</button>
       </nav>
@@ -58,7 +58,6 @@
           <button id="beat-random" class="hw" type="button" title="Random groove">Random</button>
           <button id="beat-undo" class="hw" type="button" disabled>Undo</button>
         </div>
-        <div id="themes" class="fx-panel themes-panel" hidden><div id="theme-list" class="sample-list"></div></div>
         <div id="fx" class="fx-panel" hidden>
           <label class="fx-knob"><small>Filter</small><input id="fx-filter" type="range" min="-100" max="100" step="1" value="0" aria-label="Filter: left is low-pass, right is high-pass" /></label>
           <label class="fx-knob"><small>Delay</small><input id="fx-delay" type="range" min="0" max="100" step="1" value="0" aria-label="Delay amount" /></label>

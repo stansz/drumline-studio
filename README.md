@@ -48,8 +48,8 @@ can't carry it: people who open the link hear Clap instead.
 Bap, Breakbeat, Trap, Dembow, Funk Groove, and Korobeiniki (Tetris tune). A preset sets the
 pattern (drums, samples, synth, and bass), the pattern length, the tempo, the theme, and the
 Backing mode; some also set a synth scale. Playback keeps going, and the new beat takes over on
-the next step. Picking an instrument does not close Beats; opening FX, Share, Mix, or Theme, or
-pressing Beats again, does.
+the next step. Picking an instrument does not close Beats; opening FX, Share, or Mix, or pressing
+Beats again, does.
 
 **Random** replaces the pattern with a fresh 16-step groove: kick on the one, snare on 2 and 4,
 a hat pattern, a bass line that follows the kick, and a few synth notes in key. The theme, tempo,
@@ -80,9 +80,8 @@ under a small **Backing** caption.
 Song moves through verse, chorus, verse, chorus, and a break, with a short snare fill before each
 change; the chorus uses a second chord progression. Loop plays the theme's steady verse loop. Off
 plays only your pattern, plus a metronome click while the grid is empty. **Mute** silences
-everything, and **Clear** empties the pattern. **Theme** in the tab row opens a picker with one
-button per theme, the current one highlighted: Neon, Chiptune, Lo-fi, Techno, and Funk. Picking one
-applies it and leaves the picker open so you can audition them; key **T** still cycles through them.
+everything, and **Clear** empties the pattern. Tap **Theme** in the tab row, or press **T**, to
+step to the next theme: Neon, Chiptune, Lo-fi, Techno, and Funk. The button shows the current one.
 Themes change the sound only, never the pattern or the tempo.
 
 ### The Backing info screen
@@ -138,7 +137,7 @@ The tab row directly above the dock holds Mix, Beats, FX, Theme, Backing, and â“
 the logo, the Notes and Step readouts, Share, and the Length and Follow buttons. The transport
 holds Play, Stop, BPM, Mute, and Clear.
 
-The mixer, sampler, FX, Share, Beats, and Themes panels share one slot under the board, and only
+The mixer, sampler, FX, Share, and Beats panels share one slot under the board, and only
 one of them shows at a time, so opening one never moves the board. On a phone held sideways, that
 slot floats over the bottom of the board.
 

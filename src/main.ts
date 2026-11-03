@@ -30,7 +30,7 @@ import {
   type PatternLength,
 } from './sequencer';
 import { PIXEL_COLORS, type SpriteName } from './sprites';
-import { DEFAULT_THEME, THEMES, nextTheme, themeById, type Theme } from './themes';
+import { DEFAULT_THEME, nextTheme, themeById, type Theme } from './themes';
 import './style.css';
 
 declare global {
@@ -112,8 +112,6 @@ const shareStatus = byId<HTMLSpanElement>('share-status');
 const mixPanel = byId<HTMLDivElement>('mix');
 const mixAllPanel = byId<HTMLDivElement>('mix-all');
 const beatsPanel = byId<HTMLDivElement>('beats');
-const themesPanel = byId<HTMLDivElement>('themes');
-const themeList = byId<HTMLDivElement>('theme-list');
 const presetList = byId<HTMLDivElement>('preset-list');
 const beatRandom = byId<HTMLButtonElement>('beat-random');
 const beatUndo = byId<HTMLButtonElement>('beat-undo');
@@ -175,7 +173,7 @@ let paint: 'add' | 'erase' | null = null;
 let liveMode: LiveMode = 'paint';
 let playheadAt = 0;
 let loopDrag: number | null = null;
-let openPanel: 'fx' | 'share' | 'mixall' | 'beats' | 'themes' | null = null;
+let openPanel: 'fx' | 'share' | 'mixall' | 'beats' | null = null;
 const infoSections: HTMLSpanElement[] = [];
 let infoShownKey = '';
 
@@ -323,7 +321,6 @@ function updateDock(): void {
   sharePanel.hidden = view !== 'share';
   mixAllPanel.hidden = view !== 'mixall';
   beatsPanel.hidden = view !== 'beats';
-  themesPanel.hidden = view !== 'themes';
   samplerPanel.hidden = view !== 'sampler';
   fxToggle.setAttribute('aria-expanded', String(view === 'fx'));
   shareToggle.setAttribute('aria-expanded', String(view === 'share'));
@@ -331,8 +328,6 @@ function updateDock(): void {
   mixToggle.classList.toggle('selected', view === 'mixall');
   beatsToggle.setAttribute('aria-expanded', String(view === 'beats'));
   beatsToggle.classList.toggle('selected', view === 'beats');
-  themeButton.setAttribute('aria-expanded', String(view === 'themes'));
-  themeButton.classList.toggle('selected', view === 'themes');
 }
 
 // Only scales the app knows can be saved or restored.
@@ -369,8 +364,8 @@ function updateSampleLook(): void {
 function selectTool(tool: Instrument): void {
   selected = tool;
   if (openPanel === 'mixall') openPanel = null;
-  // Picking an instrument keeps Beats and Themes open so you can audition and keep them open.
-  if (tool === 'sample' && openPanel !== 'beats' && openPanel !== 'themes') openPanel = null;
+  // Picking an instrument keeps Beats open so you can audition presets.
+  if (tool === 'sample' && openPanel !== 'beats') openPanel = null;
   updateSelection();
   updateDock();
 }
@@ -589,36 +584,13 @@ function loadSample(): SamplePreset {
 
 function updateThemeButton(): void {
   themeButton.textContent = `♪ ${theme.name}`;
-}
-
-function updateThemeList(): void {
-  themeList.querySelectorAll<HTMLButtonElement>('button').forEach((button) => {
-    button.classList.toggle('selected', button.dataset.theme === theme.id);
-  });
-}
-
-function addThemeButton(entry: Theme): void {
-  const button = document.createElement('button');
-  button.className = 'hw';
-  button.type = 'button';
-  button.dataset.theme = entry.id;
-  button.textContent = entry.name;
-  button.title = entry.blurb;
-  button.addEventListener('click', () => applyTheme(themeById(button.dataset.theme ?? null)));
-  themeList.append(button);
-}
-
-function renderThemeButtons(): void {
-  themeList.replaceChildren();
-  for (const entry of THEMES) addThemeButton(entry);
-  updateThemeList();
+  themeButton.title = `${theme.name}: ${theme.blurb} Tap for the next theme (T).`;
 }
 
 function applyTheme(next: Theme): void {
   theme = next;
   audio?.setTheme(theme);
   updateThemeButton();
-  updateThemeList();
   if (!infoBackdrop.hidden) renderInfo();
   try {
     localStorage.setItem(THEME_KEY, theme.id);
@@ -799,11 +771,6 @@ function toggleMixAll(): void {
 
 function toggleBeats(): void {
   openPanel = openPanel === 'beats' ? null : 'beats';
-  updateDock();
-}
-
-function toggleThemes(): void {
-  openPanel = openPanel === 'themes' ? null : 'themes';
   updateDock();
 }
 
@@ -1269,7 +1236,7 @@ muteButton.addEventListener('click', toggleMute);
 clearButton.addEventListener('click', clearPattern);
 liveButton.addEventListener('click', () => setLiveMode(nextLiveMode(liveMode)));
 startButton.addEventListener('click', () => void startAudio());
-themeButton.addEventListener('click', toggleThemes);
+themeButton.addEventListener('click', cycleTheme);
 infoToggle.addEventListener('click', openInfo);
 infoClose.addEventListener('click', closeInfo);
 infoBackdrop.addEventListener('click', (event) => {
@@ -1469,7 +1436,6 @@ for (let i = 0; i < 16; i += 1) {
 
 renderSampleButtons();
 renderPresetButtons();
-renderThemeButtons();
 buildInfoMap();
 
 const shared = (() => {
@@ -1532,7 +1498,6 @@ for (const name of INSTRUMENTS) {
   button.title = `${INSTRUMENT_INFO[name].name}: ${INSTRUMENT_INFO[name].description}`;
 }
 updateThemeButton();
-updateThemeList();
 bpmInput.value = String(bpm);
 updateBackingButton();
 updateFollowButton();

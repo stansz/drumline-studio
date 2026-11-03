@@ -302,17 +302,6 @@ body {
   gap: 6px;
 }
 
-.themes-panel {
-  grid-template-columns: 1fr;
-}
-
-.themes-panel .hw {
-  flex: 1 0 auto;
-  min-height: 0;
-  height: 34px;
-  padding-block: 0;
-}
-
 .sampler-volume {
   display: flex;
   align-items: center;

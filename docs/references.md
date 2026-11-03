@@ -177,11 +177,11 @@ measured in headless Edge at phone sizes, not on a real phone.
 The tab row directly above the dock holds the Mix, Beats, FX, Theme, Backing, and ⓘ buttons. The
 header holds the logo, the Notes and Step readouts, the Share button, and the Length and Follow
 buttons; the transport holds Play, Stop, BPM, Mute, and Clear. The Master volume is the first
-slider in the `mixall` view of the dock, and the theme picker is the `themes` view.
+slider in the `mixall` view of the dock. The Theme button cycles to the next theme.
 
-The mixer, sampler, FX, Share, Beats, and Themes panels share one dock slot under the board and
+The mixer, sampler, FX, Share, and Beats panels share one dock slot under the board and
 show one view at a time. `updateDock()` in `main.ts` picks the view: an open panel (FX, Share,
-Beats, Themes, or the `mixall` view of the Master and all seven channel volume sliders), else the
+Beats, or the `mixall` view of the Master and all seven channel volume sliders), else the
 sampler while Sample is selected, else the mixer. The mixer shows one slider, for the selected
 instrument, and `updateMixView()` swaps which one is visible. Sample's volume slider lives in the
 sampler panel, and the Master and Backing volume sliders are in the `mixall` view of the dock.
