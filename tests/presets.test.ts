@@ -28,6 +28,10 @@ describe('presets', () => {
     }
   });
 
+  it('makes every preset 32 steps long', () => {
+    for (const preset of PRESETS) expect(preset.length).toBe(32);
+  });
+
   it('keeps every cell inside the grid with a known instrument', () => {
     for (const preset of PRESETS) {
       for (const cell of preset.cells) {
