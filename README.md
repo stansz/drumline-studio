@@ -60,6 +60,10 @@ failing test blocks the deploy.
 Live play (the Paint/Live/Rec mode, keys A–K) and the step-light loop are built but turned off with
 `LIVE_TOOLS` in `src/config.ts`.
 
+## License
+
+The code is under the [MIT License](LICENSE). The fonts keep their own license, below.
+
 ## Credits
 
 The Silkscreen and VT323 fonts are used under the SIL Open Font License. Their licenses are in

@@ -129,6 +129,10 @@ body {
   min-height: 32px;
 }
 
+.sys #follow {
+  align-self: stretch;
+}
+
 /* ---- Tab row ---- */
 .tabs {
   display: grid;
@@ -1097,6 +1101,24 @@ body {
     display: block;
   }
 
+  /* Share sits beside the logo, and the readouts fill the row under them. */
+  .lcds {
+    order: 1;
+  }
+
+  .lcds > .hw {
+    flex: 1 1 auto;
+  }
+
+  .sys {
+    width: auto;
+    margin-left: auto;
+  }
+
+  .sys button {
+    min-height: 36px;
+  }
+
   #overlay.passive #rotate-hint {
     display: none;
   }
@@ -1143,20 +1165,21 @@ body {
     display: none;
   }
 
-  .lcds {
-    width: 100%;
-    margin-left: 0;
-    flex-wrap: wrap;
+  /* The readouts, length buttons, and Share tile two to a row. */
+  #hud {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lcds,
+  .sys {
+    display: contents;
   }
 
   .lcd {
     flex: 1;
     justify-content: center;
     padding-inline: 2px;
-  }
-
-  .sys {
-    width: 100%;
   }
 
   #controls {
@@ -1189,7 +1212,8 @@ body {
   }
 
   .sys button {
-    min-height: 40px;
+    min-height: 0;
+    padding: 2px 10px;
   }
 
   .pad {
