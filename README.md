@@ -60,6 +60,18 @@ failing test blocks the deploy.
 Live play (the Paint/Live/Rec mode, keys A–K) and the step-light loop are built but turned off with
 `LIVE_TOOLS` in `src/config.ts`.
 
+## Built with AI
+
+Drumline Studio is a vibe-coded project. The ideas, design calls, and playtesting are human; most
+of the code was written by AI coding tools:
+
+- [Claude Code](https://claude.com/claude-code) planned the features, wrote specs, reviewed and
+  tested every change in a headless browser, and wrote the docs.
+- [DeepSeek](https://www.deepseek.com/), run through the `dsh` command-line agent, wrote much of
+  the code from those specs.
+
+Every change still goes through the unit tests and a browser check before it ships.
+
 ## License
 
 The code is under the [MIT License](LICENSE). The fonts keep their own license, below.
