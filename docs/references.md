@@ -20,7 +20,7 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
 - `src/live.ts`: live-play modes, key rows, and nearest-step quantizing; hidden by `LIVE_TOOLS`.
 - `src/music.ts`: chords, arpeggios, and how the backing music builds up.
 - `src/themes.ts`: one entry for each music theme.
-- `src/pattern.ts`: autosave JSON and the `v1.`/`v2.` share-link formats.
+- `src/pattern.ts`: autosave JSON and the `v1.`/`v2.`/`v3.` share-link formats.
 - `src/midi.ts`: MIDI file writer.
 - `src/recording.ts`: recording type, file names, and timer text.
 - `src/render.ts`: draws the board into a 256×128 buffer, then scales it onto the canvas.
@@ -131,7 +131,8 @@ These values are saved to `localStorage` when they change, and come back on the 
 - `drumline-fx`: the FX settings as JSON.
 - `drumline-mix`: the mixer levels as JSON.
 - `drumline-sample`: the chosen sample id.
-- `drumline-pattern`: JSON `{ v: 1, length, cells }`.
+- `drumline-pattern`: JSON `{ v: 1, length, cells }`, where each cell is
+  `[instrument, col, row]` plus an optional fourth element, the `sample` id, on sample cells.
 
 Mute, the shown page, and whether the panels are open are not saved. Mute zeroes the master
 gain, before the recording tap, so it also silences recordings.
@@ -140,19 +141,24 @@ The recorded or loaded user sample lives in IndexedDB: database `drumline`, stor
 `mine`, holding `{ sampleRate, data: Float32Array }`. It is not in a share link, and a share link
 never selects `mine`: decoding falls back to the default Clap sound.
 
-Share links put the beat in the URL hash: `v1.<length>.<bpm>.<theme id>.<cells>` or
-`v2.<length>.<bpm>.<theme id>.<sample id>.<cells>`. Each cell is two bytes, the step and then the
-row and instrument index, in base64url: `row × 4 + index` in v1 and `row × 5 + index` in v2. v2
-adds the chosen sample id; v1 links still load and use the default Clap sound. A link loads over
-the autosave, is then autosaved, and is removed from the address bar. Invalid links are ignored.
+Share links put the beat in the URL hash: `v1.<length>.<bpm>.<theme id>.<cells>`,
+`v2.<length>.<bpm>.<theme id>.<sample id>.<cells>`, or
+`v3.<length>.<bpm>.<theme id>.<picked sample id>.<sample table>.<cells>`. In v1 and v2 each cell is
+two bytes, the step and then the row and instrument index, in base64url: `row × 4 + index` in v1 and
+`row × 5 + index` in v2. v2 adds the chosen sample id and gives every sample cell that sound. v3
+adds a sample table: the distinct sample ids used by the pattern's sample cells, in first-use order,
+joined with `_`. Each v3 cell is three bytes: the step, `row × 5 + index`, and the sample-table
+index (0 for non-sample cells and for sample cells with no `sample`). v1 and v2 links still load;
+v1 uses the default Clap sound. A link loads over the autosave, is then autosaved, and is removed
+from the address bar. Invalid links are ignored.
 
 Recording uses `MediaRecorder` on a stream from `Audio_.createRecordingStream()`. The format is the
 first supported in `pickRecordingType`'s list. The Record button is disabled until audio starts, and
 hidden where `MediaRecorder` is missing.
 
 MIDI files are type 0, with 96 ticks per quarter and one step at 24 ticks. Drums and the sample are
-on channel 10 (kick 36, snare 38, hat 42, and the chosen sample preset's note), and the synth uses
-the theme's scale on channel 1. The track ends at the pattern length.
+on channel 10 (kick 36, snare 38, hat 42, and each sample cell's own preset note), and the synth
+uses the theme's scale on channel 1. The track ends at the pattern length.
 
 ## Browser testing
 

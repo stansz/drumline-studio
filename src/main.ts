@@ -9,7 +9,13 @@ import { decodeShare, encodeShare, parsePattern, serializePattern } from './patt
 import { extensionFor, fileStamp, formatElapsed, pickRecordingType } from './recording';
 import { Renderer, drawIcon, drawLogo } from './render';
 import { MAX_SAMPLE_SECONDS, prepareSample } from './sampleEdit';
-import { SAMPLE_PRESETS, USER_SAMPLE, sampleById, type SamplePreset } from './samples';
+import {
+  SAMPLE_PRESETS,
+  USER_SAMPLE,
+  sampleById,
+  sampleForNote,
+  type SamplePreset,
+} from './samples';
 import { loadUserSample, saveUserSample } from './sampleStore';
 import { Scheduler } from './scheduler';
 import {
@@ -168,7 +174,12 @@ function savePattern(): void {
 
 function loadCells(cells: readonly Cell[]): void {
   sequencer.clear();
-  for (const cell of cells) sequencer.set(cell.instrument, cell.col, cell.row);
+  for (const cell of cells) {
+    // Old saves have no sample on a sample cell, so it keeps the picked sound it sounded with.
+    const sampleId =
+      cell.instrument === 'sample' && cell.sample === undefined ? sample.id : cell.sample;
+    sequencer.set(cell.instrument, cell.col, cell.row, sampleId);
+  }
 }
 
 function setLength(length: PatternLength): void {
@@ -338,7 +349,7 @@ function onStep(time: number, duration: number): void {
   const notes = sequencer.step();
   const voices = pickVoices(notes);
   for (const voice of voices) {
-    audio.playNote(voice.instrument, voice.row, time, voices.length);
+    audio.playNote(voice.instrument, voice.row, time, voices.length, voice.sample);
   }
   for (const note of notes) {
     queued.push({ at: time, note });
@@ -577,7 +588,7 @@ function exportMidi(): void {
     sequencer.length,
     bpm,
     theme.synth.scale,
-    sample.midiNote,
+    (id) => sampleForNote(id ?? sample.id).midiNote,
   );
   download(new Blob([bytes], { type: 'audio/midi' }), `${fileStamp(new Date())}.mid`);
   shareStatus.textContent = 'MIDI saved.';
@@ -775,7 +786,7 @@ function applyPaint(col: number, row: number): void {
   const step = page * GRID_COLS + col;
   let changed: boolean;
   if (paint === 'add') {
-    changed = sequencer.set(selected, step, row);
+    changed = sequencer.set(selected, step, row, selected === 'sample' ? sample.id : undefined);
   } else {
     changed = sequencer.erase(step, row);
   }
@@ -795,7 +806,13 @@ function setLiveMode(mode: LiveMode): void {
 
 function playLive(row: number): void {
   if (!audio || !audioContext) return;
-  audio.playNote(selected, row, audioContext.currentTime, 1);
+  audio.playNote(
+    selected,
+    row,
+    audioContext.currentTime,
+    1,
+    selected === 'sample' ? sample.id : undefined,
+  );
   if (liveMode !== 'rec' || !playing || !scheduler) return;
   const step = nearestStep(
     heardTime(),
@@ -804,7 +821,7 @@ function playLive(row: number): void {
     sequencer.stepAfter(playhead),
     scheduler.stepDuration,
   );
-  if (!sequencer.set(selected, step, row)) return;
+  if (!sequencer.set(selected, step, row, selected === 'sample' ? sample.id : undefined)) return;
   savePattern();
   if (step === sequencer.stepIndex) sequencer.skipOnce(step, row);
   renderer.flash({ instrument: selected, col: step, row });
@@ -1090,7 +1107,14 @@ const shared = (() => {
   }
 })();
 if (shared) {
-  loadCells(shared.cells);
+  // A shared beat never plays the recipient's own Mine; it falls back to Clap.
+  loadCells(
+    shared.cells.map((cell) =>
+      cell.instrument === 'sample'
+        ? { ...cell, sample: sampleById(cell.sample ?? null).id }
+        : cell,
+    ),
+  );
   setLength(shared.length);
   setBpm(shared.bpm);
   theme = themeById(shared.themeId);

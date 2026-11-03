@@ -181,4 +181,39 @@ describe('Sequencer', () => {
     for (let i = 0; i < 15; i += 1) sequencer.step();
     expect(sequencer.step()).toEqual([{ instrument: 'kick', col: 2, row: 4 }]);
   });
+
+  it('stores the sound a sample note was painted with', () => {
+    const sequencer = new Sequencer();
+    expect(sequencer.set('sample', 0, 0, 'clap')).toBe(true);
+    expect(sequencer.cells).toEqual([
+      { instrument: 'sample', col: 0, row: 0, sample: 'clap' },
+    ]);
+  });
+
+  it('changes a sample note when its sound changes, and reports no change otherwise', () => {
+    const sequencer = new Sequencer();
+    sequencer.set('sample', 0, 0, 'clap');
+    expect(sequencer.set('sample', 0, 0, 'clap')).toBe(false);
+    expect(sequencer.set('sample', 0, 0, 'tom')).toBe(true);
+    expect(sequencer.cells).toEqual([
+      { instrument: 'sample', col: 0, row: 0, sample: 'tom' },
+    ]);
+  });
+
+  it('ignores a sample for other instruments and clears it on replacement', () => {
+    const sequencer = new Sequencer();
+    expect(sequencer.set('kick', 1, 0, 'tom')).toBe(true);
+    expect(sequencer.cells).toEqual([{ instrument: 'kick', col: 1, row: 0 }]);
+    sequencer.set('sample', 1, 0, 'tom');
+    expect(sequencer.set('kick', 1, 0, 'tom')).toBe(true);
+    expect(sequencer.cells).toEqual([{ instrument: 'kick', col: 1, row: 0 }]);
+  });
+
+  it('returns the sound on each sample note of a step', () => {
+    const sequencer = new Sequencer();
+    sequencer.set('sample', 0, 0, 'tom');
+    expect(sequencer.step()).toEqual([
+      { instrument: 'sample', col: 0, row: 0, sample: 'tom' },
+    ]);
+  });
 });

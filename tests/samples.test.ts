@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SAMPLE, SAMPLE_PRESETS, USER_SAMPLE, rateForRow, sampleById } from '../src/samples';
+import {
+  DEFAULT_SAMPLE,
+  SAMPLE_PRESETS,
+  USER_SAMPLE,
+  rateForRow,
+  sampleById,
+  sampleForNote,
+} from '../src/samples';
 import { PIXEL_COLORS } from '../src/sprites';
 
 describe('samples', () => {
@@ -19,6 +26,13 @@ describe('samples', () => {
     expect(sampleById('mine')).toBe(sampleById('clap'));
     expect(sampleById('mine', true)).toBe(USER_SAMPLE);
     expect(sampleById('cowbell', true)).toBe(sampleById('cowbell'));
+  });
+
+  it('resolves the sound a note refers to', () => {
+    expect(sampleForNote('mine')).toBe(USER_SAMPLE);
+    expect(sampleForNote('tom')).toBe(sampleById('tom'));
+    expect(sampleForNote(undefined)).toBe(sampleById('clap'));
+    expect(sampleForNote('x')).toBe(sampleById('clap'));
   });
 
   it('gives every sound a pixel color', () => {

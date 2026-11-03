@@ -25,6 +25,12 @@ export function sampleById(id: string | null, hasUserSample = false): SamplePres
   return SAMPLE_PRESETS.find((preset) => preset.id === id) ?? (SAMPLE_PRESETS[0] as SamplePreset);
 }
 
+// The preset or user sample a note's id refers to. Unknown ids fall back to Clap; 'mine'
+// always resolves to USER_SAMPLE, so its notes keep their color before the sound loads.
+export function sampleForNote(id: string | undefined): SamplePreset {
+  return id === USER_SAMPLE.id ? USER_SAMPLE : sampleById(id ?? null);
+}
+
 // Semitones above the recorded pitch, indexed by board row (row 7 is the bottom).
 const ROW_SEMITONES = [12, 11, 9, 7, 5, 4, 2, 0];
 

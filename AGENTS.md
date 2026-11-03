@@ -27,8 +27,9 @@ Commands: `npm run dev`, `npm test`, `npm run test:sandbox`, `npm run typecheck`
 - FX are applied on top of the theme and never change a theme's own values.
 - Voices connect to their instrument's level and send gains in `audio.ts`, never straight to
   `towerBus` or `delaySend`, so the mixer covers everything.
-- Share links are versioned (`v1.`, `v2.`) in `src/pattern.ts`. Add a new version instead of
+- Share links are versioned (`v1.`, `v2.`, `v3.`) in `src/pattern.ts`. Add a new version instead of
   changing an old one, and keep decoding every old version.
+- Sample cells carry their own `sample` id; only `'sample'` cells may have one.
 - The order of `INSTRUMENTS` is part of the share-link format; append new instruments, never
   reorder.
 - Themes change the sound only, never the pattern or the tempo.

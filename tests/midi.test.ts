@@ -3,10 +3,10 @@ import { MIDI_PPQ, TICKS_PER_STEP, patternToMidi } from '../src/midi';
 import type { Cell } from '../src/sequencer';
 
 const SCALE = [60, 62, 64, 65, 67, 69, 71, 72];
-const SAMPLE_NOTE = 56;
+const SAMPLE_NOTE_FOR = (sample: string | undefined): number => (sample === 'tom' ? 45 : 39);
 
 function bytesOf(cells: Cell[], length: number): number[] {
-  return Array.from(patternToMidi(cells, length, 120, SCALE, SAMPLE_NOTE));
+  return Array.from(patternToMidi(cells, length, 120, SCALE, SAMPLE_NOTE_FOR));
 }
 
 function find(haystack: number[], needle: number[]): number {
@@ -77,7 +77,19 @@ describe('patternToMidi', () => {
 
   it('writes the sample note on the drum channel', () => {
     const bytes = bytesOf([{ instrument: 'sample', col: 0, row: 7 }], 16);
-    expect(find(bytes, [0x99, 56, 100])).toBeGreaterThanOrEqual(0);
+    expect(find(bytes, [0x99, 39, 100])).toBeGreaterThanOrEqual(0);
+  });
+
+  it('writes each sample note from its own sound', () => {
+    const bytes = bytesOf(
+      [
+        { instrument: 'sample', col: 0, row: 7, sample: 'tom' },
+        { instrument: 'sample', col: 4, row: 7, sample: 'clap' },
+      ],
+      16,
+    );
+    expect(find(bytes, [0x99, 45, 100])).toBeGreaterThanOrEqual(0);
+    expect(find(bytes, [0x99, 39, 100])).toBeGreaterThanOrEqual(0);
   });
 
   it('writes a track length that matches the track bytes', () => {

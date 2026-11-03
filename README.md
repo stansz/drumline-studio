@@ -22,16 +22,19 @@ Shaker, and Zap. The sampler takes the slot under the board while Sample is sele
 other instrument brings the mixer back. Clicking a sound picks it for the Sample instrument
 and plays it once. Rows set its pitch: the bottom row plays the sound as recorded, and each
 higher row plays it higher, up to an octave at the top row. The chosen sound is remembered, and it
-travels in share links and MIDI export.
+is the sound new Sample notes are painted with.
 
-Each sound has its own color: the Sample pad's icon and light, and every Sample note on the board,
-take the color of the chosen sound.
+Each Sample note keeps the sound it was painted with, so picking a new sound only changes the
+notes you paint next. Each note plays and shows its own sound's color, and its sound travels in
+share links and MIDI export. Picking a sound changes the Sample pad's icon and light, which show
+what will be painted.
 
 **Mic** records up to 2 seconds from the microphone; press it again to stop early. The browser
 asks for microphone permission the first time. **File** loads a short sound file instead. Either
 way, silence at the start and end is trimmed and the level is evened out. The result appears as
 **Mine**, plays like the built-in sounds, is saved on this device, and comes back next visit.
-Share links can't carry it: people who open the link hear Clap instead.
+Recording a new **Mine** changes every Mine note. Share links can't carry it: people who open the
+link hear Clap instead.
 
 ### Length and pages
 

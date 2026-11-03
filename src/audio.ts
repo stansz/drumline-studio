@@ -383,7 +383,13 @@ export class Audio_ {
     this.playSample(7, this.ctx.currentTime, 1);
   }
 
-  playNote(instrument: Instrument, row: number, time: number, voiceCount: number): void {
+  playNote(
+    instrument: Instrument,
+    row: number,
+    time: number,
+    voiceCount: number,
+    sample?: string,
+  ): void {
     const baseLevel = 1 / Math.sqrt(Math.max(1, voiceCount));
     const level = baseLevel * (0.9 + Math.random() * 0.2);
     if (instrument === 'kick') {
@@ -398,14 +404,15 @@ export class Audio_ {
     } else if (instrument === 'snare') {
       this.playSnare(row, time, level);
     } else if (instrument === 'sample') {
-      this.playSample(row, time, level);
+      this.playSample(row, time, level, sample);
     } else {
       this.playSynth(row, time, level);
     }
   }
 
-  private playSample(row: number, time: number, level: number): void {
-    const buffer = this.samples.get(this.sampleId);
+  private playSample(row: number, time: number, level: number, sample?: string): void {
+    const buffer =
+      this.samples.get(sample ?? this.sampleId) ?? this.samples.get(DEFAULT_SAMPLE);
     if (!buffer) return;
     const source = this.ctx.createBufferSource();
     source.buffer = buffer;

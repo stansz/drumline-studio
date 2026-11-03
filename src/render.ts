@@ -1,5 +1,6 @@
 import { GRID_COLS, GRID_ROWS } from './config';
 import { bayer } from './pixel';
+import { sampleForNote } from './samples';
 import type { Instrument, NoteEvent, Sequencer } from './sequencer';
 import {
   LOGO_GLYPHS,
@@ -297,17 +298,16 @@ export class Renderer {
       if (Math.floor(cell.col / GRID_COLS) !== state.page) continue;
       const flashedAt = this.flashes.get(`${cell.col},${cell.row}`);
       const frame = flashedAt !== undefined && state.now - flashedAt < NOTE_FLASH ? 1 : 0;
+      const sampleColor = cell.instrument === 'sample' ? sampleForNote(cell.sample).color : null;
       if (frame === 1) {
         const outline =
-          cell.instrument === 'sample'
-            ? (PIXEL_COLORS[state.sampleColor] ?? NOTE_OUTLINE.sample)
+          sampleColor !== null
+            ? (PIXEL_COLORS[sampleColor] ?? NOTE_OUTLINE.sample)
             : NOTE_OUTLINE[cell.instrument];
         this.strokeInset(cell.col - offset, cell.row, outline);
       }
       const frames =
-        cell.instrument === 'sample'
-          ? sampleFrames(state.sampleColor)
-          : BAKED.get(cell.instrument);
+        sampleColor !== null ? sampleFrames(sampleColor) : BAKED.get(cell.instrument);
       if (!frames) continue;
       this.ctx.drawImage(
         frames.normal[frame],

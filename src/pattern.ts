@@ -13,7 +13,11 @@ export interface SharedBeat extends SavedPattern {
   sampleId: string;
 }
 
-function validCell(instrument: unknown, col: unknown, row: unknown): Cell | null {
+function validSample(sample: unknown): string | undefined {
+  return typeof sample === 'string' && /^[a-z0-9-]{1,24}$/.test(sample) ? sample : undefined;
+}
+
+function validCell(instrument: unknown, col: unknown, row: unknown, sample?: unknown): Cell | null {
   if (typeof instrument !== 'string' || !(INSTRUMENTS as readonly string[]).includes(instrument)) {
     return null;
   }
@@ -21,7 +25,12 @@ function validCell(instrument: unknown, col: unknown, row: unknown): Cell | null
   const c = col as number;
   const r = row as number;
   if (c < 0 || c >= MAX_STEPS || r < 0 || r >= GRID_ROWS) return null;
-  return { instrument: instrument as Instrument, col: c, row: r };
+  const cell: Cell = { instrument: instrument as Instrument, col: c, row: r };
+  if (instrument === 'sample') {
+    const id = validSample(sample);
+    if (id !== undefined) cell.sample = id;
+  }
+  return cell;
 }
 
 // Keeps the first note on each cell and drops anything invalid.
@@ -42,7 +51,11 @@ export function serializePattern(pattern: SavedPattern): string {
   return JSON.stringify({
     v: 1,
     length: pattern.length,
-    cells: pattern.cells.map((cell) => [cell.instrument, cell.col, cell.row]),
+    cells: pattern.cells.map((cell) =>
+      cell.instrument === 'sample' && cell.sample !== undefined
+        ? [cell.instrument, cell.col, cell.row, cell.sample]
+        : [cell.instrument, cell.col, cell.row],
+    ),
   });
 }
 
@@ -60,7 +73,7 @@ export function parsePattern(text: string | null): SavedPattern | null {
   const length: PatternLength = record.length === 32 ? 32 : 16;
   const cells = cleanCells(
     record.cells.map((entry) =>
-      Array.isArray(entry) ? validCell(entry[0], entry[1], entry[2]) : null,
+      Array.isArray(entry) ? validCell(entry[0], entry[1], entry[2], entry[3]) : null,
     ),
   );
   return { length, cells };
@@ -87,18 +100,36 @@ function fromBase64Url(text: string): Uint8Array | null {
 // row * 4 + instrument index.
 // v2.<length>.<bpm>.<theme id>.<sample id>.<cells>, where each cell is two bytes: the step,
 // then row * 5 + instrument index.
+// v3.<length>.<bpm>.<theme id>.<picked sample id>.<sample table>.<cells>, where the sample table
+// lists the distinct sample ids the sample cells use, in first-use order, joined with '_'. Each
+// cell is three bytes: the step, then row * 5 + instrument index, then the sample-table index.
+const MAX_SAMPLE_TABLE = 16;
+
 export function encodeShare(beat: SharedBeat): string {
-  const bytes = new Uint8Array(beat.cells.length * 2);
+  const sampleTable: string[] = [];
+  const bytes = new Uint8Array(beat.cells.length * 3);
   beat.cells.forEach((cell, i) => {
-    bytes[i * 2] = cell.col;
-    bytes[i * 2 + 1] = cell.row * 5 + INSTRUMENTS.indexOf(cell.instrument);
+    let sampleIndex = 0;
+    if (cell.instrument === 'sample' && cell.sample !== undefined) {
+      const existing = sampleTable.indexOf(cell.sample);
+      if (existing >= 0) {
+        sampleIndex = existing;
+      } else if (sampleTable.length < MAX_SAMPLE_TABLE) {
+        sampleIndex = sampleTable.length;
+        sampleTable.push(cell.sample);
+      }
+    }
+    bytes[i * 3] = cell.col;
+    bytes[i * 3 + 1] = cell.row * 5 + INSTRUMENTS.indexOf(cell.instrument);
+    bytes[i * 3 + 2] = sampleIndex;
   });
   return [
-    'v2',
+    'v3',
     beat.length,
     parseBpm(String(beat.bpm)),
     beat.themeId,
     beat.sampleId,
+    sampleTable.join('_'),
     toBase64Url(bytes),
   ].join('.');
 }
@@ -112,6 +143,22 @@ function decodeCells(bytes: Uint8Array, instrumentCount: number): Cell[] {
         INSTRUMENTS[packed % instrumentCount],
         bytes[i],
         Math.floor(packed / instrumentCount),
+      ),
+    );
+  }
+  return cleanCells(cells);
+}
+
+function decodeV3Cells(bytes: Uint8Array, sampleTable: readonly string[]): Cell[] {
+  const cells: Array<Cell | null> = [];
+  for (let i = 0; i < bytes.length; i += 3) {
+    const packed = bytes[i + 1] ?? 0;
+    cells.push(
+      validCell(
+        INSTRUMENTS[packed % 5],
+        bytes[i],
+        Math.floor(packed / 5),
+        sampleTable[bytes[i + 2] ?? 0],
       ),
     );
   }
@@ -141,9 +188,36 @@ export function decodeShare(text: string): SharedBeat | null {
       cells: decodeCells(bytes, 4),
     };
   }
-  if (parts[0] !== 'v2') return null;
-  if (parts.length !== 6) return null;
-  const [, lengthText, bpmText, themeId, sampleId, cellText] = parts as [
+  if (parts[0] === 'v2') {
+    if (parts.length !== 6) return null;
+    const [, lengthText, bpmText, themeId, sampleId, cellText] = parts as [
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+    ];
+    if (lengthText !== '16' && lengthText !== '32') return null;
+    if (!/^[a-z0-9-]{1,24}$/.test(themeId)) return null;
+    if (!/^[a-z0-9-]{1,24}$/.test(sampleId)) return null;
+    const bytes = fromBase64Url(cellText);
+    if (!bytes || bytes.length % 2 !== 0) return null;
+    const cells = decodeCells(bytes, 5).map((cell) =>
+      cell.instrument === 'sample' ? { ...cell, sample: sampleId } : cell,
+    );
+    return {
+      length: lengthText === '32' ? 32 : 16,
+      bpm: parseBpm(bpmText),
+      themeId,
+      sampleId,
+      cells,
+    };
+  }
+  if (parts[0] !== 'v3') return null;
+  if (parts.length !== 7) return null;
+  const [, lengthText, bpmText, themeId, sampleId, tableText, cellText] = parts as [
+    string,
     string,
     string,
     string,
@@ -154,13 +228,17 @@ export function decodeShare(text: string): SharedBeat | null {
   if (lengthText !== '16' && lengthText !== '32') return null;
   if (!/^[a-z0-9-]{1,24}$/.test(themeId)) return null;
   if (!/^[a-z0-9-]{1,24}$/.test(sampleId)) return null;
+  const sampleTable = tableText === '' ? [] : tableText.split('_');
+  for (const id of sampleTable) {
+    if (!/^[a-z0-9-]{1,24}$/.test(id)) return null;
+  }
   const bytes = fromBase64Url(cellText);
-  if (!bytes || bytes.length % 2 !== 0) return null;
+  if (!bytes || bytes.length % 3 !== 0) return null;
   return {
     length: lengthText === '32' ? 32 : 16,
     bpm: parseBpm(bpmText),
     themeId,
     sampleId,
-    cells: decodeCells(bytes, 5),
+    cells: decodeV3Cells(bytes, sampleTable),
   };
 }

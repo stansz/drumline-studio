@@ -8,12 +8,14 @@ export interface Cell {
   instrument: Instrument;
   col: number;
   row: number;
+  sample?: string;
 }
 
 export interface NoteEvent {
   instrument: Instrument;
   col: number;
   row: number;
+  sample?: string;
 }
 
 export class Sequencer {
@@ -39,15 +41,29 @@ export class Sequencer {
     return this.cells.find((cell) => cell.col === col && cell.row === row) ?? null;
   }
 
-  set(instrument: Instrument, col: number, row: number): boolean {
+  set(instrument: Instrument, col: number, row: number, sample?: string): boolean {
     if (!this.inGrid(col, row)) return false;
     const cell = this.cellAt(col, row);
     if (cell) {
-      if (cell.instrument === instrument) return false;
+      if (cell.instrument === instrument) {
+        if (instrument !== 'sample') return false;
+        if (cell.sample === sample) return false;
+        cell.sample = sample;
+        return true;
+      }
       cell.instrument = instrument;
+      if (instrument === 'sample') {
+        cell.sample = sample;
+      } else {
+        delete cell.sample;
+      }
       return true;
     }
-    this.cells.push({ instrument, col, row });
+    if (instrument === 'sample') {
+      this.cells.push({ instrument, col, row, sample });
+    } else {
+      this.cells.push({ instrument, col, row });
+    }
     return true;
   }
 
@@ -114,7 +130,11 @@ export class Sequencer {
         this.skips.delete(key);
         continue;
       }
-      notes.push({ instrument: cell.instrument, col: cell.col, row: cell.row });
+      notes.push(
+        cell.sample === undefined
+          ? { instrument: cell.instrument, col: cell.col, row: cell.row }
+          : { instrument: cell.instrument, col: cell.col, row: cell.row, sample: cell.sample },
+      );
     }
     this.stepIndex = this.stepAfter(this.stepIndex);
     return notes;

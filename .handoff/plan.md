@@ -1,210 +1,199 @@
-# Plan: One volume slider for the selected instrument; Sample and Backing volumes move
+# Plan: Each Sample note keeps the sound it was painted with
 
 ## Goal
 
-In Drumline Studio (`C:\Users\sz\Documents\Code\drumline-studio`), the mixer in the dock
-shows six sliders at once. Change it so:
+In Drumline Studio (`C:\Users\sz\Documents\Code\drumline-studio`), all Sample notes play
+whichever sample sound is currently picked. Picking another sound changes every Sample note
+already on the board, including its color, and players read that as the app changing their
+pattern.
 
-1. **The mixer view shows one slider**: the selected instrument's volume (Kick, Hat, Synth,
-   or Snare), with a label like "Kick volume" in that instrument's color. Picking another
-   instrument swaps which slider shows.
-2. **Sample's volume lives in the sampler panel**, as a compact slider after Mic and File,
-   colored like the chosen sample sound. Selecting Sample already shows that panel.
-3. **Backing's volume moves to the header**, as a second thin slider stacked under the main
-   volume slider. Label them "Vol" and "Backing".
+Make each Sample note store its own sound id. The rules:
 
-The audio side, saved settings (`drumline-mix`), and slider ids (`mix-kick` … `mix-backing`)
-don't change. Only where the sliders appear changes.
+- Painting with Sample stores the currently picked sound on the new note.
+- Picking a sound in the sampler only affects notes painted afterwards.
+- Each note plays and is colored by its own sound.
+- Autosave, share links (a new `v3` format; `v1` and `v2` still load), and MIDI export carry
+  each note's sound.
 
 ## Files to touch
 
-- `index.html`
+- `src/sequencer.ts`
+- `src/samples.ts`
+- `src/audio.ts`
+- `src/render.ts`
+- `src/pattern.ts`
+- `src/midi.ts`
 - `src/main.ts`
-- `src/style.css`
+- `tests/sequencer.test.ts`
+- `tests/samples.test.ts`
+- `tests/pattern.test.ts`
+- `tests/midi.test.ts`
 - `README.md`
+- `AGENTS.md`
 - `docs/references.md`
 - `.handoff/report.md`
 
 ## Steps
 
-### 1. `index.html`
+### 1. `src/sequencer.ts`
 
-- `#mix`: keep only the four instrument labels (kick, hat, synth, snare). Give each label
-  `class="fx-knob mix-channel"` and `data-channel="<instrument>"`. Change each label's
-  `<small>` text to `"<Name> volume"` (e.g. `Kick volume`). Remove the Sample and Backing
-  labels from `#mix`.
-- `#sampler`: after the `#sample-file-input` element, add:
+- `Cell` and `NoteEvent` gain `sample?: string`, set only for `instrument === 'sample'`.
+- `set(instrument, col, row, sample?: string): boolean`:
+  - For non-sample instruments, ignore `sample` and store no `sample` field.
+  - For `'sample'`, store `sample` (may be undefined).
+  - When the cell already holds the same instrument **and** the same `sample`, return false
+    with no change.
+  - When it holds the same instrument with a different `sample`, update `sample` and return
+    true.
+  - When it holds a different instrument, replace the instrument and set or clear `sample`,
+    then return true.
+  - Otherwise append the new cell, as now.
+- `step()` copies `sample` into each `NoteEvent` when present.
 
-  ```html
-  <label class="sampler-volume" title="Sample volume"><small>Vol</small><input id="mix-sample" type="range" min="0" max="100" step="1" value="100" aria-label="Sample volume" /></label>
-  ```
+### 2. `src/samples.ts`
 
-- Header `.sys`: replace the `<input id="volume" …>` element with:
+Add:
 
-  ```html
-  <div class="levels">
-    <label class="level"><small>Vol</small><input id="volume" type="range" min="0" max="100" step="1" value="100" aria-label="Volume" title="Volume" /></label>
-    <label class="level"><small>Backing</small><input id="mix-backing" type="range" min="0" max="100" step="1" value="100" aria-label="Backing volume" title="Backing volume" /></label>
-  </div>
-  ```
+```ts
+// The preset or user sample a note's id refers to. Unknown ids fall back to Clap; 'mine'
+// always resolves to USER_SAMPLE, so its notes keep their color before the sound loads.
+export function sampleForNote(id: string | undefined): SamplePreset {
+  return id === USER_SAMPLE.id ? USER_SAMPLE : sampleById(id ?? null);
+}
+```
 
-  Keep the `#volume` id and attributes exactly as they are.
+### 3. `src/audio.ts`
 
-### 2. `src/main.ts`
+- `playNote(instrument, row, time, voiceCount, sample?: string)`: pass `sample` to
+  `playSample`.
+- `playSample(row, time, level, sample?: string)`:
+  - Use `this.samples.get(sample ?? this.sampleId)`.
+  - If that buffer is missing (for example `'mine'` before it loads), fall back to
+    `this.samples.get(DEFAULT_SAMPLE)`. Return only if both are missing.
+- `auditionSample()` stays the same: it plays the currently picked sound.
 
-- The mixer slider wiring looks sliders up by id (`mix-${channel}`), so it keeps working.
-  Check that it still finds all six.
-- Add:
+### 4. `src/render.ts`
 
-  ```ts
-  // The mixer view shows only the selected instrument's slider.
-  function updateMixView(): void {
-    mixPanel.querySelectorAll<HTMLElement>('.mix-channel').forEach((label) => {
-      label.hidden = label.dataset.channel !== selected;
-    });
-  }
-  ```
+- `drawNotes`: for a sample cell, use `sampleFrames(sampleForNote(cell.sample).color)`, and
+  use that color for its flash outline, instead of `state.sampleColor`.
+- `drawPreview` and `drawIcon` keep using `state.sampleColor` / the picked sound, because
+  they show what will be painted.
 
-  Call it from `updateSelection()` (or wherever `updateDock()` is called after a selection
-  change) and once at startup.
-- In `updateSampleLook()`, also set the sample volume label's color: find
-  `.sampler-volume` and set `--c` to `PIXEL_COLORS[sample.color] ?? ''`.
-- No other behavior changes.
+### 5. `src/pattern.ts`
 
-### 3. `src/style.css`
+- `validCell(instrument, col, row, sample?)`: for `'sample'` cells, keep `sample` only if it
+  is a string matching `/^[a-z0-9-]{1,24}$/`. Otherwise leave it undefined. Never set
+  `sample` on other instruments.
+- **Autosave JSON**:
+  - `serializePattern` writes a fourth element for sample cells that have a `sample`:
+    `[instrument, col, row, sample]`.
+  - `parsePattern` reads an optional fourth element.
+  - Keep `v: 1`. Old saves without the fourth element still parse, with `sample` undefined.
+- **Share links**: add `v3`, which carries a sample table:
+  `v3.<length>.<bpm>.<theme id>.<picked sample id>.<sample table>.<cells>`
+  - `<sample table>` is the distinct sample ids used by the pattern's sample cells, in first-use
+    order, joined with `_`. It is empty when there are no sample cells. At most 16 entries;
+    cells beyond that point at entry 0.
+  - Each cell is **three** bytes: the step, then `row * 5 + instrument index`, then the
+    sample-table index (0 for non-sample cells and for sample cells without a `sample`).
+  - The cell bytes are base64url, as now.
+  - `encodeShare` now writes `v3`.
+  - `decodeShare`:
+    - **v3**: validate the parts as for v2, plus every table entry against
+      `/^[a-z0-9-]{1,24}$/`. Any invalid entry returns null; an empty table is allowed. The
+      cell byte count must be a multiple of 3. Sample cells take `sample` from the table entry
+      at their index. A missing index gives undefined.
+    - **v2**: sample cells get `sample` set to the link's `sampleId`.
+    - **v1**: sample cells cannot occur, so there is no change.
+  - Update the format comment.
 
-- **Mixer view (one slider)**:
+### 6. `src/midi.ts`
 
-  ```css
-  .mix-panel {
-    grid-template-columns: 1fr;
-  }
+- Replace the `sampleNote: number` parameter with
+  `sampleNoteFor: (sample: string | undefined) => number`, and call it per sample cell.
+- Update the doc comment.
 
-  .mix-panel .mix-channel {
-    flex-direction: row;
-    align-items: center;
-    gap: 12px;
-  }
+### 7. `src/main.ts`
 
-  .mix-panel .mix-channel[hidden] {
-    display: none;
-  }
+- `applyPaint`, add mode: call
+  `sequencer.set(selected, step, row, selected === 'sample' ? sample.id : undefined)`.
+- `onStep`: pass `voice.sample` as the new last argument to `audio.playNote`. If `pickVoices`
+  loses the field, check its generic. It returns the same objects, so `sample` should
+  survive.
+- `playLive` (hidden live tools): pass `selected === 'sample' ? sample.id : undefined` to
+  `sequencer.set`, and `sample.id` to `audio.playNote` when the selected instrument is
+  sample.
+- `loadCells(cells)`:
+  - Pass `cell.sample` to `sequencer.set`.
+  - Migrate old saves: a sample cell without `sample` gets the currently picked `sample.id`,
+    so it keeps sounding the way it did.
+- **Shared-link branch**: before `loadCells`, map each sample cell's `sample` through
+  `sampleById(cell.sample ?? null).id` (no user-sample flag). A shared beat never plays the
+  recipient's own **Mine**; it falls back to Clap. Then set the picked `sample` from
+  `shared.sampleId` as now.
+- `exportMidi`: pass `(id) => sampleForNote(id ?? sample.id).midiNote`.
+- Re-recording or reloading **Mine** still changes every Mine note. That is expected: there is
+  one user sample.
 
-  .mix-panel .mix-channel small {
-    flex: none;
-    min-width: 7.5em;
-  }
-  ```
+### 8. Tests
 
-  Keep the existing `.mix-panel small { color: var(--c); }` and `.mix-panel input { accent-color: var(--c); }`.
-  The slider input should fill the remaining width (`flex: 1; width: auto;`). Remove the
-  six-column rule and its narrow-screen `gap` override if they no longer apply.
-- **Sampler volume**:
-  - `.sampler-panel`: `grid-template-columns: minmax(0, 1fr) auto auto auto;`.
-  - Add:
+- `tests/sequencer.test.ts`:
+  - `set('sample', 0, 0, 'clap')` stores `sample: 'clap'`.
+  - Setting the same cell with `'clap'` again returns false.
+  - Setting it with `'tom'` returns true and stores `'tom'`.
+  - `set('kick', 1, 0, 'tom')` stores no `sample`.
+  - Replacing a sample cell with a kick clears `sample`.
+  - `step()` returns the `sample` on sample notes.
+- `tests/samples.test.ts`: `sampleForNote('mine')` is `USER_SAMPLE`, `sampleForNote('tom')` is
+  Tom, and `sampleForNote(undefined)` and `sampleForNote('x')` are Clap.
+- `tests/pattern.test.ts`:
+  - `serializePattern` / `parsePattern` round-trip a pattern with sample cells using
+    `'clap'`, `'tom'`, and `'mine'`, plus a kick.
+  - An old save `'{"v":1,"length":16,"cells":[["sample",0,0]]}'` parses with `sample`
+    undefined.
+  - A bad sample id in a save is dropped to undefined, and the cell is kept.
+  - `encodeShare` produces `v3`. A round-trip keeps each cell's `sample`, including two
+    different sounds and `'mine'`.
+  - A pattern with no sample cells round-trips with an empty table.
+  - Update the format regex test to
+    `/^v3\.(16|32)\.\d+\.[a-z0-9-]+\.[a-z0-9-]+\.[a-z0-9_-]*\.[A-Za-z0-9_-]*$/`.
+  - Existing v1 test unchanged.
+  - Add: a v2 link with sample cells decodes them with `sample` set to its `sampleId`. Build
+    the link with the old v2 encoding in the test itself: two bytes per cell,
+    `row * 5 + index`.
+  - Add: a v3 link with a table entry `'BAD!'` returns null, and a v3 link whose cell bytes
+    aren't a multiple of 3 returns null.
+- `tests/midi.test.ts`: use a `sampleNoteFor` function mapping `'tom'` → 45 and everything
+  else → 39. Add: two sample cells with `'tom'` and `'clap'` produce note-ons `0x99 45 100`
+  and `0x99 39 100`.
 
-    ```css
-    .sampler-volume {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      width: 110px;
-      --c: var(--orange);
-    }
+### 9. Docs
 
-    .sampler-volume small {
-      font: 400 0.6rem/1 var(--label);
-      color: var(--mute);
-    }
-
-    .sampler-volume input {
-      flex: 1;
-      min-width: 0;
-      accent-color: var(--c);
-    }
-    ```
-
-  - Inside `@media (max-width: 760px)`: `.sampler-volume { width: 72px; }` and
-    `.sampler-volume small { display: none; }`.
-- **Header levels**:
-  - Add:
-
-    ```css
-    .levels {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      width: 120px;
-      min-width: 0;
-    }
-
-    .level {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      min-width: 0;
-    }
-
-    .level small {
-      font: 400 0.55rem/1 var(--label);
-      color: var(--mute);
-      width: 4.4em;
-      flex: none;
-    }
-
-    .level input {
-      flex: 1;
-      min-width: 0;
-      accent-color: var(--amber);
-    }
-
-    #mix-backing {
-      accent-color: var(--cream);
-    }
-    ```
-
-  - Move each existing `#volume` sizing rule to `.levels`, keeping the same values in each
-    media query:
-    - Base: change `#volume { width: 84px; … }` to just
-      `#volume { min-width: 0; accent-color: var(--amber); }`. `.levels` sets the width.
-    - `@media (max-width: 760px)`: `#volume { flex: 1; }` → `.levels { flex: 1; width: auto; }`.
-    - `@media (max-height: 520px)`: `#volume { width: 56px; flex: none; }` →
-      `.levels { width: 72px; flex: none; }`.
-    - Landscape block: `#volume { flex: 1; width: auto; }` → `.levels { flex: 1; width: auto; }`.
-  - The header must not grow taller than its buttons on desktop. The `.sys` buttons are 32px
-    on desktop and 44px on phones, so two stacked 12px-tall sliders with a 3px gap fit. If a
-    range input's default height makes it taller, set `.level input { height: 12px; }`.
-- In the short-screen rule that hides the dock while it shows the mixer
-  (`#dock:has(> #mix:not([hidden]))`), keep it as it is.
-
-### 4. Docs
-
-- `README.md`, `### Mixer`:
-  - The slot under the board shows the selected instrument's volume slider.
-  - Sample's volume is in the sampler panel.
-  - The Backing volume sits under the main volume slider in the header, which also works on
-    a phone held sideways.
-  - Update the sentence that says the mixer is hidden sideways: the per-instrument slider is
-    hidden there, but Backing and the main volume are not.
-- `docs/references.md`: update the dock/mixer paragraph to match.
+- `README.md`, Sampler subsection:
+  - Each Sample note keeps the sound it was painted with, so picking a new sound only
+    changes the notes you paint next. Each note shows its sound's color.
+  - Recording a new **Mine** changes every Mine note.
+- `AGENTS.md`:
+  - Update the share-link rule to mention `v3`.
+  - Add: "Sample cells carry their own `sample` id; only `'sample'` cells may have one."
+- `docs/references.md`:
+  - Update the autosave cell format (optional fourth element).
+  - Describe the `v3` link format and that v1/v2 still decode.
+  - MIDI: per-note sample notes.
 
 ## Acceptance
 
 - `npm run typecheck` exits 0.
 - `npm run test:sandbox` exits 0.
-- PowerShell: `(Select-String -Path index.html -Pattern 'class="fx-knob mix-channel"').Count`
-  prints 4.
-- `git grep -n -F 'id="mix-sample"' -- index.html` prints one line, and it is inside
-  `#sampler`.
-- `git grep -n -F 'id="mix-backing"' -- index.html` prints one line, and it is inside
-  `.levels`.
-- `git grep -n -F 'function updateMixView' -- src/main.ts` prints one line.
+- `git grep -n -F "'v3'" -- src/pattern.ts` prints at least one line.
+- `git grep -n -F 'sampleForNote' -- src/render.ts src/main.ts` prints at least two lines.
 
 Verifier only:
 
 - `npm test` exits 0.
 - `npm run build` exits 0.
-- A browser check of all four layouts.
+- Browser check: paint claps, pick Tom, paint more. The claps stay claps (color and sound),
+  and a share link and a reload keep both.
 
 ## Parallel work
 
@@ -214,8 +203,7 @@ None — do it sequentially.
 
 - Do not commit, push, or switch branches.
 - Do not touch files outside **Files to touch**, except `.handoff/report.md`.
-- Do not change audio, `src/mix.ts`, saved keys, slider ids, the dock height, or other
-  panels.
+- Do not change sounds, themes, FX, the mixer, the dock, or the sampler panel layout.
 - Do not run the `Verifier only:` commands. If any command fails with `spawn EPERM`, stop and
   report it. Do not request wider sandbox access, set `NODE_OPTIONS`, or stub modules to get
   past it.
@@ -225,8 +213,8 @@ None — do it sequentially.
 
 ## Out of scope
 
-- Mute or solo.
-- Showing a numeric percentage.
+- More than one user sample.
+- Changing an existing note's sound without repainting it.
 
 ## If blocked
 

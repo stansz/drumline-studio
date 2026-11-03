@@ -16,6 +16,14 @@ const ALL_INSTRUMENTS: Cell[] = [
   { instrument: 'sample', col: 31, row: 7 },
 ];
 
+// The encoder writes base64url; tests build old links with the same encoding.
+function base64url(bytes: readonly number[]): string {
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
 describe('serializePattern / parsePattern', () => {
   it('round-trips a 32-step pattern with every instrument', () => {
     const pattern = { length: 32 as const, cells: ALL_INSTRUMENTS };
@@ -59,6 +67,31 @@ describe('serializePattern / parsePattern', () => {
     };
     expect(parsePattern(serializePattern(pattern))).toEqual(pattern);
   });
+
+  it('round-trips each sample cell sound, plus other instruments', () => {
+    const pattern = {
+      length: 16 as const,
+      cells: [
+        { instrument: 'kick' as const, col: 0, row: 0 },
+        { instrument: 'sample' as const, col: 1, row: 1, sample: 'clap' },
+        { instrument: 'sample' as const, col: 2, row: 2, sample: 'tom' },
+        { instrument: 'sample' as const, col: 3, row: 3, sample: 'mine' },
+      ],
+    };
+    expect(parsePattern(serializePattern(pattern))).toEqual(pattern);
+  });
+
+  it('parses an old save with no sample on a sample cell', () => {
+    const saved = parsePattern('{"v":1,"length":16,"cells":[["sample",0,0]]}');
+    expect(saved?.cells).toHaveLength(1);
+    expect(saved?.cells[0]?.sample).toBeUndefined();
+  });
+
+  it('drops a bad sample id but keeps the cell', () => {
+    const saved = parsePattern('{"v":1,"length":16,"cells":[["sample",0,0,"BAD!"]]}');
+    expect(saved?.cells).toHaveLength(1);
+    expect(saved?.cells[0]?.sample).toBeUndefined();
+  });
 });
 
 describe('encodeShare / decodeShare', () => {
@@ -73,10 +106,50 @@ describe('encodeShare / decodeShare', () => {
     expect(decodeShare(encodeShare(beat))).toEqual(beat);
   });
 
-  it('produces a v2 link', () => {
+  it('produces a v3 link', () => {
     expect(
       encodeShare({ length: 16, bpm: 120, themeId: 'lofi', sampleId: 'clap', cells: [] }),
-    ).toMatch(/^v2\.(16|32)\.\d+\.[a-z0-9-]+\.[a-z0-9-]+\.[A-Za-z0-9_-]*$/);
+    ).toMatch(/^v3\.(16|32)\.\d+\.[a-z0-9-]+\.[a-z0-9-]+\.[a-z0-9_-]*\.[A-Za-z0-9_-]*$/);
+  });
+
+  it('round-trips each sample cell sound in a link', () => {
+    const beat: SharedBeat = {
+      length: 16,
+      bpm: 120,
+      themeId: 'neon',
+      sampleId: 'clap',
+      cells: [
+        { instrument: 'kick', col: 0, row: 0 },
+        { instrument: 'sample', col: 1, row: 1, sample: 'clap' },
+        { instrument: 'sample', col: 2, row: 2, sample: 'tom' },
+        { instrument: 'sample', col: 3, row: 3, sample: 'mine' },
+      ],
+    };
+    expect(decodeShare(encodeShare(beat))).toEqual(beat);
+  });
+
+  it('round-trips a pattern with no sample cells with an empty table', () => {
+    const beat: SharedBeat = {
+      length: 16,
+      bpm: 120,
+      themeId: 'neon',
+      sampleId: 'clap',
+      cells: [{ instrument: 'kick', col: 0, row: 0 }],
+    };
+    const link = encodeShare(beat);
+    expect(link.split('.')[5]).toBe('');
+    expect(decodeShare(link)?.cells).toEqual(beat.cells);
+  });
+
+  it('decodes sample cells of a v2 link with that link sample', () => {
+    // Two bytes per cell: the step, then row * 5 + instrument index (sample is index 4).
+    const cells = base64url([2, 3 * 5 + 4, 0, 0]);
+    const beat = decodeShare(`v2.16.120.neon.cowbell.${cells}`);
+    expect(beat?.sampleId).toBe('cowbell');
+    expect(beat?.cells).toEqual([
+      { instrument: 'sample', col: 2, row: 3, sample: 'cowbell' },
+      { instrument: 'kick', col: 0, row: 0 },
+    ]);
   });
 
   it('round-trips an empty pattern', () => {
@@ -115,6 +188,14 @@ describe('encodeShare / decodeShare', () => {
 
   it('returns null for a v2 link with a bad sample id', () => {
     expect(decodeShare('v2.16.120.neon.BAD!.')).toBeNull();
+  });
+
+  it('returns null for a v3 link with a bad sample table entry', () => {
+    expect(decodeShare('v3.16.120.neon.clap.BAD!.')).toBeNull();
+  });
+
+  it('returns null for a v3 link whose cell bytes are not a multiple of three', () => {
+    expect(decodeShare(`v3.16.120.neon.clap..${base64url([0, 0])}`)).toBeNull();
   });
 
   it('returns null for malformed links', () => {
