@@ -124,6 +124,7 @@ export class Audio_ {
   private samples = new Map<string, AudioBuffer>();
   private sampleId: string = DEFAULT_SAMPLE;
   private muted = false;
+  private running = false;
   private lastDuckTime = -1;
   private lastStepDuration = 0;
 
@@ -800,7 +801,7 @@ export class Audio_ {
     // The master trim also scales the backing, so divide it back out: the backing ends up at
     // musicTrim whatever the instruments' trim is.
     this.musicTrim.gain.setTargetAtTime(space.musicTrim / space.trim, now, 0.02);
-    this.crackleGain.gain.setTargetAtTime(theme.crackle, now, 0.02);
+    this.applyCrackle(now);
     this.reverb.buffer = this.reverbImpulse(space.reverbSeconds);
   }
 
@@ -827,6 +828,16 @@ export class Audio_ {
         this.instrumentDelaySends[channel].gain.setTargetAtTime(gain, now, 0.03);
       }
     }
+  }
+
+  // The vinyl crackle only plays while the beat is playing, so a stopped board is silent.
+  setRunning(running: boolean): void {
+    this.running = running;
+    this.applyCrackle(this.ctx.currentTime);
+  }
+
+  private applyCrackle(now: number): void {
+    this.crackleGain.gain.setTargetAtTime(this.running ? this.theme.crackle : 0, now, 0.05);
   }
 
   private applyCrush(now: number): void {

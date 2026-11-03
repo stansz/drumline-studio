@@ -997,6 +997,7 @@ function play(): void {
     return;
   }
   scheduler?.start();
+  audio?.setRunning(true);
   playing = true;
   playButton.textContent = 'Pause';
 }
@@ -1004,6 +1005,7 @@ function play(): void {
 // Holds the position so Play carries on from the same step.
 function pause(): void {
   scheduler?.stop();
+  audio?.setRunning(false);
   playing = false;
   queued = [];
   stepMarks = [];

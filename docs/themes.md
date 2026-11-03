@@ -18,8 +18,8 @@ tone. Themes never change the tempo or the pattern.
 
 The rest of the theme shapes its sound: `chord`, `bass`, `arp`, `drums`, `drumLevels`, `drumKit`,
 `kick`, `hat`, `synth`, and the other `space` values (`reverbSend`, `reverbSeconds`, `delaySend`,
-`delayFeedback`, `toneHz`, `crush`), plus `crackle`. The playable snare uses each theme's
-`drumKit.snareHz` and `drumKit.snareDecay`.
+`delayFeedback`, `toneHz`, `crush`), plus `crackle`, vinyl noise heard only while the beat plays.
+The playable snare uses each theme's `drumKit.snareHz` and `drumKit.snareDecay`.
 
 ## The section form
 
