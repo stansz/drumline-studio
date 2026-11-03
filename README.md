@@ -1,195 +1,66 @@
 # Drumline Studio
 
-A pixel-art drum machine and synth sequencer in your browser, forked from
-[DrumlineTD](https://github.com/stansz/drumline).
+A pixel-art drum machine and synth sequencer that runs in your browser. Paint a beat on the grid,
+pick a backing band, and share it with a link. There's nothing to install and no account.
 
-https://stansz.github.io/drumline-studio/
+**[▶ Open Drumline Studio](https://stansz.github.io/drumline-studio/)**
 
-## How to use
+![Drumline Studio playing a funk groove](docs/images/hero.png)
 
-### Painting a pattern
+## Features
 
-The grid shows 16 steps at a time: each column is one step, and each cell holds at most one
-note. The six instruments are Kick, Hat, Synth, Snare, Bass, and Sample. Click or drag on the grid
-to paint the selected instrument. Rows are pitch: higher rows tune a kick up, brighten a hat,
-tighten a snare, play higher notes on the synth, pitch the sample up, and play higher bass notes.
-Clicking or dragging over a note removes it, and right-click also removes.
+- **Six instruments:** Kick, Hat, Synth, Snare, Bass, and Sample, on a 16- or 32-step grid where
+  each row is a pitch.
+- **Backing music in five themes:** Neon, Chiptune, Lo-fi, Techno, and Funk, each with its own
+  chords, bass, arpeggio, and drums. Play it as a full song, a loop, or not at all.
+- **Presets and Random:** seven ready-made grooves, from Four on the Floor to the Tetris tune, plus
+  a random groove maker with undo.
+- **Sampler:** six built-in sounds, or record your own from the microphone or a file.
+- **Mixer and FX:** a volume for every part, plus filter, delay, reverb, and bit-crush.
+- **Share and export:** copy a link, record the audio, or download MIDI for your music app.
+- **Works on phones:** turn the phone sideways for a bigger board.
+- **Saves itself:** your beat and settings come back next visit.
 
-**Bass** plays the active synth scale two octaves lower, with the theme's own bass sound: the
-bottom row is the lowest note, and each higher row plays higher. The active scale is the theme's
-own, unless a preset has set one. It plays one note at a time, so a step with several Bass notes
-keeps one. While the pattern holds any Bass notes, the backing's own bass line is muted so the two
-bass lines don't clash.
+<p>
+  <img src="docs/images/phone.png" alt="Drumline Studio on a phone" width="220">
+  <img src="docs/images/phone-sideways.png" alt="Drumline Studio on a phone held sideways" width="476">
+</p>
 
-### Sampler
+## Quick start
 
-Select **Sample** to show the sampler panel with six built-in sounds: Clap, Cowbell, Rimshot, Tom,
-Shaker, and Zap, each with its own color. The sampler takes the slot under the board while Sample
-is selected; picking any other instrument brings the mixer back. Clicking a sound picks it for the
-Sample instrument and plays it once. Rows set its pitch: the bottom row plays the sound as
-recorded, and each higher row plays it higher, up to an octave at the top row. The chosen sound is
-remembered, and it is the sound new Sample notes are painted with.
+1. [Open the app](https://stansz.github.io/drumline-studio/) and press **Start**.
+2. Pick an instrument and click the grid to paint notes, or open **Beats** and pick a preset.
+3. Press **Play** (or **Space**).
 
-Each Sample note keeps the sound it was painted with, so picking a new sound only changes the
-notes you paint next. Each note plays and shows its own sound's color, and its sound travels in
-share links and MIDI export. Picking a sound changes the Sample pad's icon and light, which show
-what will be painted.
+**[Read the full guide →](docs/guide.md)** It covers every panel, the keyboard shortcuts, and
+phone tips.
 
-**Mic** records up to 2 seconds from the microphone; press it again to stop early. The browser
-asks for microphone permission the first time. **File** loads a short sound file instead. Either
-way, silence at the start and end is trimmed and the level is evened out. The result appears as
-**Mine**, plays like the built-in sounds, is saved on this device, and comes back next visit.
-Mine is a single slot: recording a new one replaces it and changes every Mine note. Share links
-can't carry it: people who open the link hear Clap instead.
+## For developers
 
-### Beats
-
-**Beats** in the tab row above the dock opens a row of preset beats, one tap each: Four on the Floor, Boom
-Bap, Breakbeat, Trap, Dembow, Funk Groove, and Korobeiniki (Tetris tune). A preset sets the
-pattern (drums, samples, synth, and bass), the pattern length, the tempo, the theme, and the
-Backing mode; some also set a synth scale. Playback keeps going, and the new beat takes over on
-the next step. Picking an instrument does not close Beats; opening FX, Share, or Mix, or pressing
-Beats again, does.
-
-**Random** replaces the pattern with a fresh 16-step groove: kick on the one, snare on 2 and 4,
-a hat pattern, a bass line that follows the kick, and a few synth notes in key. The theme, tempo,
-length, and scale stay as they are. **Undo** puts back the pattern and the settings changed by
-the last preset or Random; there is one level of undo.
-
-Korobeiniki is a 19th-century Russian folk song in the public domain. Its preset sets an A-minor
-scale for the synth and the bass on top of the Chiptune theme; **Clear** resets the scale to the
-theme's own.
-
-### Length, pages, and Follow
-
-**Length**, next to the Step counter, switches between 16 and 32 steps. With 32 steps, **Page**
-flips the board between steps 1–16 and 17–32, and **Follow** (key **F**) appears next to it. While
-Follow is on, the board flips to the page the playhead is on as it plays; flipping the page by
-hand with **Page** or **P** turns Follow off. Follow starts on and is remembered between visits.
-Notes on steps 17–32 are kept but silent while the length is 16.
-
-### Playing
-
-**Start** on the start screen (or **Enter** or **Space** there) turns on the audio but does not
-start playback; press **Play** to begin. Press **Play** to start the loop and **Pause** to hold it
-where it is; **Play** then carries on from the same step. **Stop** halts and goes back to step 1,
-restarting the song from the top. Set the tempo from 40 to 300 BPM by typing it into the **BPM**
-box or with the **−** and **+** buttons (hold Shift to move by 10). **Backing** in the tab row
-cycles through **Song**, **Loop**, and **Off** (key **B**), and the button shows the current mode
-under a small **Backing** caption.
-Song moves through verse, chorus, verse, chorus, and a break, with a short snare fill before each
-change; the chorus uses a second chord progression. Loop plays the theme's steady verse loop. Off
-plays only your pattern, plus a metronome click while the grid is empty. **Mute** silences
-everything, and **Clear** empties the pattern. Tap **Theme** in the tab row, or press **T**, to
-step to the next theme: Neon, Chiptune, Lo-fi, Techno, and Funk. The button shows the current one.
-Themes change the sound only, never the pattern or the tempo.
-
-### The Backing info screen
-
-**ⓘ** in the tab row above the dock (key **I**) opens a panel about the theme's backing music. It shows
-the theme's name and a one-line description, the current Backing mode (Song, Loop, or Off) and
-what it means, a map of the five song sections, the verse and chorus chord names, whether the
-feel is straight or swung, and the tempo. While the song plays, the section and bar being heard are
-highlighted on the map. The panel closes with **✕**, **Esc**, **I**, or a click on the backdrop,
-and playback keeps going while it is open.
-
-### Mixer
-
-The slot under the board shows the selected instrument's volume slider: Kick, Hat, Synth, Snare,
-or Bass. Picking another instrument swaps which slider shows. Each slider also scales the reverb
-that its part feeds, and the synth's delay, so turning a part down turns its tail down too, and
-the levels are remembered between visits. Selecting Sample, or opening FX or Share, uses the same
-slot. Sample's volume is in the sampler panel. **Master** is the first slider in the **Mix** view,
-and the Backing volume is there too. On a phone held sideways, the per-instrument slider is hidden,
-but Master is not. **Mix** in the tab row above the dock shows the Master volume and all seven
-channel volumes at once, each channel labeled in its color: Kick, Hat, Synth, Snare, Sample, Bass,
-and Backing. Picking an instrument, or pressing Mix again, goes back to the single slider. It also
-works on a phone held sideways, so it is where Master and the Backing volume are set there. All
-sliders for a part stay in sync.
-
-### FX
-
-**FX** (key **X**) opens a panel of four sliders that shape the whole mix live, on top of the
-theme's own sound. Opening FX closes the other panels in the dock. **Filter** sweeps a low-pass
-down to the left of center and a high-pass up to the right, with center off; **Delay** and
-**Reverb** set how much of the instruments feeds the tempo-synced delay and the reverb; **Crush**
-adds bit-crush on top of the theme's own. **Reset** sets them all back to off.
-
-### Saving and sharing
-
-The pattern, its length, and any preset scale are saved automatically and come back on your next
-visit. **Share** in the header (key **E**) opens a panel with three ways to keep a beat.
-Opening Share closes the other dock panels. **Copy link** gives anyone who opens the link the same
-pattern, length, tempo, theme, picked sample sound, per-note sample sounds, and preset scale. Links
-in the older `v1`, `v2`, `v3`, and `v4` formats still open; they fall back to the default Clap sound
-where they carry no per-note sound and to the theme's scale where they carry no scale. **Record**
-(key **R**) records everything you hear, starting playback if needed; press it again to download
-the audio file, in whatever format the browser records, usually WebM, or M4A on Safari.
-Recordings are taken at full level, before the volume slider, so the slider does not change a
-recording's loudness; **Mute** does silence the recording. **MIDI** downloads one pass of the
-pattern as a `.mid` file: the drums use General MIDI notes (kick 36, snare 38, hat 42), each
-sample note uses its own sound's drum note, and the synth and bass use the active scale (a preset
-scale, or else the theme's).
-
-### The dock
-
-The tab row directly above the dock holds Mix, Beats, FX, Theme, Backing, and ⓘ. The header holds
-the logo, the Notes and Step readouts, Share, and the Length and Follow buttons. The transport
-holds Play, Stop, BPM, Mute, and Clear.
-
-The mixer, sampler, FX, Share, and Beats panels share one slot under the board, and only
-one of them shows at a time, so opening one never moves the board. On a phone held sideways, that
-slot floats over the bottom of the board.
-
-## Controls
-
-- **1** Kick, **2** Hat, **3** Synth, **4** Snare, **5** Bass, **6** Sample
-- **Space** play or pause
-- **Esc** stop and go back to step 1
-- **I** show or hide the backing info screen
-- **B** cycle backing music between Song, Loop, and Off
-- **C** clear the pattern
-- **L** switch the pattern length between 16 and 32 steps
-- **P** flip between the two pages while the length is 32
-- **F** turn Follow on or off while the length is 32
-- **-** / **=** slower or faster by 1 BPM; with Shift, by 10
-- **M** mute or unmute
-- **T** change the music theme
-- **X** show or hide the FX panel
-- **E** show or hide the Share panel
-- **R** start or stop recording audio
-
-While the backing info screen is open, **Esc** or **I** closes it, and every other key is ignored.
-On the start screen, **Enter** or **Space** turns on the audio without starting playback, and **T**
-changes the theme. The on-screen buttons provide the same actions. **Master** in the Mix view sets
-the volume. Your theme, volume, tempo, backing setting, Follow setting, FX, mixer
-levels, and picked sample are remembered between visits.
-
-On a phone, tap instead of clicking, and turn the phone sideways for a bigger board.
-
-## Commands
+Drumline Studio is TypeScript, Vite, Canvas, and Web Audio, with no framework and no runtime
+dependencies. It was forked from [DrumlineTD](https://github.com/stansz/drumline).
 
 ```sh
 npm install
-npm run dev
-npm test
-npm run test:sandbox
+npm run dev        # local dev server
+npm test           # unit tests
 npm run typecheck
-npm run build
-npm run preview
+npm run build      # type-checks, then writes the static site to dist/
+npm run preview    # serves dist/ locally
 ```
 
 `npm run test:sandbox` runs the same tests inside the Windows `dsh` sandbox, where `npm test` can't
-start. `npm run build` type-checks the project and writes a static site to `dist/`, which
-`npm run preview` serves locally.
-Pushing to `main` deploys that site to GitHub Pages through the included workflow.
-[docs/references.md](docs/references.md) describes how the code fits together.
+start. Pushing to `main` deploys the site to GitHub Pages through the included workflow, and a
+failing test blocks the deploy.
 
-## Hidden features
+- [docs/references.md](docs/references.md): how the code fits together.
+- [docs/themes.md](docs/themes.md): how themes and loudness work.
+- [AGENTS.md](AGENTS.md): rules for changing the code.
 
-Live play (the Paint/Live/Rec mode, keys A–K) and the step-light loop are built but turned off
-with `LIVE_TOOLS` in `src/config.ts`.
+Live play (the Paint/Live/Rec mode, keys A–K) and the step-light loop are built but turned off with
+`LIVE_TOOLS` in `src/config.ts`.
 
 ## Credits
 
-The Silkscreen and VT323 fonts are used under the SIL Open Font License. Their licenses are in `src/fonts/`.
+The Silkscreen and VT323 fonts are used under the SIL Open Font License. Their licenses are in
+`src/fonts/`. Korobeiniki is a 19th-century Russian folk song in the public domain.

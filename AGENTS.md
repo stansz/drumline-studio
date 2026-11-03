@@ -25,7 +25,7 @@ Commands: `npm run dev`, `npm test`, `npm run test:sandbox`, `npm run typecheck`
 - Each note plays only on its own step, and only while that step is within the pattern
   length and the loop. A note recorded live skips its next pass because it already sounded.
 - Live play and the loop are hidden behind `LIVE_TOOLS` in `src/config.ts`; when turning them
-  on, restore their README sections from git history.
+  on, restore their sections in `docs/guide.md` from the README in git history.
 - FX are applied on top of the theme and never change a theme's own values.
 - Voices connect to their instrument's level and send gains in `audio.ts`, never straight to
   `towerBus` or `delaySend`, so the mixer covers everything.
@@ -56,5 +56,6 @@ Commands: `npm run dev`, `npm test`, `npm run test:sandbox`, `npm run typecheck`
   modules.
 - Docs describe only what the code does now. When a change makes a doc statement false, fix the
   doc in the same change.
-- Update the matching doc in the same change: `README.md` for controls, modes, or commands, the
+- Update the matching doc in the same change: `docs/guide.md` for controls and modes (and its
+  screenshots in `docs/images/` when the layout changes), `README.md` for features or commands, the
   docs above for their topics, and this file for rules.
