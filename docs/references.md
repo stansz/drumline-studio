@@ -99,6 +99,10 @@ Elsewhere:
 Pause stops the scheduler and keeps the step. Stop also rewinds and resets `musicStep`. Notes
 already scheduled within `LOOKAHEAD_SECONDS` still sound after a pause.
 
+**Start** and the start screen's **Enter**/**Space** only call `startAudio()`, which opens the audio
+clock and hides the overlay; they do not start the scheduler, so playback waits for **Play**. The
+Play button shows **Play** until then; pressing it starts the audio first if it is not on yet.
+
 The sequencer always runs slightly ahead of what the player sees and hears, so read visuals against
 audio time, not against the sequencer's current state.
 
@@ -155,7 +159,8 @@ The step strip above the board is DOM. `main.ts` lights the playhead's step, and
 of the hovered cell.
 
 With 32 steps, the board shows one page at a time. The page offset is `page * 16`: cells from the
-other page are skipped, and the playhead only draws while it is on the shown page.
+other page are skipped, and the playhead only draws while it is on the shown page. Follow, when on,
+flips the shown page to the playhead's page in `frame()`; flipping the page by hand turns it off.
 
 When the pointer is over a note, the renderer draws a red outline around that cell instead of the
 sprite preview, to show that a click removes the note.
@@ -169,16 +174,16 @@ On phones held sideways, the controls sit in a column beside the board, which gi
 screen. `#rotate-hint` on the start screen points players to that layout. These layouts were
 measured in headless Edge at phone sizes, not on a real phone.
 
-The tab row directly above the dock holds the Mix, Beats, FX, Share, and ⓘ buttons. The header
-holds the logo, the Notes and Step readouts, the Theme button, and the Vol and Backing sliders; the
-transport holds Play, Stop, BPM, Backing, Mute, Clear, and Length.
+The tab row directly above the dock holds the Mix, Beats, FX, Backing, and ⓘ buttons. The header
+holds the logo, the Notes and Step readouts, the Theme button, the Vol slider, and the Length and
+Follow buttons; the transport holds Play, Stop, BPM, Share, Mute, and Clear.
 
 The mixer, sampler, FX, Share, and Beats panels share one dock slot under the board and show one
 view at a time. `updateDock()` in `main.ts` picks the view: an open panel (FX, Share, Beats, or the
 `mixall` view of all seven volume sliders), else the sampler while Sample is selected, else the
 mixer. The mixer shows one slider, for the selected instrument, and `updateMixView()` swaps which
-one is visible. Sample's volume slider lives in the sampler panel, and the Backing volume slider
-sits under the main volume slider in the header.
+one is visible. Sample's volume slider lives in the sampler panel, and the Backing volume slider is
+in the `mixall` view of the dock.
 The dock's height comes from the `--dock-h` custom property, so swapping views never moves the
 board or the controls.
 
@@ -216,6 +221,8 @@ These values are saved to `localStorage` when they change, and come back on the 
 - `drumline-fx`: the FX settings as JSON.
 - `drumline-mix`: the mixer levels as JSON, including `bass`.
 - `drumline-sample`: the chosen sample id.
+- `drumline-follow`: `1` while the board follows the playhead across pages, `0` when it does not.
+  Absent means `1`.
 - `drumline-pattern`: JSON `{ v: 1, length, cells }`, where each cell is
   `[instrument, col, row]` plus an optional fourth element, the `sample` id, on sample cells. An
   optional top-level `scale` holds a preset scale id; it is read only when it matches

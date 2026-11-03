@@ -60,18 +60,23 @@ Korobeiniki is a 19th-century Russian folk song in the public domain. Its preset
 scale for the synth and the bass on top of the Chiptune theme; **Clear** resets the scale to the
 theme's own.
 
-### Length and pages
+### Length, pages, and Follow
 
-**Length** switches between 16 and 32 steps. With 32 steps, **Page** flips the board between
-steps 1–16 and 17–32. Notes on steps 17–32 are kept but silent while the length is 16.
+**Length**, next to the Step counter, switches between 16 and 32 steps. With 32 steps, **Page**
+flips the board between steps 1–16 and 17–32, and **Follow** (key **F**) appears next to it. While
+Follow is on, the board flips to the page the playhead is on as it plays; flipping the page by
+hand with **Page** or **P** turns Follow off. Follow starts on and is remembered between visits.
+Notes on steps 17–32 are kept but silent while the length is 16.
 
 ### Playing
 
-Press **Play** to start the loop and **Pause** to hold it where it is; **Play** then carries on
-from the same step. **Stop** halts and goes back to step 1, restarting the song from the top. Set
-the tempo from 40 to 300 BPM by typing it into the **BPM** box or with the **−** and **+** buttons
-(hold Shift to move by 10). **Backing** cycles through **Song**, **Loop**, and **Off** (key **B**), and the button shows the
-current mode under a small **Backing** caption.
+**Start** on the start screen (or **Enter** or **Space** there) turns on the audio but does not
+start playback; press **Play** to begin. Press **Play** to start the loop and **Pause** to hold it
+where it is; **Play** then carries on from the same step. **Stop** halts and goes back to step 1,
+restarting the song from the top. Set the tempo from 40 to 300 BPM by typing it into the **BPM**
+box or with the **−** and **+** buttons (hold Shift to move by 10). **Backing** in the tab row
+cycles through **Song**, **Loop**, and **Off** (key **B**), and the button shows the current mode
+under a small **Backing** caption.
 Song moves through verse, chorus, verse, chorus, and a break, with a short snare fill before each
 change; the chorus uses a second chord progression. Loop plays the theme's steady verse loop. Off
 plays only your pattern, plus a metronome click while the grid is empty. **Mute** silences
@@ -94,12 +99,12 @@ The slot under the board shows the selected instrument's volume slider: Kick, Ha
 or Bass. Picking another instrument swaps which slider shows. Each slider also scales the reverb
 that its part feeds, and the synth's delay, so turning a part down turns its tail down too, and
 the levels are remembered between visits. Selecting Sample, or opening FX or Share, uses the same
-slot. Sample's volume is in the sampler panel. The Backing volume sits under the main volume
-slider in the header. On a phone held sideways, the per-instrument slider is hidden, but Backing
-and the main volume are not. **Mix** in the tab row above the dock shows all seven volumes at once, each labeled in
-its color: Kick, Hat, Synth, Snare, Sample, Bass, and Backing. Picking an instrument, or pressing
-Mix again, goes back to the single slider. It also works on a phone held sideways. All sliders for
-a part stay in sync.
+slot. Sample's volume is in the sampler panel. The header keeps only the main volume; the Backing
+volume is in the **Mix** view. On a phone held sideways, the per-instrument slider is hidden, but
+the main volume is not. **Mix** in the tab row above the dock shows all seven volumes at once, each
+labeled in its color: Kick, Hat, Synth, Snare, Sample, Bass, and Backing. Picking an instrument, or
+pressing Mix again, goes back to the single slider. It also works on a phone held sideways, so it
+is where the Backing volume is set there. All sliders for a part stay in sync.
 
 ### FX
 
@@ -112,11 +117,11 @@ adds bit-crush on top of the theme's own. **Reset** sets them all back to off.
 ### Saving and sharing
 
 The pattern, its length, and any preset scale are saved automatically and come back on your next
-visit. **Share** (key **E**) opens a panel with three ways to keep a beat. Opening Share closes
-the other dock panels. **Copy link** gives anyone who opens the link the same pattern, length,
-tempo, theme, picked sample sound, per-note sample sounds, and preset scale. Links in the older
-`v1`, `v2`, `v3`, and `v4` formats still open; they fall back to the default Clap sound where they
-carry no per-note sound and to the theme's scale where they carry no scale. **Record**
+visit. **Share** in the transport (key **E**) opens a panel with three ways to keep a beat.
+Opening Share closes the other dock panels. **Copy link** gives anyone who opens the link the same
+pattern, length, tempo, theme, picked sample sound, per-note sample sounds, and preset scale. Links
+in the older `v1`, `v2`, `v3`, and `v4` formats still open; they fall back to the default Clap sound
+where they carry no per-note sound and to the theme's scale where they carry no scale. **Record**
 (key **R**) records everything you hear, starting playback if needed; press it again to download
 the audio file, in whatever format the browser records, usually WebM, or M4A on Safari.
 Recordings are taken at full level, before the volume slider, so the slider does not change a
@@ -127,9 +132,9 @@ scale, or else the theme's).
 
 ### The dock
 
-The tab row directly above the dock holds Mix, Beats, FX, Share, and ⓘ. The header holds the logo,
-the Notes and Step readouts, Theme, and the Vol and Backing sliders. The transport holds Play, Stop,
-BPM, Backing, Mute, Clear, and Length.
+The tab row directly above the dock holds Mix, Beats, FX, Backing, and ⓘ. The header holds the
+logo, the Notes and Step readouts, Theme, the Vol slider, and the Length and Follow buttons. The
+transport holds Play, Stop, BPM, Share, Mute, and Clear.
 
 The mixer, sampler, FX, Share, and Beats panels share one slot under the board, and only one of
 them shows at a time, so opening one never moves the board. On a phone held sideways, that slot
@@ -145,6 +150,7 @@ floats over the bottom of the board.
 - **C** clear the pattern
 - **L** switch the pattern length between 16 and 32 steps
 - **P** flip between the two pages while the length is 32
+- **F** turn Follow on or off while the length is 32
 - **-** / **=** slower or faster by 1 BPM; with Shift, by 10
 - **M** mute or unmute
 - **T** change the music theme
@@ -153,10 +159,10 @@ floats over the bottom of the board.
 - **R** start or stop recording audio
 
 While the backing info screen is open, **Esc** or **I** closes it, and every other key is ignored.
-On the start screen, **Enter** or **Space** starts, and **T** changes the theme. The on-screen
-buttons provide the same actions, and the sliders beside the theme button set the volume and the
-Backing level. Your theme, volume, tempo, backing setting, FX, mixer levels, and picked sample are
-remembered between visits.
+On the start screen, **Enter** or **Space** turns on the audio without starting playback, and **T**
+changes the theme. The on-screen buttons provide the same actions, and the slider beside the theme
+button sets the volume. Your theme, volume, tempo, backing setting, Follow setting, FX, mixer
+levels, and picked sample are remembered between visits.
 
 On a phone, tap instead of clicking, and turn the phone sideways for a bigger board.
 

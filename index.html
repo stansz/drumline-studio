@@ -16,12 +16,13 @@
           <div class="lcd"><small>Notes</small><span id="notes">0</span></div>
           <div class="lcd"><small>Step</small><span id="step">01/16</span></div>
           <button id="page" class="hw" type="button" hidden>Page 1</button>
+          <button id="length" class="hw" type="button">16 steps</button>
+          <button id="follow" class="hw" type="button" hidden aria-pressed="true" title="Follow the playhead across pages (F)">Follow</button>
         </div>
         <div class="sys">
           <button id="theme" class="hw" type="button" aria-label="Change music theme">♪ Neon</button>
           <div class="levels">
             <label class="level"><small>Vol</small><input id="volume" type="range" min="0" max="100" step="1" value="100" aria-label="Volume" title="Volume" /></label>
-            <label class="level"><small>Backing</small><input id="mix-backing" type="range" min="0" max="100" step="1" value="100" data-mix-channel="backing" aria-label="Backing volume" title="Backing volume" /></label>
           </div>
         </div>
       </header>
@@ -33,7 +34,7 @@
         <button id="mix-toggle" class="hw tab" type="button" aria-expanded="false" aria-controls="mix-all">Mix</button>
         <button id="beats-toggle" class="hw tab" type="button" aria-expanded="false" aria-controls="beats">Beats</button>
         <button id="fx-toggle" class="hw tab" type="button" aria-expanded="false" aria-controls="fx">FX</button>
-        <button id="share-toggle" class="hw tab" type="button" aria-expanded="false" aria-controls="share">Share</button>
+        <button id="backing" class="hw tab" type="button"><small>Backing</small><span id="backing-value">Song</span></button>
         <button id="info-toggle" class="hw tab" type="button" aria-haspopup="dialog" aria-controls="backing-info" title="About the backing music (I)">ⓘ</button>
       </nav>
       <div id="dock" class="dock">
@@ -102,10 +103,9 @@
               <button id="bpm-up" class="hw" type="button" aria-label="Faster" title="Faster (Shift: 10 BPM)">+</button>
             </div>
             <button id="live" class="hw" type="button" title="Paint, Live, or Rec (V)">Paint</button>
-            <button id="backing" class="hw" type="button"><small>Backing</small><span id="backing-value">Song</span></button>
+            <button id="share-toggle" class="hw" type="button" aria-expanded="false" aria-controls="share">Share</button>
             <button id="mute" class="hw" type="button">Mute</button>
             <button id="clear" class="hw" type="button">Clear</button>
-            <button id="length" class="hw" type="button">16 steps</button>
           </div>
         </div>
       </div>

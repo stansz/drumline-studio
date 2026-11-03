@@ -69,6 +69,7 @@ const fileButton = byId<HTMLButtonElement>('sample-file');
 const fileInput = byId<HTMLInputElement>('sample-file-input');
 const pageButton = byId<HTMLButtonElement>('page');
 const lengthButton = byId<HTMLButtonElement>('length');
+const followButton = byId<HTMLButtonElement>('follow');
 const beatsToggle = byId<HTMLButtonElement>('beats-toggle');
 const playButton = byId<HTMLButtonElement>('play');
 const stopButton = byId<HTMLButtonElement>('stop');
@@ -126,6 +127,7 @@ const FX_KEY = 'drumline-fx';
 const MIX_KEY = 'drumline-mix';
 const PATTERN_KEY = 'drumline-pattern';
 const SAMPLE_KEY = 'drumline-sample';
+const FOLLOW_KEY = 'drumline-follow';
 const renderer = new Renderer(canvas);
 
 const sequencer = new Sequencer();
@@ -147,6 +149,7 @@ let scaleId: string | null = null;
 let volume = loadVolume();
 let backing = loadBacking();
 let sections = loadSections();
+let follow = loadFollow();
 let bpm = loadBpm();
 let fx: FxSettings = loadFx();
 let mix: MixSettings = loadMix();
@@ -232,6 +235,7 @@ function setLength(length: PatternLength): void {
   lengthButton.textContent = `${length} steps`;
   lengthButton.classList.toggle('selected', length === 32);
   pageButton.hidden = length === 16;
+  updateFollowButton();
   updateHud();
   updateLoopLeds();
   savePattern();
@@ -395,6 +399,30 @@ function loadSections(): boolean {
   }
 }
 
+function loadFollow(): boolean {
+  try {
+    return localStorage.getItem(FOLLOW_KEY) !== '0';
+  } catch {
+    return true;
+  }
+}
+
+function updateFollowButton(): void {
+  followButton.hidden = sequencer.length === 16;
+  followButton.classList.toggle('selected', follow);
+  followButton.setAttribute('aria-pressed', String(follow));
+}
+
+function setFollow(on: boolean): void {
+  follow = on;
+  try {
+    localStorage.setItem(FOLLOW_KEY, on ? '1' : '0');
+  } catch {
+    // The choice still applies for this visit.
+  }
+  updateFollowButton();
+}
+
 function cycleBacking(): void {
   if (!backing) {
     backing = true;
@@ -498,7 +526,6 @@ async function startAudio(): Promise<void> {
     scheduler.bpm = bpm;
     window.__drumline = { sequencer, scheduler, audio };
     hideOverlay();
-    play();
     recordButton.disabled = false;
     micButton.disabled = false;
     fileButton.disabled = false;
@@ -930,7 +957,9 @@ function loadSampleFile(): void {
 
 function play(): void {
   if (!started) {
-    void startAudio();
+    void startAudio().then(() => {
+      if (started) play();
+    });
     return;
   }
   scheduler?.start();
@@ -1185,7 +1214,11 @@ snareButton.addEventListener('click', () => selectTool('snare'));
 sampleButton.addEventListener('click', () => selectTool('sample'));
 bassButton.addEventListener('click', () => selectTool('bass'));
 lengthButton.addEventListener('click', () => setLength(sequencer.length === 16 ? 32 : 16));
-pageButton.addEventListener('click', () => setPage(page === 0 ? 1 : 0));
+pageButton.addEventListener('click', () => {
+  setFollow(false);
+  setPage(page === 0 ? 1 : 0);
+});
+followButton.addEventListener('click', () => setFollow(!follow));
 
 playButton.addEventListener('click', togglePlay);
 stopButton.addEventListener('click', stop);
@@ -1199,7 +1232,7 @@ bpmInput.addEventListener('keydown', (event) => {
 muteButton.addEventListener('click', toggleMute);
 clearButton.addEventListener('click', clearPattern);
 liveButton.addEventListener('click', () => setLiveMode(nextLiveMode(liveMode)));
-startButton.addEventListener('click', play);
+startButton.addEventListener('click', () => void startAudio());
 themeButton.addEventListener('click', cycleTheme);
 infoToggle.addEventListener('click', openInfo);
 infoClose.addEventListener('click', closeInfo);
@@ -1260,7 +1293,7 @@ window.addEventListener('keydown', (event) => {
     }
   }
   if (!overlay.classList.contains('hidden')) {
-    if (event.key === 'Enter' || event.code === 'Space') play();
+    if (event.key === 'Enter' || event.code === 'Space') void startAudio();
     if (event.key.toLowerCase() === 't') cycleTheme();
     return;
   }
@@ -1301,6 +1334,9 @@ window.addEventListener('keydown', (event) => {
     case 'e':
       toggleSharePanel();
       break;
+    case 'f':
+      setFollow(!follow);
+      break;
     case 'i':
       openInfo();
       break;
@@ -1311,7 +1347,10 @@ window.addEventListener('keydown', (event) => {
       toggleMute();
       break;
     case 'p':
-      if (sequencer.length === 32) setPage(page === 0 ? 1 : 0);
+      if (sequencer.length === 32) {
+        setFollow(false);
+        setPage(page === 0 ? 1 : 0);
+      }
       break;
     case 'r':
       toggleRecording();
@@ -1340,6 +1379,10 @@ function frame(): void {
     playhead = mark.step;
     playheadAt = mark.at;
     heardMusicStep = mark.musicStep;
+  }
+  if (follow && playing && sequencer.length === 32) {
+    const playPage = Math.floor(playhead / GRID_COLS);
+    if (playPage !== page) setPage(playPage);
   }
   if (!infoBackdrop.hidden) updateInfoPosition();
   const lit = Math.floor(playhead / GRID_COLS) === page ? playhead % GRID_COLS : -1;
@@ -1454,6 +1497,7 @@ for (const name of INSTRUMENTS) {
 updateThemeButton();
 bpmInput.value = String(bpm);
 updateBackingButton();
+updateFollowButton();
 volumeSlider.value = String(volume);
 showFx();
 showMix();
