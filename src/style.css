@@ -1140,12 +1140,12 @@ body {
   #tabs {
     grid-column: 2;
     grid-row: 2;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 4px;
   }
 
   #tabs .hw {
-    min-height: 30px;
+    min-height: 28px;
     font-size: 0.55rem;
     padding-inline: 2px;
   }
