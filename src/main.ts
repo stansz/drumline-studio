@@ -73,6 +73,7 @@ const beatsToggle = byId<HTMLButtonElement>('beats-toggle');
 const playButton = byId<HTMLButtonElement>('play');
 const stopButton = byId<HTMLButtonElement>('stop');
 const backingButton = byId<HTMLButtonElement>('backing');
+const backingValue = byId<HTMLSpanElement>('backing-value');
 const bpmInput = byId<HTMLInputElement>('bpm');
 const bpmDownButton = byId<HTMLButtonElement>('bpm-down');
 const bpmUpButton = byId<HTMLButtonElement>('bpm-up');
@@ -372,7 +373,7 @@ function updateBackingButton(): void {
     : sections
       ? 'Backing music: song with sections'
       : 'Backing music: steady loop';
-  backingButton.textContent = label;
+  backingValue.textContent = label;
   backingButton.title = title;
   backingButton.classList.toggle('selected', backing);
   backingButton.setAttribute('aria-pressed', String(backing));

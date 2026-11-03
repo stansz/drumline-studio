@@ -44,14 +44,14 @@ can't carry it: people who open the link hear Clap instead.
 
 ### Beats
 
-**Beats** in the transport opens a row of preset beats, one tap each: Four on the Floor, Boom
+**Beats** in the tab row above the dock opens a row of preset beats, one tap each: Four on the Floor, Boom
 Bap, Breakbeat, Trap, Dembow, Funk Groove, and Korobeiniki (Tetris tune). A preset sets the
 pattern (drums, samples, synth, and bass), the pattern length, the tempo, the theme, and the
 Backing mode; some also set a synth scale. Playback keeps going, and the new beat takes over on
 the next step. Picking an instrument does not close Beats; opening FX, Share, or Mix, or pressing
 Beats again, does.
 
-**🎲 Random** replaces the pattern with a fresh 16-step groove: kick on the one, snare on 2 and 4,
+**Random** replaces the pattern with a fresh 16-step groove: kick on the one, snare on 2 and 4,
 a hat pattern, a bass line that follows the kick, and a few synth notes in key. The theme, tempo,
 length, and scale stay as they are. **Undo** puts back the pattern and the settings changed by
 the last preset or Random; there is one level of undo.
@@ -70,7 +70,8 @@ steps 1–16 and 17–32. Notes on steps 17–32 are kept but silent while the l
 Press **Play** to start the loop and **Pause** to hold it where it is; **Play** then carries on
 from the same step. **Stop** halts and goes back to step 1, restarting the song from the top. Set
 the tempo from 40 to 300 BPM by typing it into the **BPM** box or with the **−** and **+** buttons
-(hold Shift to move by 10). **Backing** cycles through **Song**, **Loop**, and **Off** (key **B**).
+(hold Shift to move by 10). **Backing** cycles through **Song**, **Loop**, and **Off** (key **B**), and the button shows the
+current mode under a small **Backing** caption.
 Song moves through verse, chorus, verse, chorus, and a break, with a short snare fill before each
 change; the chorus uses a second chord progression. Loop plays the theme's steady verse loop. Off
 plays only your pattern, plus a metronome click while the grid is empty. **Mute** silences
@@ -80,7 +81,7 @@ or the tempo.
 
 ### The Backing info screen
 
-**ⓘ** next to the theme button (key **I**) opens a panel about the theme's backing music. It shows
+**ⓘ** in the tab row above the dock (key **I**) opens a panel about the theme's backing music. It shows
 the theme's name and a one-line description, the current Backing mode (Song, Loop, or Off) and
 what it means, a map of the five song sections, the verse and chorus chord names, whether the
 feel is straight or swung, and the tempo. While the song plays, the section and bar being heard are
@@ -95,7 +96,7 @@ that its part feeds, and the synth's delay, so turning a part down turns its tai
 the levels are remembered between visits. Selecting Sample, or opening FX or Share, uses the same
 slot. Sample's volume is in the sampler panel. The Backing volume sits under the main volume
 slider in the header. On a phone held sideways, the per-instrument slider is hidden, but Backing
-and the main volume are not. **Mix** in the header shows all seven volumes at once, each labeled in
+and the main volume are not. **Mix** in the tab row above the dock shows all seven volumes at once, each labeled in
 its color: Kick, Hat, Synth, Snare, Sample, Bass, and Backing. Picking an instrument, or pressing
 Mix again, goes back to the single slider. It also works on a phone held sideways. All sliders for
 a part stay in sync.
@@ -125,6 +126,10 @@ sample note uses its own sound's drum note, and the synth and bass use the activ
 scale, or else the theme's).
 
 ### The dock
+
+The tab row directly above the dock holds Mix, Beats, FX, Share, and ⓘ. The header holds the logo,
+the Notes and Step readouts, Theme, and the Vol and Backing sliders. The transport holds Play, Stop,
+BPM, Backing, Mute, Clear, and Length.
 
 The mixer, sampler, FX, Share, and Beats panels share one slot under the board, and only one of
 them shows at a time, so opening one never moves the board. On a phone held sideways, that slot

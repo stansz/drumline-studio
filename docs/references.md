@@ -68,7 +68,7 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
 
 Elsewhere:
 
-- `index.html`: the page markup, the HUD, the panel buttons, and the backing info dialog.
+- `index.html`: the page markup, the HUD, the tab row, the dock, and the backing info dialog.
 - `package.json`: the scripts and the Vite, Vitest, and TypeScript versions.
 - `vite.config.ts`: Vite config; `base: './'` keeps the build working from any path.
 - `tsconfig.json`: strict TypeScript for `src` and `tests`.
@@ -169,6 +169,10 @@ On phones held sideways, the controls sit in a column beside the board, which gi
 screen. `#rotate-hint` on the start screen points players to that layout. These layouts were
 measured in headless Edge at phone sizes, not on a real phone.
 
+The tab row directly above the dock holds the Mix, Beats, FX, Share, and ⓘ buttons. The header
+holds the logo, the Notes and Step readouts, the Theme button, and the Vol and Backing sliders; the
+transport holds Play, Stop, BPM, Backing, Mute, Clear, and Length.
+
 The mixer, sampler, FX, Share, and Beats panels share one dock slot under the board and show one
 view at a time. `updateDock()` in `main.ts` picks the view: an open panel (FX, Share, Beats, or the
 `mixall` view of all seven volume sliders), else the sampler while Sample is selected, else the
@@ -179,7 +183,7 @@ The dock's height comes from the `--dock-h` custom property, so swapping views n
 board or the controls.
 
 The backing info screen is a separate fixed overlay, `#backing-info`, outside the dock. `ⓘ` in the
-header (key **I**) opens it; `main.ts` builds the song map once from `songMap()` at startup, and
+tab row above the dock (key **I**) opens it; `main.ts` builds the song map once from `songMap()` at startup, and
 `renderInfo()` fills the title, blurb, backing mode, chord names, feel, and tempo. While it is
 open, each `frame()` compares the heard `musicStep` against the last rendered section index and bar
 and only then touches the DOM: the map's `current` class and the `Now:` line follow the song, and

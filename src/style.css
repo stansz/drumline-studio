@@ -123,6 +123,22 @@ body {
   min-height: 32px;
 }
 
+/* ---- Tab row ---- */
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  gap: 6px;
+}
+
+.tabs .hw {
+  min-height: 32px;
+  padding-block: 4px;
+}
+
+#info-toggle {
+  min-width: 40px;
+}
+
 #volume {
   min-width: 0;
   accent-color: var(--amber);
@@ -427,7 +443,7 @@ body {
 }
 
 #stage {
-  width: min(100%, 1024px, calc((100dvh - 276px) * 2));
+  width: min(100%, 1024px, calc((100dvh - 314px) * 2));
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -463,7 +479,7 @@ body {
 
 .keys {
   display: grid;
-  grid-template-columns: repeat(9, 1fr);
+  grid-template-columns: repeat(8, 1fr);
   gap: 6px;
 }
 
@@ -498,6 +514,20 @@ body {
 
 .hw.selected {
   color: var(--amber);
+}
+
+#backing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  line-height: 1;
+}
+
+#backing small {
+  font: 400 0.5rem/1 var(--label);
+  color: var(--mute);
 }
 
 .hw.rec {
@@ -867,6 +897,14 @@ body {
     min-height: 44px;
   }
 
+  .tabs {
+    gap: 4px;
+  }
+
+  .tabs .hw {
+    font-size: 0.66rem;
+  }
+
   .levels {
     flex: 1;
     width: auto;
@@ -1005,7 +1043,7 @@ body {
   }
 
   #stage {
-    width: min(100%, calc((100dvh - 118px) * 2));
+    width: min(100%, calc((100dvh - 156px) * 2));
     gap: 2px;
   }
 }
@@ -1051,7 +1089,7 @@ body {
   #app {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 190px;
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
     column-gap: 8px;
     row-gap: 4px;
     align-items: start;
@@ -1059,7 +1097,7 @@ body {
 
   #stage {
     grid-column: 1;
-    grid-row: 1 / 3;
+    grid-row: 1 / 4;
     width: min(100%, calc((100dvh - 30px) * 2));
   }
 
@@ -1068,6 +1106,19 @@ body {
     grid-row: 1;
     flex-wrap: wrap;
     gap: 4px;
+  }
+
+  #tabs {
+    grid-column: 2;
+    grid-row: 2;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  #tabs .hw {
+    min-height: 30px;
+    font-size: 0.55rem;
+    padding-inline: 2px;
   }
 
   #hud .logo {
@@ -1096,7 +1147,7 @@ body {
 
   #controls {
     grid-column: 2;
-    grid-row: 2;
+    grid-row: 3;
     grid-template-columns: 1fr;
     gap: 4px;
   }
@@ -1143,5 +1194,12 @@ body {
     right: 206px;
     bottom: 8px;
     z-index: 5;
+  }
+}
+
+/* ---- Very narrow phones: six pad labels need a smaller font ---- */
+@media (max-width: 380px) {
+  .pad b {
+    font-size: 0.62rem;
   }
 }
