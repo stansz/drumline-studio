@@ -9,8 +9,8 @@ pick a backing band, and share it with a link. There's nothing to install and no
 
 ## Features
 
-- **Six instruments:** Kick, Hat, Synth, Snare, Bass, and Sample, on a 16- or 32-step grid where
-  each row is a pitch.
+- **Six instruments:** Kick, Hat, Synth, Snare, Bass, and Sample, on a 16-, 32-, or 64-step grid
+  where each row is a pitch.
 - **Backing music in nine themes:** Neon, Chiptune, Lo-fi, Techno, Funk, Hip-hop, House,
   Synthwave, and Clean, each with its own chords, bass, arpeggio, and drums. Play it as a full
   song, a loop, or not at all.

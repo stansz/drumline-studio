@@ -22,6 +22,13 @@ function validScale(scale: unknown): string | undefined {
   return typeof scale === 'string' && /^[a-z0-9-]{1,24}$/.test(scale) ? scale : undefined;
 }
 
+function parseLength(text: string, allow64: boolean): PatternLength | null {
+  if (text === '16') return 16;
+  if (text === '32') return 32;
+  if (allow64 && text === '64') return 64;
+  return null;
+}
+
 function validCell(instrument: unknown, col: unknown, row: unknown, sample?: unknown): Cell | null {
   if (typeof instrument !== 'string' || !(INSTRUMENTS as readonly string[]).includes(instrument)) {
     return null;
@@ -77,7 +84,8 @@ export function parsePattern(text: string | null): SavedPattern | null {
   if (typeof data !== 'object' || data === null) return null;
   const record = data as Record<string, unknown>;
   if (record.v !== 1 || !Array.isArray(record.cells)) return null;
-  const length: PatternLength = record.length === 32 ? 32 : 16;
+  const length: PatternLength =
+    record.length === 64 ? 64 : record.length === 32 ? 32 : 16;
   const cells = cleanCells(
     record.cells.map((entry) =>
       Array.isArray(entry) ? validCell(entry[0], entry[1], entry[2], entry[3]) : null,
@@ -115,6 +123,7 @@ function fromBase64Url(text: string): Uint8Array | null {
 // row * 6 + instrument index.
 // v5 is the same as v4, plus a scale id after the sample id, empty for the theme's own scale:
 // v5.<length>.<bpm>.<theme id>.<picked sample id>.<scale id>.<sample table>.<cells>.
+// v6 is the same as v5, except the length may be 64. New links are written as v6.
 const MAX_SAMPLE_TABLE = 16;
 
 export function encodeShare(beat: SharedBeat): string {
@@ -136,7 +145,7 @@ export function encodeShare(beat: SharedBeat): string {
     bytes[i * 3 + 2] = sampleIndex;
   });
   return [
-    'v5',
+    'v6',
     beat.length,
     parseBpm(String(beat.bpm)),
     beat.themeId,
@@ -193,12 +202,13 @@ export function decodeShare(text: string): SharedBeat | null {
       string,
       string,
     ];
-    if (lengthText !== '16' && lengthText !== '32') return null;
+    const length = parseLength(lengthText, false);
+    if (length === null) return null;
     if (!/^[a-z0-9-]{1,24}$/.test(themeId)) return null;
     const bytes = fromBase64Url(cellText);
     if (!bytes || bytes.length % 2 !== 0) return null;
     return {
-      length: lengthText === '32' ? 32 : 16,
+      length,
       bpm: parseBpm(bpmText),
       themeId,
       sampleId: DEFAULT_SAMPLE,
@@ -215,7 +225,8 @@ export function decodeShare(text: string): SharedBeat | null {
       string,
       string,
     ];
-    if (lengthText !== '16' && lengthText !== '32') return null;
+    const length = parseLength(lengthText, false);
+    if (length === null) return null;
     if (!/^[a-z0-9-]{1,24}$/.test(themeId)) return null;
     if (!/^[a-z0-9-]{1,24}$/.test(sampleId)) return null;
     const bytes = fromBase64Url(cellText);
@@ -224,14 +235,14 @@ export function decodeShare(text: string): SharedBeat | null {
       cell.instrument === 'sample' ? { ...cell, sample: sampleId } : cell,
     );
     return {
-      length: lengthText === '32' ? 32 : 16,
+      length,
       bpm: parseBpm(bpmText),
       themeId,
       sampleId,
       cells,
     };
   }
-  if (parts[0] === 'v5') {
+  if (parts[0] === 'v5' || parts[0] === 'v6') {
     if (parts.length !== 8) return null;
     const [, lengthText, bpmText, themeId, sampleId, scaleText, tableText, cellText] = parts as [
       string,
@@ -243,7 +254,8 @@ export function decodeShare(text: string): SharedBeat | null {
       string,
       string,
     ];
-    if (lengthText !== '16' && lengthText !== '32') return null;
+    const length = parseLength(lengthText, parts[0] === 'v6');
+    if (length === null) return null;
     if (!/^[a-z0-9-]{1,24}$/.test(themeId)) return null;
     if (!/^[a-z0-9-]{1,24}$/.test(sampleId)) return null;
     const scale = scaleText === '' ? undefined : validScale(scaleText);
@@ -255,7 +267,7 @@ export function decodeShare(text: string): SharedBeat | null {
     const bytes = fromBase64Url(cellText);
     if (!bytes || bytes.length % 3 !== 0) return null;
     return {
-      length: lengthText === '32' ? 32 : 16,
+      length,
       bpm: parseBpm(bpmText),
       themeId,
       sampleId,
@@ -275,7 +287,8 @@ export function decodeShare(text: string): SharedBeat | null {
     string,
     string,
   ];
-  if (lengthText !== '16' && lengthText !== '32') return null;
+  const length = parseLength(lengthText, false);
+  if (length === null) return null;
   if (!/^[a-z0-9-]{1,24}$/.test(themeId)) return null;
   if (!/^[a-z0-9-]{1,24}$/.test(sampleId)) return null;
   const sampleTable = tableText === '' ? [] : tableText.split('_');
@@ -285,7 +298,7 @@ export function decodeShare(text: string): SharedBeat | null {
   const bytes = fromBase64Url(cellText);
   if (!bytes || bytes.length % 3 !== 0) return null;
   return {
-    length: lengthText === '32' ? 32 : 16,
+    length,
     bpm: parseBpm(bpmText),
     themeId,
     sampleId,

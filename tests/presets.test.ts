@@ -23,7 +23,7 @@ describe('presets', () => {
       expect(THEME_IDS.has(preset.themeId)).toBe(true);
       expect(preset.bpm).toBeGreaterThanOrEqual(40);
       expect(preset.bpm).toBeLessThanOrEqual(300);
-      expect([16, 32]).toContain(preset.length);
+      expect([16, 32, 64]).toContain(preset.length);
       expect(['song', 'loop', 'off']).toContain(preset.backing);
     }
   });

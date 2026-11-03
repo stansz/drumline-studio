@@ -28,8 +28,8 @@ Or open **Menu** and pick a preset to hear a full groove right away, then change
 
 ![Drumline Studio on a desktop](images/hero.png)
 
-- **Header:** the logo, the **Notes** and **Step** readouts, **Length** (16 or 32 steps), **Page**
-  and **Follow** (with 32 steps), and **Share**.
+- **Header:** the logo, the **Notes** and **Step** readouts, **Length** (16, 32, or 64 steps),
+  **Page** and **Follow** (with 32 or 64 steps), and **Share**.
 - **Board:** the grid. Each column is one step (a sixteenth note), and each row is a pitch.
 - **Tab row:** **Mix**, **FX**, **♪ Theme**, **Backing**, and **Menu**.
 - **Dock:** the slot under the tab row. It shows one panel at a time: the selected instrument's
@@ -53,10 +53,11 @@ the backing music's bass line goes quiet so the two don't clash.
 
 ### Length, pages, and Follow
 
-**Length** switches between 16 and 32 steps. With 32 steps, **Page** flips the board between steps
-1–16 and 17–32, and **Follow** appears. While Follow is on, the board flips to whichever page is
-playing. Flipping the page yourself turns Follow off. Follow starts on and is remembered. Notes on
-steps 17–32 are kept but silent while the length is 16.
+**Length** cycles 16 → 32 → 64 → 16 steps. With 32 steps, **Page** flips the board between steps
+1–16 and 17–32; with 64 steps it steps through four pages: 1–16, 17–32, 33–48, and 49–64.
+**Follow** appears with 32 or 64 steps. While Follow is on, the board flips to whichever page is
+playing. Flipping the page yourself turns Follow off. Follow starts on and is remembered. Notes past
+the length are kept but silent.
 
 ## Playing
 
@@ -196,9 +197,9 @@ Backing mode, Follow setting, FX, and picked sample sound.
 | **R** | Start or stop recording |
 | **M** | Mute |
 | **C** | Clear the pattern |
-| **L** | 16 or 32 steps |
-| **P** | Flip the page (32 steps) |
-| **F** | Follow on or off (32 steps) |
+| **L** | 16, 32, or 64 steps |
+| **P** | Next page (32 or 64 steps) |
+| **F** | Follow on or off (32 or 64 steps) |
 
 On the start screen, **Enter** or **Space** turns on the sound without starting the beat, and **T**
 changes the theme. While the Menu screen is open, **Esc** closes it, **I** switches to or closes the

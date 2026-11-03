@@ -2,7 +2,7 @@ import { GRID_ROWS, MAX_STEPS } from './config';
 
 export type Instrument = 'kick' | 'hat' | 'synth' | 'snare' | 'sample' | 'bass';
 export const INSTRUMENTS: readonly Instrument[] = ['kick', 'hat', 'synth', 'snare', 'sample', 'bass'];
-export type PatternLength = 16 | 32;
+export type PatternLength = 16 | 32 | 64;
 
 export interface Cell {
   instrument: Instrument;
@@ -84,7 +84,7 @@ export class Sequencer {
     this.skips.clear();
   }
 
-  // Notes past the length are kept, so switching back to 32 steps brings them back.
+  // Notes past the length are kept, so switching back to a longer length brings them back.
   setLength(length: PatternLength): void {
     this.length = length;
     if (this.loop && this.loop.end >= length) this.loop = null;

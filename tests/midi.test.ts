@@ -108,7 +108,7 @@ describe('patternToMidi', () => {
   });
 
   it('ends the track exactly at the pattern length', () => {
-    for (const length of [16, 32]) {
+    for (const length of [16, 32, 64]) {
       const bytes = bytesOf([{ instrument: 'kick', col: 0, row: 0 }], length);
       expect(totalDelta(bytes)).toBe(length * TICKS_PER_STEP);
       expect(bytes.slice(-3)).toEqual([0xff, 0x2f, 0x00]);

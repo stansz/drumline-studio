@@ -3,7 +3,7 @@ import type { Instrument } from './sequencer';
 export const GRID_COLS = 16;
 export const GRID_ROWS = 8;
 export const STEPS_PER_BAR = 16;
-export const MAX_STEPS = 32;
+export const MAX_STEPS = 64;
 
 // Live play (Paint/Live/Rec, keys A-K) and the step-light loop are hidden until they are
 // easier to use. Set to true to bring them back.

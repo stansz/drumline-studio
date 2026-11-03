@@ -250,11 +250,19 @@ function loadCells(cells: readonly Cell[]): void {
   }
 }
 
+function nextLength(length: PatternLength): PatternLength {
+  return length === 16 ? 32 : length === 32 ? 64 : 16;
+}
+
+function pageCount(): number {
+  return sequencer.length / GRID_COLS;
+}
+
 function setLength(length: PatternLength): void {
   sequencer.setLength(length);
-  if (length === 16) setPage(0);
+  if (page >= sequencer.length / GRID_COLS) setPage(0);
   lengthButton.textContent = `${length} steps`;
-  lengthButton.classList.toggle('selected', length === 32);
+  lengthButton.classList.toggle('selected', length > 16);
   pageButton.hidden = length === 16;
   updateFollowButton();
   updateHud();
@@ -1165,7 +1173,7 @@ function loadPreset(preset: Preset): void {
 function randomize(): void {
   takeSnapshot();
   loadCells(randomPattern(Math.random));
-  if (sequencer.length === 32) setLength(16);
+  if (sequencer.length !== 16) setLength(16);
   savePattern();
   updateHud();
   updateStepHints();
@@ -1332,10 +1340,10 @@ synthButton.addEventListener('click', () => selectTool('synth'));
 snareButton.addEventListener('click', () => selectTool('snare'));
 sampleButton.addEventListener('click', () => selectTool('sample'));
 bassButton.addEventListener('click', () => selectTool('bass'));
-lengthButton.addEventListener('click', () => setLength(sequencer.length === 16 ? 32 : 16));
+lengthButton.addEventListener('click', () => setLength(nextLength(sequencer.length)));
 pageButton.addEventListener('click', () => {
   setFollow(false);
-  setPage(page === 0 ? 1 : 0);
+  if (sequencer.length > 16) setPage((page + 1) % pageCount());
 });
 followButton.addEventListener('click', () => setFollow(!follow));
 
@@ -1526,15 +1534,15 @@ window.addEventListener('keydown', (event) => {
       openScreen('backing');
       break;
     case 'l':
-      setLength(sequencer.length === 16 ? 32 : 16);
+      setLength(nextLength(sequencer.length));
       break;
     case 'm':
       toggleMute();
       break;
     case 'p':
-      if (sequencer.length === 32) {
+      if (sequencer.length > 16) {
         setFollow(false);
-        setPage(page === 0 ? 1 : 0);
+        setPage((page + 1) % pageCount());
       }
       break;
     case 'r':
@@ -1565,7 +1573,7 @@ function frame(): void {
     playheadAt = mark.at;
     heardMusicStep = mark.musicStep;
   }
-  if (follow && playing && sequencer.length === 32) {
+  if (follow && playing && sequencer.length > 16) {
     const playPage = Math.floor(playhead / GRID_COLS);
     if (playPage !== page) setPage(playPage);
   }
