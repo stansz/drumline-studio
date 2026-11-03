@@ -28,8 +28,11 @@ describe('presets', () => {
     }
   });
 
-  it('makes every preset 32 steps long', () => {
-    for (const preset of PRESETS) expect(preset.length).toBe(32);
+  it('makes every groove 32 steps and every tune 32 or 64 steps', () => {
+    for (const preset of PRESETS) {
+      if (preset.kind === 'groove') expect(preset.length).toBe(32);
+      else expect([32, 64]).toContain(preset.length);
+    }
   });
 
   it('keeps every cell inside the grid with a known instrument', () => {
@@ -110,7 +113,7 @@ describe('presets', () => {
       expect(preset?.kind).toBe('tune');
       expect(preset?.scale).toBeDefined();
       expect(SCALES[preset?.scale ?? '']).toBeDefined();
-      expect(preset?.length).toBe(32);
+      expect([32, 64]).toContain(preset?.length);
       const synth = (preset?.cells ?? []).filter((cell) => cell.instrument === 'synth');
       const first = synth.reduce((best, cell) => (cell.col < best.col ? cell : best), synth[0]!);
       expect(first).toEqual({ instrument: 'synth', col: 0, row });
@@ -129,11 +132,49 @@ describe('presets', () => {
       expect(preset).toBeDefined();
       expect(preset?.kind).toBe('holiday');
       expect(SCALES[preset?.scale ?? '']).toBeDefined();
-      expect(preset?.length).toBe(32);
+      expect([32, 64]).toContain(preset?.length);
       expect(THEME_IDS.has(preset?.themeId ?? '')).toBe(true);
       const synth = (preset?.cells ?? []).filter((cell) => cell.instrument === 'synth');
       const first = synth.reduce((best, cell) => (cell.col < best.col ? cell : best), synth[0]!);
       expect(first).toEqual({ instrument: 'synth', col: 0, row });
+    }
+  });
+
+  it('writes the new tunes and carols', () => {
+    const expected = [
+      ['canon', 'tune', 0],
+      ['swan-lake', 'tune', 0],
+      ['eine-kleine', 'tune', 4],
+      ['saints', 'tune', 3],
+      ['hark-the-herald', 'holiday', 7],
+      ['good-king-wenceslas', 'holiday', 4],
+    ] as const;
+    for (const [id, kind, row] of expected) {
+      const preset = PRESETS.find((entry) => entry.id === id);
+      expect(preset).toBeDefined();
+      expect(preset?.kind).toBe(kind);
+      expect(SCALES[preset?.scale ?? '']).toBeDefined();
+      const synth = (preset?.cells ?? []).filter((cell) => cell.instrument === 'synth');
+      const first = synth.reduce((best, cell) => (cell.col < best.col ? cell : best), synth[0]!);
+      expect(first).toEqual({ instrument: 'synth', col: 0, row });
+    }
+  });
+
+  it('adds four new grooves', () => {
+    for (const id of ['disco', 'lofi-groove', 'synthwave-drive', 'drum-and-bass']) {
+      const preset = PRESETS.find((entry) => entry.id === id);
+      expect(preset).toBeDefined();
+      expect(preset?.kind).toBe('groove');
+      expect(preset?.length).toBe(32);
+      expect(preset?.scale).toBeNull();
+      expect((preset?.cells ?? []).some((cell) => cell.instrument === 'kick')).toBe(true);
+    }
+  });
+
+  it('extends three tunes to 64 steps', () => {
+    for (const id of ['ode-to-joy', 'jingle-bells', 'fur-elise']) {
+      const preset = PRESETS.find((entry) => entry.id === id);
+      expect(preset?.length).toBe(64);
     }
   });
 

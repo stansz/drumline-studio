@@ -14,8 +14,8 @@ pick a backing band, and share it with a link. There's nothing to install and no
 - **Backing music in nine themes:** Neon, Chiptune, Lo-fi, Techno, Funk, Hip-hop, House,
   Synthwave, and Clean, each with its own chords, bass, arpeggio, and drums. Play it as a full
   song, a loop, or not at all.
-- **Grooves and tunes:** six ready-made grooves, five public-domain tunes, and four Christmas
-  carols, plus a random groove maker with undo.
+- **Grooves and tunes:** ten ready-made grooves, nine public-domain tunes, and six Christmas carols,
+  plus a random groove maker with undo.
 - **Sampler:** six built-in sounds, or record your own from the microphone or a file.
 - **Mixer and FX:** a volume for every part, plus filter, delay, reverb, and bit-crush.
 - **Share and export:** copy a link, record the audio, or download MIDI for your music app.
@@ -81,6 +81,9 @@ The code is under the [MIT License](LICENSE). The fonts keep their own license, 
 
 The Silkscreen and VT323 fonts are used under the SIL Open Font License. Their licenses are in
 `src/fonts/`. Korobeiniki (1861), In the Hall of the Mountain King (Grieg, 1875), Ode to Joy
-(Beethoven, 1824), Für Elise (Beethoven, 1810), and the Can-Can (Offenbach, 1858) are in the
-public domain. Jingle Bells (Pierpont, 1857), Joy to the World (Mason, 1839), Deck the Halls, and
-God Rest Ye Merry Gentlemen are public-domain carols.
+(Beethoven, 1824), Für Elise (Beethoven, 1810), the Can-Can (Offenbach, 1858), Canon in D
+(Pachelbel, around 1680), Swan Lake (Tchaikovsky, 1876), Eine kleine Nachtmusik (Mozart, 1787), and
+When the Saints Go Marching In (traditional) are in the public domain. Jingle Bells (Pierpont,
+1857), Joy to the World (Mason, 1839), Deck the Halls, God Rest Ye Merry Gentlemen, Hark! The
+Herald Angels Sing (Mendelssohn, 1840), and Good King Wenceslas (traditional melody, words 1853)
+are public-domain carols.

@@ -98,11 +98,14 @@ again, **Esc**, **✕**, or a click outside closes it; the music keeps playing.
 
 Open **Menu** for the Menu screen, which has three pages: **Beats**, **Music**, and **Sounds**. The
 **Beats** page comes first, with three lists: **Grooves** (Four on the Floor, Boom Bap,
-Breakbeat, Trap, Dembow, Funk Groove), **Tunes** (Korobeiniki, In the Hall of the Mountain King,
-Ode to Joy, Für Elise, Can-Can), and **Holiday** (Jingle Bells, Deck the Halls, Joy to the World,
-God Rest Ye Merry Gentlemen). The Holiday tunes are public-domain carols. A preset sets the pattern,
-its length, the tempo, the theme, and the Backing mode, and some set a scale for the synth. The
-music keeps playing, and the new beat takes over on the next step.
+Breakbeat, Trap, Dembow, Funk Groove, Disco, Lo-fi Groove, Synthwave Drive, Drum & Bass), **Tunes**
+(Korobeiniki, In the Hall of the Mountain King, Ode to Joy, Für Elise, Can-Can, Canon in D, Swan
+Lake, Eine kleine Nachtmusik, When the Saints Go Marching In), and **Holiday** (Jingle Bells, Deck
+the Halls, Joy to the World, God Rest Ye Merry Gentlemen, Hark! The Herald Angels Sing, Good King
+Wenceslas). The Holiday tunes are public-domain carols. Grooves are 32 steps, and tunes are 32 or
+64 steps. A preset sets the pattern, its length, the tempo, the theme, and the Backing mode, and
+some set a scale for the synth. The music keeps playing, and the new beat takes over on the next
+step.
 
 The Beats page shows the highlighted preset's tempo, theme, length, Backing mode, and a one-line
 description. **▲** and **▼** (or the arrow keys) move the highlight without loading. **Load**

@@ -1,94 +1,75 @@
-# Plan: allow 64-step patterns
+# Plan: 4 new grooves, 4 new tunes, 2 new carols, and 3 tunes extended to 64 steps
 
 ## Goal
 
-Patterns can be 16, 32, or 64 steps long. The Length button and **L** key cycle 16 → 32 → 64 → 16.
-With 64 steps the board has 4 pages of 16. Share links get a new version, `v6`, that carries 64;
-every older version still decodes exactly as before.
+Add 10 presets and replace 3 existing ones in `src/presets.ts`, using the exact preset objects in
+`.handoff/new-presets.txt` (generated and checked already: no two notes share a position). Update
+tests and docs to match.
 
 ## Files to touch
 
-- `src/config.ts`
-- `src/sequencer.ts`
-- `src/pattern.ts`
-- `src/main.ts`
-- `tests/sequencer.test.ts`
-- `tests/pattern.test.ts`
+- `src/presets.ts`
 - `tests/presets.test.ts`
-- `tests/midi.test.ts`
-- `README.md`
 - `docs/guide.md`
-- `docs/references.md`
-- `AGENTS.md`
+- `README.md`
 
 ## Steps
 
-1. `src/config.ts`: `MAX_STEPS = 64`.
-2. `src/sequencer.ts`: `export type PatternLength = 16 | 32 | 64;`. Update the comment on
-   `setLength` ("switching back to 32 steps" → "switching back to a longer length").
-3. `src/pattern.ts`:
-   - Add `function parseLength(text: string, allow64: boolean): PatternLength | null` returning 16,
-     32, or (only when `allow64`) 64 for the strings `'16'`, `'32'`, `'64'`, else `null`. Use it in
-     the v1–v5 decoders with `allow64 = false` (behaviour unchanged: `'64'` is rejected there).
-   - `parsePattern` (the local save, `v: 1`): length is `64` if `record.length === 64`, `32` if
-     `record.length === 32`, else `16`.
-   - `encodeShare` writes `'v6'` instead of `'v5'`. The v6 layout is identical to v5 (8 dot-separated
-     parts: version, length, bpm, theme, sample, scale, sample table, cells).
-   - `decodeShare`: keep the v5 branch exactly as it is (16 or 32 only). Add a v6 branch identical to
-     v5 except it uses `parseLength(lengthText, true)`. Simplest: make the v5 branch handle both
-     `parts[0] === 'v5' || parts[0] === 'v6'` and pass `allow64 = parts[0] === 'v6'`.
-   - Update the comment listing share-link versions if there is one.
-4. `src/main.ts`:
-   - Add `function nextLength(length: PatternLength): PatternLength` → 16→32, 32→64, 64→16. Use it
-     for the Length button click and the `l` key.
-   - Add `function pageCount(): number { return sequencer.length / GRID_COLS; }`.
-   - `setLength`: `if (page >= sequencer.length / GRID_COLS) setPage(0);` (replaces
-     `if (length === 16) setPage(0);`); `lengthButton.classList.toggle('selected', length > 16)`;
-     `pageButton.hidden = length === 16`.
-   - Page button click and the `p` key: `setPage((page + 1) % pageCount())` when the length is over 16
-     (the `p` key keeps its `setFollow(false)` and its guard, changed from `=== 32` to `> 16`).
-   - `updateFollowButton`: unchanged (`hidden = sequencer.length === 16`).
-   - `frame()`: follow check `sequencer.length === 32` → `sequencer.length > 16`.
-   - `randomize()`: `if (sequencer.length === 32) setLength(16);` → `if (sequencer.length !== 16)`.
-   - Search `main.ts` for any other `=== 32`, `32 ?`, or two-page assumption (`page === 0 ? 1 : 0`)
-     and convert it the same way.
-5. Tests:
-   - `tests/sequencer.test.ts`: the "outside the grid" and "keeps columns up to 31" tests become
-     column 63 allowed, 64 rejected (rename the second test to "keeps columns up to 63 in the
-     grid"). Add a test: `setLength(64)` then stepping 64 times from 0 returns to step 0, passing
-     through step 63.
-   - `tests/pattern.test.ts`:
-     - The invalid-cell test's `['kick', 32, 0]` becomes `['kick', 64, 0]`.
-     - Add: a 64-step pattern round-trips through `serializePattern`/`parsePattern`.
-     - Add: `encodeShare` of a 64-step beat with a cell at column 63 starts with `v6.64.` and
-       `decodeShare` returns length 64 and that cell.
-     - Add: a v5 link with length `64` (build it by taking an `encodeShare` result for a 32-step beat
-       and replacing the prefix `v6.32.` with `v5.64.`) decodes to `null`.
-     - Add: a v5 link (same trick: `v6.32.` → `v5.32.`) still decodes to length 32.
-     - Update the existing format regex expecting `v5\.(16|32)` to `v6\.(16|32|64)`.
-   - `tests/presets.test.ts`: the length check `[16, 32]` → `[16, 32, 64]`. Keep the
-     "makes every preset 32 steps long" test as is.
-   - `tests/midi.test.ts`: the `for (const length of [16, 32])` loop → `[16, 32, 64]`, if the test's
-     body works for 64; otherwise leave it and say why in the report.
-6. Docs (describe only what the code now does):
-   - `README.md`: "on a 16-, 32-, or 64-step grid".
-   - `docs/guide.md`: header line ("**Length** (16, 32, or 64 steps), **Page** and **Follow** (with
-     32 or 64 steps)"); the Length paragraph (16 → 32 → 64; with 32 steps Page flips between steps
-     1–16 and 17–32, with 64 steps it steps through 4 pages: 1–16, 17–32, 33–48, 49–64; notes past
-     the length are kept but silent); the shortcut table (**L** "16, 32, or 64 steps", **P** "Next
-     page (32 or 64 steps)", **F** "Follow on or off (32 or 64 steps)").
-   - `docs/references.md`: the paging paragraph near "With 32 steps, the board shows one page" (pages
-     of 16, offset `page * 16`, up to 4 pages); the share-link section gets v6 (same as v5 but allows
-     length 64; new links are written as v6).
-   - `AGENTS.md`: first line "a 16-, 32-, or 64-step pattern"; share-link rule lists `v6.` too.
+1. `src/presets.ts`, `SCALES`: add three entries after `'god-rest-ye'`, with comments in the same style:
+   - `'d-major': [66, 67, 69, 71, 73, 74, 76, 78], // F#4 G4 A4 B4 C#5 D5 E5 F#5`
+   - `'g-major-high': [74, 76, 78, 79, 81, 83, 84, 86], // D5 E5 F#5 G5 A5 B5 C6 D6`
+   - `'g-major': [62, 64, 66, 67, 69, 71, 72, 74], // D4 E4 F#4 G4 A4 B4 C5 D5`
+2. `src/presets.ts`, `PRESETS`. `.handoff/new-presets.txt` holds 13 preset object literals, each
+   preceded by a `// <id>` marker line (do not copy the marker lines). Copy each object literal
+   verbatim (you may reformat whitespace only, e.g. one `[col, row]` pair per line like the existing
+   presets):
+   - Insert `disco`, `lofi-groove`, `synthwave-drive`, `drum-and-bass` (in that order) right after the
+     `funk` preset.
+   - Insert `canon`, `swan-lake`, `eine-kleine`, `saints` (in that order) right after the `can-can`
+     preset.
+   - Insert `hark-the-herald`, `good-king-wenceslas` (in that order) right after the `god-rest-ye`
+     preset.
+   - Replace the existing `ode-to-joy`, `jingle-bells`, and `fur-elise` presets in place (same
+     position in the array) with the versions from the file.
+   - Update the comment above `PRESETS` so it names the sources: Korobeiniki (1861), Grieg (1875),
+     Beethoven (1810, 1824), Offenbach (1858), Pachelbel (around 1680), Tchaikovsky (1876),
+     Mozart (1787), and the traditional "When the Saints Go Marching In"; holiday tunes: Pierpont
+     (1857), Mason (1839), Mendelssohn (1840), and traditional English and Welsh carols. Keep the line
+     "Do not add copyrighted songs."
+3. `tests/presets.test.ts`:
+   - Replace the test "makes every preset 32 steps long" with: every `groove` is 32 steps; every
+     `tune` and `holiday` preset is 32 or 64 steps.
+   - In "writes the four new tunes", change `expect(preset?.length).toBe(32)` to
+     `expect([32, 64]).toContain(preset?.length)`. Do the same in "writes the four holiday tunes".
+   - Add a test "writes the new tunes and carols": for each of
+     `['canon', 'tune', 0]`, `['swan-lake', 'tune', 0]`, `['eine-kleine', 'tune', 4]`,
+     `['saints', 'tune', 3]`, `['hark-the-herald', 'holiday', 7]`,
+     `['good-king-wenceslas', 'holiday', 4]` (id, kind, row of the synth note at column 0): the preset
+     exists, has that kind, its `scale` is a key of `SCALES`, and its earliest synth cell is
+     `{ instrument: 'synth', col: 0, row }`.
+   - Add a test "adds four new grooves": `disco`, `lofi-groove`, `synthwave-drive`, `drum-and-bass`
+     exist, are `kind: 'groove'`, 32 steps, `scale: null`, and each has at least one kick cell.
+   - Add a test: `ode-to-joy`, `jingle-bells`, and `fur-elise` are 64 steps.
+4. `docs/guide.md`: in the Beats section list, Grooves becomes: Four on the Floor, Boom Bap,
+   Breakbeat, Trap, Dembow, Funk Groove, Disco, Lo-fi Groove, Synthwave Drive, Drum & Bass. Tunes:
+   Korobeiniki, In the Hall of the Mountain King, Ode to Joy, Für Elise, Can-Can, Canon in D, Swan
+   Lake, Eine kleine Nachtmusik, When the Saints Go Marching In. Holiday: Jingle Bells, Deck the
+   Halls, Joy to the World, God Rest Ye Merry Gentlemen, Hark! The Herald Angels Sing, Good King
+   Wenceslas. Add one sentence: grooves are 32 steps, and tunes are 32 or 64 steps.
+5. `README.md`:
+   - Features bullet: "ten ready-made grooves, nine public-domain tunes, and six Christmas carols,
+     plus a random groove maker with undo."
+   - Credits: after the Can-Can, add Canon in D (Pachelbel, around 1680), Swan Lake (Tchaikovsky,
+     1876), Eine kleine Nachtmusik (Mozart, 1787), and When the Saints Go Marching In (traditional);
+     the carol sentence adds Hark! The Herald Angels Sing (Mendelssohn, 1840) and Good King
+     Wenceslas (traditional melody, words 1853).
 
 ## Acceptance
 
 - `npm run typecheck` exits 0.
 - `npm run test:sandbox` exits 0.
-- `grep -n "MAX_STEPS = 64" src/config.ts` matches.
-- `grep -n "'v6'" src/pattern.ts` matches.
-- `grep -n "page === 0 ? 1 : 0" src/main.ts` prints nothing.
+- `grep -c "^    id: '" src/presets.ts` prints `25`.
+- `grep -n "'d-major'\|'g-major-high'\|'g-major'" src/presets.ts` shows the three scales and their uses.
 
 Verifier only:
 - `npm test` exits 0.
@@ -102,16 +83,16 @@ None — do it sequentially.
 
 - Do not commit, push, or switch branches.
 - Do not touch files outside **Files to touch** except `.handoff/report.md`.
-- Do not change how v1–v5 links decode. Do not change `src/presets.ts`.
+- Do not change any note, row, step, bpm, theme, or blurb in the generated presets. If a test fails
+  because of the data, stop and report it instead of editing the data.
+- Do not change other presets.
 - Do not run the `Verifier only:` commands. If any command fails with `spawn EPERM`, stop and report
   it; do not request wider sandbox access, set `NODE_OPTIONS`, or stub modules.
 - Follow `AGENTS.md`.
 
 ## Out of scope
 
-- New or changed presets.
-- Random stays 16 steps.
-- No layout or CSS changes; no screenshots.
+- UI, audio, or theme changes. Screenshots.
 
 ## If blocked
 
