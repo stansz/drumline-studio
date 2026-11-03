@@ -10,10 +10,18 @@ https://stansz.github.io/drumline-studio/
 ### Painting a pattern
 
 The grid shows 16 steps at a time: each column is one step, and each cell holds at most one
-note. The four instruments are Kick, Hat, Synth, and Snare. Click or drag on the grid to paint
-the selected instrument. Rows are pitch: higher rows tune a kick up, brighten a hat, tighten a
-snare, and play higher notes on the synth. Clicking or dragging over a note removes it, and
-right-click also removes.
+note. The five instruments are Kick, Hat, Synth, Snare, and Sample. Click or drag on the grid to
+paint the selected instrument. Rows are pitch: higher rows tune a kick up, brighten a hat, tighten
+a snare, play higher notes on the synth, and pitch the sample up. Clicking or dragging over a note
+removes it, and right-click also removes.
+
+### Sampler
+
+Select **Sample** to open the sampler panel with six built-in sounds: Clap, Cowbell, Rimshot, Tom,
+Shaker, and Zap. Clicking a sound picks it for the Sample instrument and plays it once. Rows set
+its pitch: the bottom row plays the sound as recorded, and each higher row plays it higher, up to
+an octave at the top row. The chosen sound is remembered, and it travels in share links and MIDI
+export.
 
 ### Length and pages
 
@@ -42,7 +50,8 @@ the tempo-synced delay and the reverb; **Crush** adds bit-crush on top of the th
 
 The pattern and its length are saved automatically and come back on your next visit. **Share**
 (key **E**) opens a panel with three ways to keep a beat. **Copy link** gives anyone who opens
-the link the same pattern, length, tempo, and theme. **Record** (key **R**) records everything
+the link the same pattern, length, tempo, theme, and sample sound. Links in the older `v1`
+format still open, with the default Clap sample. **Record** (key **R**) records everything
 you hear, starting playback if needed; press it again to download the audio file, in whatever
 format the browser records, usually WebM, or M4A on Safari. Recordings are taken at full level,
 before the volume slider, so the slider does not change a recording's loudness; **Mute** does
@@ -52,7 +61,7 @@ snare 38, hat 42), and the synth plays the theme's scale.
 
 ## Controls
 
-- **1** Kick, **2** Hat, **3** Synth, **4** Snare
+- **1** Kick, **2** Hat, **3** Synth, **4** Snare, **5** Sample
 - **Space** play or pause
 - **Esc** stop and go back to step 1
 - **B** turn backing music on or off

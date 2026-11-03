@@ -8,6 +8,8 @@ import {
   type FxSettings,
 } from './fx';
 import { arpNote, chordForStep, midiToHz, type layerLevels } from './music';
+import { renderSamples } from './sampler';
+import { DEFAULT_SAMPLE, rateForRow } from './samples';
 import type { Instrument } from './sequencer';
 import {
   DEFAULT_THEME,
@@ -111,6 +113,8 @@ export class Audio_ {
   private readonly masterLevel = 0.8;
   private theme: Theme = DEFAULT_THEME;
   private fx: FxSettings = { ...DEFAULT_FX };
+  private samples = new Map<string, AudioBuffer>();
+  private sampleId: string = DEFAULT_SAMPLE;
   private muted = false;
   private lastDuckTime = -1;
   private lastStepDuration = 0;
@@ -314,6 +318,19 @@ export class Audio_ {
     lfo.stop(end);
   }
 
+  async loadSamples(): Promise<void> {
+    this.samples = await renderSamples(this.ctx.sampleRate);
+  }
+
+  setSample(id: string): void {
+    this.sampleId = id;
+  }
+
+  // Plays the current sample at its recorded pitch right away, for the sampler panel.
+  auditionSample(): void {
+    this.playSample(7, this.ctx.currentTime, 1);
+  }
+
   playNote(instrument: Instrument, row: number, time: number, voiceCount: number): void {
     const baseLevel = 1 / Math.sqrt(Math.max(1, voiceCount));
     const level = baseLevel * (0.9 + Math.random() * 0.2);
@@ -328,9 +345,24 @@ export class Audio_ {
       this.playHat(row, time, level);
     } else if (instrument === 'snare') {
       this.playSnare(row, time, level);
+    } else if (instrument === 'sample') {
+      this.playSample(row, time, level);
     } else {
       this.playSynth(row, time, level);
     }
+  }
+
+  private playSample(row: number, time: number, level: number): void {
+    const buffer = this.samples.get(this.sampleId);
+    if (!buffer) return;
+    const source = this.ctx.createBufferSource();
+    source.buffer = buffer;
+    source.playbackRate.value = rateForRow(row);
+    const gain = this.ctx.createGain();
+    gain.gain.value = Math.max(MIX.sample * level, 0.0001);
+    source.connect(gain);
+    gain.connect(this.towerBus);
+    source.start(time);
   }
 
   private playKick(row: number, time: number, level: number): void {

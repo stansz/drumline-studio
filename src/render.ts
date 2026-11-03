@@ -20,6 +20,7 @@ const NOTE_OUTLINE: Record<Instrument, string> = {
   hat: PIXEL_COLORS.a,
   synth: PIXEL_COLORS.c,
   snare: PIXEL_COLORS.g,
+  sample: PIXEL_COLORS['9'],
 };
 
 export interface RenderState {

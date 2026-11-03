@@ -3,9 +3,10 @@ import { MIDI_PPQ, TICKS_PER_STEP, patternToMidi } from '../src/midi';
 import type { Cell } from '../src/sequencer';
 
 const SCALE = [60, 62, 64, 65, 67, 69, 71, 72];
+const SAMPLE_NOTE = 56;
 
 function bytesOf(cells: Cell[], length: number): number[] {
-  return Array.from(patternToMidi(cells, length, 120, SCALE));
+  return Array.from(patternToMidi(cells, length, 120, SCALE, SAMPLE_NOTE));
 }
 
 function find(haystack: number[], needle: number[]): number {
@@ -72,6 +73,11 @@ describe('patternToMidi', () => {
     expect(bytes.slice(tempoAt + 3, tempoAt + 6)).toEqual([0x07, 0xa1, 0x20]);
     expect(find(bytes, [0x99, 36, 100])).toBeGreaterThanOrEqual(0);
     expect(find(bytes, [0x90, 60, 100])).toBeGreaterThanOrEqual(0);
+  });
+
+  it('writes the sample note on the drum channel', () => {
+    const bytes = bytesOf([{ instrument: 'sample', col: 0, row: 7 }], 16);
+    expect(find(bytes, [0x99, 56, 100])).toBeGreaterThanOrEqual(0);
   });
 
   it('writes a track length that matches the track bytes', () => {

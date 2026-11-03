@@ -24,13 +24,23 @@ export function parseBpm(text: string | null): number {
 
 // How many of each sound can start on one step, because each one costs audio CPU.
 // Notes past the limit are skipped.
-export const VOICE_LIMITS: Record<Instrument, number> = { kick: 2, hat: 2, snare: 2, synth: 3 };
+export const VOICE_LIMITS: Record<Instrument, number> = {
+  kick: 2,
+  hat: 2,
+  snare: 2,
+  synth: 3,
+  sample: 2,
+};
 
 export const INSTRUMENT_INFO: Record<Instrument, { name: string; description: string }> = {
   kick: { name: 'Kick', description: 'Low drum. Higher rows tune it up.' },
   hat: { name: 'Hat', description: 'Noise tick. Higher rows sound brighter.' },
   snare: { name: 'Snare', description: 'Noise crack with a short body. Higher rows sound tighter.' },
   synth: { name: 'Synth', description: "Plays the theme's scale. Higher rows play higher notes." },
+  sample: {
+    name: 'Sample',
+    description: 'Plays the sound picked in the sampler panel. Higher rows play it higher.',
+  },
 };
 
 export const MUSIC_CHORDS = [
@@ -50,6 +60,7 @@ export const MIX = {
   kick: 0.85,
   hat: 0.2,
   snare: 0.32,
+  sample: 0.5,
   synth: 0.2,
   metronome: 0.04,
   reverbSend: 0.3,

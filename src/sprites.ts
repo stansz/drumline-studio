@@ -1,7 +1,7 @@
 // Every sprite is a pair of frames: idle, then strike.
 // Each character is a key in PIXEL_COLORS, and '.' is transparent.
 
-export type SpriteName = 'kick' | 'hat' | 'synth' | 'snare';
+export type SpriteName = 'kick' | 'hat' | 'synth' | 'snare' | 'sample';
 export type SpriteFrames = readonly [readonly string[], readonly string[]];
 
 export const PIXEL_COLORS: Readonly<Record<string, string>> = {
@@ -177,6 +177,44 @@ export const SPRITES: Readonly<Record<SpriteName, SpriteFrames>> = {
       '.00000000000000.',
       '..0..........0..',
       '................',
+      '................',
+      '................',
+    ],
+  ],
+  sample: [
+    [
+      '................',
+      '.00000000000000.',
+      '.09999999999990.',
+      '.09bbbbbbbbbb90.',
+      '.09b00000000b90.',
+      '.09b0000a000b90.',
+      '.09b0a00a0a0b90.',
+      '.09b0aa0aaa0b90.',
+      '.09b0aaaaaa0b90.',
+      '.09b00000000b90.',
+      '.09bbbbbbbbbb90.',
+      '.09999999999990.',
+      '.09a9a999999990.',
+      '.00000000000000.',
+      '................',
+      '................',
+    ],
+    [
+      '................',
+      '.00000000000000.',
+      '.09999999999990.',
+      '.09bbbbbbbbbb90.',
+      '.09b00006000b90.',
+      '.09b06006060b90.',
+      '.09b06606660b90.',
+      '.09b06666660b90.',
+      '.09b06666660b90.',
+      '.09b00000000b90.',
+      '.09bbbbbbbbbb90.',
+      '.09999999999990.',
+      '.09696999999990.',
+      '.00000000000000.',
       '................',
       '................',
     ],

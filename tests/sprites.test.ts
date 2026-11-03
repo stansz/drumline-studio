@@ -29,14 +29,14 @@ describe('sprites', () => {
   });
 
   it('keeps instruments inside one board cell', () => {
-    for (const name of ['kick', 'hat', 'synth', 'snare'] as const) {
+    for (const name of ['kick', 'hat', 'synth', 'snare', 'sample'] as const) {
       expect(SPRITES[name][0]).toHaveLength(16);
       expect(SPRITES[name][0][0]).toHaveLength(16);
     }
   });
 
   it('holds only the instrument sprites', () => {
-    expect(Object.keys(SPRITES).sort()).toEqual(['hat', 'kick', 'snare', 'synth']);
+    expect(Object.keys(SPRITES).sort()).toEqual(['hat', 'kick', 'sample', 'snare', 'synth']);
   });
 });
 

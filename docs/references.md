@@ -10,11 +10,14 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
   `stepAfter()`.
 - `src/scheduler.ts`: step clock that runs on `AudioContext` time, slightly ahead of playback.
 - `src/audio.ts`: `Audio_`, which owns the audio chain and every generated sound.
+- `src/samples.ts`: the built-in sample presets and the row-to-pitch rate.
+- `src/sampler.ts`: renders each sample preset into an `AudioBuffer` with an
+  `OfflineAudioContext`.
 - `src/fx.ts`: FX settings, parsing, and filter cutoffs.
 - `src/live.ts`: live-play modes, key rows, and nearest-step quantizing; hidden by `LIVE_TOOLS`.
 - `src/music.ts`: chords, arpeggios, and how the backing music builds up.
 - `src/themes.ts`: one entry for each music theme.
-- `src/pattern.ts`: autosave JSON and the `v1.` share-link format.
+- `src/pattern.ts`: autosave JSON and the `v1.`/`v2.` share-link formats.
 - `src/midi.ts`: MIDI file writer.
 - `src/recording.ts`: recording type, file names, and timer text.
 - `src/render.ts`: draws the board into a 256×128 buffer, then scales it onto the canvas.
@@ -109,22 +112,25 @@ These values are saved to `localStorage` when they change, and come back on the 
 - `drumline-volume`: the volume percent, from 0 to 100.
 - `drumline-bpm`: the tempo.
 - `drumline-fx`: the FX settings as JSON.
+- `drumline-sample`: the chosen sample id.
 - `drumline-pattern`: JSON `{ v: 1, length, cells }`.
 
 Mute, the shown page, and whether the panels are open are not saved. Mute zeroes the master
 gain, before the recording tap, so it also silences recordings.
 
-Share links put the beat in the URL hash: `v1.<length>.<bpm>.<theme id>.<cells>`. Each cell is two
-bytes, the step and then row × 4 + instrument index, in base64url. A link loads over the autosave,
-is then autosaved, and is removed from the address bar. Invalid links are ignored.
+Share links put the beat in the URL hash: `v1.<length>.<bpm>.<theme id>.<cells>` or
+`v2.<length>.<bpm>.<theme id>.<sample id>.<cells>`. Each cell is two bytes, the step and then the
+row and instrument index, in base64url: `row × 4 + index` in v1 and `row × 5 + index` in v2. v2
+adds the chosen sample id; v1 links still load and use the default Clap sound. A link loads over
+the autosave, is then autosaved, and is removed from the address bar. Invalid links are ignored.
 
 Recording uses `MediaRecorder` on a stream from `Audio_.createRecordingStream()`. The format is the
 first supported in `pickRecordingType`'s list. The Record button is disabled until audio starts, and
 hidden where `MediaRecorder` is missing.
 
-MIDI files are type 0, with 96 ticks per quarter and one step at 24 ticks. Drums are on channel 10
-(kick 36, snare 38, hat 42), and the synth uses the theme's scale on channel 1. The track ends at the
-pattern length.
+MIDI files are type 0, with 96 ticks per quarter and one step at 24 ticks. Drums and the sample are
+on channel 10 (kick 36, snare 38, hat 42, and the chosen sample preset's note), and the synth uses
+the theme's scale on channel 1. The track ends at the pattern length.
 
 ## Browser testing
 

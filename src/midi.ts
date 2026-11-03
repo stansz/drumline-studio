@@ -17,14 +17,16 @@ function variableLength(value: number): number[] {
   return bytes;
 }
 
-// One pass of the pattern as a type-0 MIDI file. Drums use General MIDI channel 10, and the
-// synth plays the theme's scale on channel 1. The track ends exactly at the pattern length,
-// so it loops cleanly in a DAW.
+// One pass of the pattern as a type-0 MIDI file. Drums and the sample use General MIDI channel
+// 10, and the synth plays the theme's scale on channel 1. The sample cells use `sampleNote`, the
+// chosen preset's General MIDI drum note. The track ends exactly at the pattern length, so it
+// loops cleanly in a DAW.
 export function patternToMidi(
   cells: readonly Cell[],
   length: number,
   bpm: number,
   synthScale: readonly number[],
+  sampleNote: number,
 ): Uint8Array<ArrayBuffer> {
   type Event = { tick: number; order: number; data: number[] };
   const events: Event[] = [];
@@ -33,10 +35,14 @@ export function patternToMidi(
     const start = cell.col * TICKS_PER_STEP;
     const end = start + TICKS_PER_STEP;
     const channel = cell.instrument === 'synth' ? SYNTH_CHANNEL : DRUM_CHANNEL;
-    const note =
-      cell.instrument === 'synth'
-        ? (synthScale[7 - cell.row] ?? 60)
-        : DRUM_NOTES[cell.instrument];
+    let note: number;
+    if (cell.instrument === 'synth') {
+      note = synthScale[7 - cell.row] ?? 60;
+    } else if (cell.instrument === 'sample') {
+      note = sampleNote;
+    } else {
+      note = DRUM_NOTES[cell.instrument];
+    }
     events.push({ tick: start, order: 1, data: [0x90 | channel, note, VELOCITY] });
     events.push({ tick: end, order: 0, data: [0x80 | channel, note, 0] });
   }

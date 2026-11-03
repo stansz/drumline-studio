@@ -178,6 +178,21 @@ body {
   white-space: nowrap;
 }
 
+.sampler-panel {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.sampler-cap {
+  font: 400 0.6rem/1 var(--label);
+  color: var(--mute);
+}
+
+.sample-list {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+
 /* ---- Step strip ---- */
 .steps {
   display: grid;
@@ -318,7 +333,7 @@ body {
 
 .pads {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 6px;
 }
 
@@ -416,19 +431,19 @@ body {
   box-shadow: inset 0 2px 0 #565160, inset 0 -3px 0 #1d1b22, 0 2px 0 #000;
   cursor: pointer;
   display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto auto;
-  column-gap: 6px;
+  grid-template-columns: 1fr;
+  justify-items: center;
   align-items: center;
+  row-gap: 2px;
   padding: 4px 6px 7px;
-  text-align: left;
+  text-align: center;
   min-width: 0;
   position: relative;
   min-height: 44px;
 }
 
 .pad .led {
-  grid-column: 1 / -1;
+  justify-self: stretch;
   height: 4px;
   background: var(--c);
   opacity: 0.32;
@@ -436,7 +451,6 @@ body {
 }
 
 .pad canvas {
-  grid-row: 2 / 4;
   width: 32px;
   height: 32px;
   image-rendering: pixelated;
@@ -482,6 +496,10 @@ body {
 
 #tool-snare {
   --c: #a6d94a;
+}
+
+#tool-sample {
+  --c: var(--orange);
 }
 
 /* ---- Overlay ---- */
@@ -639,6 +657,14 @@ body {
 
   .fx-panel {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sampler-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .sample-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .share-panel {
@@ -879,7 +905,8 @@ body {
   }
 
   #fx,
-  #share {
+  #share,
+  #sampler {
     position: fixed;
     left: 8px;
     right: 206px;

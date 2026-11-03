@@ -7,6 +7,7 @@ import { intensity, layerLevels, pickVoices } from './music';
 import { decodeShare, encodeShare, parsePattern, serializePattern } from './pattern';
 import { extensionFor, fileStamp, formatElapsed, pickRecordingType } from './recording';
 import { Renderer, drawIcon, drawLogo } from './render';
+import { SAMPLE_PRESETS, sampleById, type SamplePreset } from './samples';
 import { Scheduler } from './scheduler';
 import {
   Sequencer,
@@ -48,6 +49,9 @@ const kickButton = byId<HTMLButtonElement>('tool-kick');
 const hatButton = byId<HTMLButtonElement>('tool-hat');
 const synthButton = byId<HTMLButtonElement>('tool-synth');
 const snareButton = byId<HTMLButtonElement>('tool-snare');
+const sampleButton = byId<HTMLButtonElement>('tool-sample');
+const samplerPanel = byId<HTMLDivElement>('sampler');
+const sampleList = byId<HTMLDivElement>('sample-list');
 const pageButton = byId<HTMLButtonElement>('page');
 const lengthButton = byId<HTMLButtonElement>('length');
 const playButton = byId<HTMLButtonElement>('play');
@@ -82,6 +86,7 @@ const VOLUME_KEY = 'drumline-volume';
 const BPM_KEY = 'drumline-bpm';
 const FX_KEY = 'drumline-fx';
 const PATTERN_KEY = 'drumline-pattern';
+const SAMPLE_KEY = 'drumline-sample';
 const renderer = new Renderer(canvas);
 
 const sequencer = new Sequencer();
@@ -102,6 +107,7 @@ let volume = loadVolume();
 let backing = loadBacking();
 let bpm = loadBpm();
 let fx: FxSettings = loadFx();
+let sample: SamplePreset = loadSample();
 const stepLeds: HTMLSpanElement[] = [];
 let litStep = -1;
 let shownPlayhead = -1;
@@ -169,6 +175,27 @@ function updateSelection(): void {
   hatButton.classList.toggle('selected', selected === 'hat');
   synthButton.classList.toggle('selected', selected === 'synth');
   snareButton.classList.toggle('selected', selected === 'snare');
+  sampleButton.classList.toggle('selected', selected === 'sample');
+  updateSampler();
+}
+
+function updateSampler(): void {
+  samplerPanel.hidden = selected !== 'sample';
+  sampleList.querySelectorAll<HTMLButtonElement>('button').forEach((button) => {
+    button.classList.toggle('selected', button.dataset.sample === sample.id);
+  });
+}
+
+function pickSample(id: string): void {
+  sample = sampleById(id);
+  audio?.setSample(sample.id);
+  try {
+    localStorage.setItem(SAMPLE_KEY, sample.id);
+  } catch {
+    // The choice still applies for this visit.
+  }
+  updateSampler();
+  audio?.auditionSample();
 }
 
 function selectTool(tool: Instrument): void {
@@ -258,6 +285,8 @@ async function startAudio(): Promise<void> {
     audio.setMuted(muted);
     audio.setVolume(volume);
     audio.setFx(fx);
+    audio.setSample(sample.id);
+    void audio.loadSamples();
     scheduler = new Scheduler(ctx, onStep);
     scheduler.bpm = bpm;
     window.__drumline = { sequencer, scheduler, audio };
@@ -305,6 +334,14 @@ function loadTheme(): Theme {
     return themeById(localStorage.getItem(THEME_KEY));
   } catch {
     return DEFAULT_THEME;
+  }
+}
+
+function loadSample(): SamplePreset {
+  try {
+    return sampleById(localStorage.getItem(SAMPLE_KEY));
+  } catch {
+    return sampleById(null);
   }
 }
 
@@ -397,6 +434,7 @@ function shareUrl(): string {
     cells: sequencer.cells,
     bpm,
     themeId: theme.id,
+    sampleId: sample.id,
   });
   return `${location.origin}${location.pathname}#${code}`;
 }
@@ -424,7 +462,13 @@ function download(blob: Blob, name: string): void {
 }
 
 function exportMidi(): void {
-  const bytes = patternToMidi(sequencer.cells, sequencer.length, bpm, theme.synth.scale);
+  const bytes = patternToMidi(
+    sequencer.cells,
+    sequencer.length,
+    bpm,
+    theme.synth.scale,
+    sample.midiNote,
+  );
   download(new Blob([bytes], { type: 'audio/midi' }), `${fileStamp(new Date())}.mid`);
   shareStatus.textContent = 'MIDI saved.';
 }
@@ -659,6 +703,7 @@ kickButton.addEventListener('click', () => selectTool('kick'));
 hatButton.addEventListener('click', () => selectTool('hat'));
 synthButton.addEventListener('click', () => selectTool('synth'));
 snareButton.addEventListener('click', () => selectTool('snare'));
+sampleButton.addEventListener('click', () => selectTool('sample'));
 lengthButton.addEventListener('click', () => setLength(sequencer.length === 16 ? 32 : 16));
 pageButton.addEventListener('click', () => setPage(page === 0 ? 1 : 0));
 
@@ -740,6 +785,9 @@ window.addEventListener('keydown', (event) => {
       break;
     case '4':
       selectTool('snare');
+      break;
+    case '5':
+      selectTool('sample');
       break;
     case 'b':
       toggleBacking();
@@ -824,6 +872,16 @@ for (let i = 0; i < 16; i += 1) {
   stepLeds.push(step);
 }
 
+for (const preset of SAMPLE_PRESETS) {
+  const button = document.createElement('button');
+  button.className = 'hw';
+  button.type = 'button';
+  button.dataset.sample = preset.id;
+  button.textContent = preset.name;
+  button.addEventListener('click', () => pickSample(button.dataset.sample ?? ''));
+  sampleList.append(button);
+}
+
 const shared = (() => {
   try {
     return decodeShare(decodeURIComponent(location.hash.replace(/^#/, '')));
@@ -841,6 +899,13 @@ if (shared) {
   } catch {
     // The theme still applies for this visit.
   }
+  sample = sampleById(shared.sampleId);
+  try {
+    localStorage.setItem(SAMPLE_KEY, sample.id);
+  } catch {
+    // The sample still applies for this visit.
+  }
+  updateSampler();
   history.replaceState(null, '', location.pathname + location.search);
   infoEl.textContent = 'Loaded a shared beat.';
 } else {

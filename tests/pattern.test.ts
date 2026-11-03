@@ -12,7 +12,8 @@ const ALL_INSTRUMENTS: Cell[] = [
   { instrument: 'kick', col: 0, row: 0 },
   { instrument: 'hat', col: 5, row: 2 },
   { instrument: 'synth', col: 17, row: 7 },
-  { instrument: 'snare', col: 31, row: 7 },
+  { instrument: 'snare', col: 30, row: 7 },
+  { instrument: 'sample', col: 31, row: 7 },
 ];
 
 describe('serializePattern / parsePattern', () => {
@@ -50,32 +51,70 @@ describe('serializePattern / parsePattern', () => {
   it('falls back to 16 steps for an unknown length', () => {
     expect(parsePattern('{"v":1,"length":99,"cells":[]}')?.length).toBe(16);
   });
+
+  it('accepts a sample cell', () => {
+    const pattern = {
+      length: 16 as const,
+      cells: [{ instrument: 'sample' as const, col: 3, row: 4 }],
+    };
+    expect(parsePattern(serializePattern(pattern))).toEqual(pattern);
+  });
 });
 
 describe('encodeShare / decodeShare', () => {
-  it('round-trips the length, tempo, theme, and cells', () => {
+  it('round-trips the length, tempo, theme, sample, and cells', () => {
     const beat: SharedBeat = {
       length: 32,
       bpm: 128,
       themeId: 'neon',
+      sampleId: 'cowbell',
       cells: ALL_INSTRUMENTS,
     };
     expect(decodeShare(encodeShare(beat))).toEqual(beat);
   });
 
-  it('produces a v1 link', () => {
-    expect(encodeShare({ length: 16, bpm: 120, themeId: 'lofi', cells: [] })).toMatch(
-      /^v1\.(16|32)\.\d+\.[a-z0-9-]+\.[A-Za-z0-9_-]*$/,
-    );
+  it('produces a v2 link', () => {
+    expect(
+      encodeShare({ length: 16, bpm: 120, themeId: 'lofi', sampleId: 'clap', cells: [] }),
+    ).toMatch(/^v2\.(16|32)\.\d+\.[a-z0-9-]+\.[a-z0-9-]+\.[A-Za-z0-9_-]*$/);
   });
 
   it('round-trips an empty pattern', () => {
-    const beat: SharedBeat = { length: 16, bpm: 120, themeId: 'neon', cells: [] };
+    const beat: SharedBeat = {
+      length: 16,
+      bpm: 120,
+      themeId: 'neon',
+      sampleId: 'clap',
+      cells: [],
+    };
     expect(decodeShare(encodeShare(beat))?.cells).toEqual([]);
   });
 
   it('clamps the tempo to the allowed range', () => {
     expect(decodeShare('v1.16.999.neon.')?.bpm).toBe(300);
+  });
+
+  it('still decodes a v1 link', () => {
+    const beat = decodeShare('v1.32.120.chiptune.ABwEHAgcDBwCAh8P');
+    expect(beat?.length).toBe(32);
+    expect(beat?.bpm).toBe(120);
+    expect(beat?.themeId).toBe('chiptune');
+    expect(beat?.sampleId).toBe('clap');
+    expect(beat?.cells).toEqual(
+      expect.arrayContaining([
+        { instrument: 'kick', col: 0, row: 7 },
+        { instrument: 'kick', col: 4, row: 7 },
+        { instrument: 'kick', col: 8, row: 7 },
+        { instrument: 'kick', col: 12, row: 7 },
+        { instrument: 'synth', col: 2, row: 0 },
+        { instrument: 'snare', col: 31, row: 3 },
+      ]),
+    );
+    expect(beat?.cells).toHaveLength(6);
+  });
+
+  it('returns null for a v2 link with a bad sample id', () => {
+    expect(decodeShare('v2.16.120.neon.BAD!.')).toBeNull();
   });
 
   it('returns null for malformed links', () => {

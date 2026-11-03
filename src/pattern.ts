@@ -1,4 +1,5 @@
 import { GRID_ROWS, MAX_STEPS, parseBpm } from './config';
+import { DEFAULT_SAMPLE } from './samples';
 import { INSTRUMENTS, type Cell, type Instrument, type PatternLength } from './sequencer';
 
 export interface SavedPattern {
@@ -9,6 +10,7 @@ export interface SavedPattern {
 export interface SharedBeat extends SavedPattern {
   bpm: number;
   themeId: string;
+  sampleId: string;
 }
 
 function validCell(instrument: unknown, col: unknown, row: unknown): Cell | null {
@@ -80,34 +82,85 @@ function fromBase64Url(text: string): Uint8Array | null {
   }
 }
 
-// Link format: v1.<length>.<bpm>.<theme id>.<cells>, where each cell is two bytes:
-// the step, then row * 4 + instrument index.
+// Link formats:
+// v1.<length>.<bpm>.<theme id>.<cells>, where each cell is two bytes: the step, then
+// row * 4 + instrument index.
+// v2.<length>.<bpm>.<theme id>.<sample id>.<cells>, where each cell is two bytes: the step,
+// then row * 5 + instrument index.
 export function encodeShare(beat: SharedBeat): string {
   const bytes = new Uint8Array(beat.cells.length * 2);
   beat.cells.forEach((cell, i) => {
     bytes[i * 2] = cell.col;
-    bytes[i * 2 + 1] = cell.row * 4 + INSTRUMENTS.indexOf(cell.instrument);
+    bytes[i * 2 + 1] = cell.row * 5 + INSTRUMENTS.indexOf(cell.instrument);
   });
-  return ['v1', beat.length, parseBpm(String(beat.bpm)), beat.themeId, toBase64Url(bytes)].join('.');
+  return [
+    'v2',
+    beat.length,
+    parseBpm(String(beat.bpm)),
+    beat.themeId,
+    beat.sampleId,
+    toBase64Url(bytes),
+  ].join('.');
+}
+
+function decodeCells(bytes: Uint8Array, instrumentCount: number): Cell[] {
+  const cells: Array<Cell | null> = [];
+  for (let i = 0; i < bytes.length; i += 2) {
+    const packed = bytes[i + 1] ?? 0;
+    cells.push(
+      validCell(
+        INSTRUMENTS[packed % instrumentCount],
+        bytes[i],
+        Math.floor(packed / instrumentCount),
+      ),
+    );
+  }
+  return cleanCells(cells);
 }
 
 export function decodeShare(text: string): SharedBeat | null {
   const parts = text.split('.');
-  if (parts.length !== 5 || parts[0] !== 'v1') return null;
-  const [, lengthText, bpmText, themeId, cellText] = parts as [string, string, string, string, string];
+  if (parts[0] === 'v1') {
+    if (parts.length !== 5) return null;
+    const [, lengthText, bpmText, themeId, cellText] = parts as [
+      string,
+      string,
+      string,
+      string,
+      string,
+    ];
+    if (lengthText !== '16' && lengthText !== '32') return null;
+    if (!/^[a-z0-9-]{1,24}$/.test(themeId)) return null;
+    const bytes = fromBase64Url(cellText);
+    if (!bytes || bytes.length % 2 !== 0) return null;
+    return {
+      length: lengthText === '32' ? 32 : 16,
+      bpm: parseBpm(bpmText),
+      themeId,
+      sampleId: DEFAULT_SAMPLE,
+      cells: decodeCells(bytes, 4),
+    };
+  }
+  if (parts[0] !== 'v2') return null;
+  if (parts.length !== 6) return null;
+  const [, lengthText, bpmText, themeId, sampleId, cellText] = parts as [
+    string,
+    string,
+    string,
+    string,
+    string,
+    string,
+  ];
   if (lengthText !== '16' && lengthText !== '32') return null;
   if (!/^[a-z0-9-]{1,24}$/.test(themeId)) return null;
+  if (!/^[a-z0-9-]{1,24}$/.test(sampleId)) return null;
   const bytes = fromBase64Url(cellText);
   if (!bytes || bytes.length % 2 !== 0) return null;
-  const cells: Array<Cell | null> = [];
-  for (let i = 0; i < bytes.length; i += 2) {
-    const packed = bytes[i + 1] ?? 0;
-    cells.push(validCell(INSTRUMENTS[packed % 4], bytes[i], Math.floor(packed / 4)));
-  }
   return {
     length: lengthText === '32' ? 32 : 16,
     bpm: parseBpm(bpmText),
     themeId,
-    cells: cleanCells(cells),
+    sampleId,
+    cells: decodeCells(bytes, 5),
   };
 }
