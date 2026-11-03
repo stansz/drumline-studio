@@ -681,6 +681,13 @@ export class Audio_ {
     this.delay.delayTime.setTargetAtTime(stepDuration * 3, this.ctx.currentTime, 0.05);
   }
 
+  // Records the full mix at a fixed level, before the volume slider.
+  createRecordingStream(): MediaStream {
+    const destination = this.ctx.createMediaStreamDestination();
+    this.analyser.connect(destination);
+    return destination.stream;
+  }
+
   readPeak(): number {
     this.analyser.getFloatTimeDomainData(this.analyserData);
     let peak = 0;

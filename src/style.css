@@ -161,6 +161,23 @@ body {
   accent-color: var(--amber);
 }
 
+.share-panel {
+  grid-template-columns: auto auto auto minmax(0, 1fr);
+}
+
+.share-panel .hw {
+  padding-inline: 14px;
+}
+
+.share-status {
+  font: 400 1.1rem/1.1 var(--lcd);
+  color: #cfe8c8;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ---- Step strip ---- */
 .steps {
   display: grid;
@@ -624,6 +641,14 @@ body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .share-panel {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .share-status {
+    grid-column: 1 / -1;
+  }
+
   #fx-reset {
     grid-column: 1 / -1;
   }
@@ -853,12 +878,17 @@ body {
     height: 20px;
   }
 
-  #fx {
+  #fx,
+  #share {
     position: fixed;
     left: 8px;
     right: 206px;
     bottom: 8px;
     z-index: 5;
     grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  }
+
+  #share {
+    grid-template-columns: auto auto auto minmax(0, 1fr);
   }
 }

@@ -20,6 +20,7 @@
         <div class="sys">
           <button id="theme" class="hw" type="button" aria-label="Change music theme">♪ Neon</button>
           <button id="fx-toggle" class="hw" type="button" aria-expanded="false" aria-controls="fx">FX</button>
+          <button id="share-toggle" class="hw" type="button" aria-expanded="false" aria-controls="share">Share</button>
           <input id="volume" type="range" min="0" max="100" step="1" value="100" aria-label="Volume" title="Volume" />
         </div>
       </header>
@@ -34,6 +35,12 @@
         <label class="fx-knob"><small>Reverb</small><input id="fx-reverb" type="range" min="0" max="100" step="1" value="0" aria-label="Reverb amount" /></label>
         <label class="fx-knob"><small>Crush</small><input id="fx-crush" type="range" min="0" max="100" step="1" value="0" aria-label="Crush amount" /></label>
         <button id="fx-reset" class="hw" type="button">Reset</button>
+      </div>
+      <div id="share" class="fx-panel share-panel" hidden>
+        <button id="share-link" class="hw" type="button">Copy link</button>
+        <button id="record" class="hw" type="button">Record</button>
+        <button id="midi" class="hw" type="button">MIDI</button>
+        <span id="share-status" class="share-status" aria-live="polite"></span>
       </div>
       <div id="controls" class="deck">
         <div class="bank">

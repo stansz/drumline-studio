@@ -27,6 +27,14 @@ to the right, with center off; **Delay** and **Reverb** set how much of the inst
 the tempo-synced delay and the reverb; **Crush** adds bit-crush on top of the theme's own.
 **Reset** sets them all back to off.
 
+The pattern and its length are saved automatically and come back on your next visit. **Share**
+(key **E**) opens a panel with three ways to keep a beat. **Copy link** gives anyone who opens
+the link the same pattern, length, tempo, and theme. **Record** (key **R**) records everything
+you hear, starting playback if needed; press it again to download the audio file, in whatever
+format the browser records, usually WebM, or M4A on Safari. **MIDI** downloads one pass of the
+pattern as a `.mid` file: the drums use General MIDI notes (kick 36, snare 38, hat 42), and the
+synth plays the theme's scale.
+
 ## Controls
 
 - **1** Kick, **2** Hat, **3** Synth, **4** Snare
@@ -40,6 +48,8 @@ the tempo-synced delay and the reverb; **Crush** adds bit-crush on top of the th
 - **M** mute or unmute
 - **T** change the music theme
 - **X** show or hide the FX panel
+- **E** show or hide the Share panel
+- **R** start or stop recording audio
 
 On the start screen, **Enter** or **Space** starts, and **T** changes the theme. The
 on-screen buttons provide the same actions, and the slider beside the theme button sets

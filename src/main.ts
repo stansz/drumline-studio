@@ -2,10 +2,20 @@ import { Audio_, parseVolume } from './audio';
 import { LIVE_TOOLS, GRID_COLS, GRID_ROWS, INSTRUMENT_INFO, parseBpm } from './config';
 import { DEFAULT_FX, parseFx, type FxSettings } from './fx';
 import { liveRowForCode, nearestStep, nextLiveMode, type LiveMode } from './live';
+import { patternToMidi } from './midi';
 import { intensity, layerLevels, pickVoices } from './music';
+import { decodeShare, encodeShare, parsePattern, serializePattern } from './pattern';
+import { extensionFor, fileStamp, formatElapsed, pickRecordingType } from './recording';
 import { Renderer, drawIcon, drawLogo } from './render';
 import { Scheduler } from './scheduler';
-import { Sequencer, INSTRUMENTS, type Instrument, type NoteEvent, type PatternLength } from './sequencer';
+import {
+  Sequencer,
+  INSTRUMENTS,
+  type Cell,
+  type Instrument,
+  type NoteEvent,
+  type PatternLength,
+} from './sequencer';
 import type { SpriteName } from './sprites';
 import { DEFAULT_THEME, nextTheme, themeById, type Theme } from './themes';
 import './style.css';
@@ -59,12 +69,19 @@ const fxDelay = byId<HTMLInputElement>('fx-delay');
 const fxReverb = byId<HTMLInputElement>('fx-reverb');
 const fxCrush = byId<HTMLInputElement>('fx-crush');
 const fxReset = byId<HTMLButtonElement>('fx-reset');
+const shareToggle = byId<HTMLButtonElement>('share-toggle');
+const sharePanel = byId<HTMLDivElement>('share');
+const shareLinkButton = byId<HTMLButtonElement>('share-link');
+const recordButton = byId<HTMLButtonElement>('record');
+const midiButton = byId<HTMLButtonElement>('midi');
+const shareStatus = byId<HTMLSpanElement>('share-status');
 
 const THEME_KEY = 'drumline-theme';
 const BACKING_KEY = 'drumline-backing';
 const VOLUME_KEY = 'drumline-volume';
 const BPM_KEY = 'drumline-bpm';
 const FX_KEY = 'drumline-fx';
+const PATTERN_KEY = 'drumline-pattern';
 const renderer = new Renderer(canvas);
 
 const sequencer = new Sequencer();
@@ -108,6 +125,22 @@ function updateStepHints(): void {
   });
 }
 
+function savePattern(): void {
+  try {
+    localStorage.setItem(
+      PATTERN_KEY,
+      serializePattern({ length: sequencer.length, cells: sequencer.cells }),
+    );
+  } catch {
+    // The pattern still lasts for this visit.
+  }
+}
+
+function loadCells(cells: readonly Cell[]): void {
+  sequencer.clear();
+  for (const cell of cells) sequencer.set(cell.instrument, cell.col, cell.row);
+}
+
 function setLength(length: PatternLength): void {
   sequencer.setLength(length);
   if (length === 16) setPage(0);
@@ -116,6 +149,7 @@ function setLength(length: PatternLength): void {
   pageButton.hidden = length === 16;
   updateHud();
   updateLoopLeds();
+  savePattern();
 }
 
 function setPage(next: number): void {
@@ -229,6 +263,7 @@ async function startAudio(): Promise<void> {
     window.__drumline = { sequencer, scheduler, audio };
     hideOverlay();
     play();
+    recordButton.disabled = false;
   } catch (error) {
     started = false;
     console.error(error);
@@ -351,6 +386,97 @@ function toggleFxPanel(): void {
   fxToggle.setAttribute('aria-expanded', String(!fxPanel.hidden));
 }
 
+function toggleSharePanel(): void {
+  sharePanel.hidden = !sharePanel.hidden;
+  shareToggle.setAttribute('aria-expanded', String(!sharePanel.hidden));
+}
+
+function shareUrl(): string {
+  const code = encodeShare({
+    length: sequencer.length,
+    cells: sequencer.cells,
+    bpm,
+    themeId: theme.id,
+  });
+  return `${location.origin}${location.pathname}#${code}`;
+}
+
+async function copyShareLink(): Promise<void> {
+  const url = shareUrl();
+  try {
+    await navigator.clipboard.writeText(url);
+    shareStatus.textContent = 'Link copied.';
+  } catch {
+    window.prompt('Copy this link:', url);
+    shareStatus.textContent = '';
+  }
+}
+
+function download(blob: Blob, name: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function exportMidi(): void {
+  const bytes = patternToMidi(sequencer.cells, sequencer.length, bpm, theme.synth.scale);
+  download(new Blob([bytes], { type: 'audio/midi' }), `${fileStamp(new Date())}.mid`);
+  shareStatus.textContent = 'MIDI saved.';
+}
+
+let recorder: MediaRecorder | null = null;
+let recordStream: MediaStream | null = null;
+let recordChunks: Blob[] = [];
+let recordStartedAt = 0;
+let recordTimer: ReturnType<typeof setInterval> | null = null;
+const recordingType =
+  typeof MediaRecorder === 'undefined'
+    ? null
+    : pickRecordingType((type) => MediaRecorder.isTypeSupported(type));
+
+function updateRecordLabel(): void {
+  const label = recorder ? `● ${formatElapsed((Date.now() - recordStartedAt) / 1000)}` : 'Record';
+  recordButton.textContent = recorder ? `Stop ${label}` : label;
+  recordButton.classList.toggle('rec', recorder !== null);
+  shareToggle.classList.toggle('rec', recorder !== null);
+  shareToggle.textContent = recorder ? label : 'Share';
+}
+
+function toggleRecording(): void {
+  if (!audio || !recordingType) return;
+  if (recorder) {
+    recorder.stop();
+    return;
+  }
+  recordStream ??= audio.createRecordingStream();
+  recordChunks = [];
+  const type = recordingType;
+  const next = new MediaRecorder(recordStream, { mimeType: type });
+  next.addEventListener('dataavailable', (event) => {
+    if (event.data.size > 0) recordChunks.push(event.data);
+  });
+  next.addEventListener('stop', () => {
+    download(new Blob(recordChunks, { type }), `${fileStamp(new Date())}.${extensionFor(type)}`);
+    recorder = null;
+    if (recordTimer !== null) clearInterval(recordTimer);
+    recordTimer = null;
+    shareStatus.textContent = 'Recording saved.';
+    updateRecordLabel();
+  });
+  recorder = next;
+  recordStartedAt = Date.now();
+  next.start(1000);
+  recordTimer = setInterval(updateRecordLabel, 500);
+  shareStatus.textContent = 'Recording. Everything you hear is captured.';
+  if (!playing) play();
+  updateRecordLabel();
+}
+
 function play(): void {
   if (!started) {
     void startAudio();
@@ -390,6 +516,7 @@ function clearPattern(): void {
   sequencer.clear();
   updateHud();
   updateStepHints();
+  savePattern();
 }
 
 function cellAt(event: PointerEvent | MouseEvent): { col: number; row: number } | null {
@@ -404,13 +531,15 @@ function cellAt(event: PointerEvent | MouseEvent): { col: number; row: number } 
 function applyPaint(col: number, row: number): void {
   if (paint === null) return;
   const step = page * GRID_COLS + col;
+  let changed: boolean;
   if (paint === 'add') {
-    sequencer.set(selected, step, row);
+    changed = sequencer.set(selected, step, row);
   } else {
-    sequencer.erase(step, row);
+    changed = sequencer.erase(step, row);
   }
   updateHud();
   updateStepHints();
+  if (changed) savePattern();
 }
 
 function setLiveMode(mode: LiveMode): void {
@@ -434,6 +563,7 @@ function playLive(row: number): void {
     scheduler.stepDuration,
   );
   if (!sequencer.set(selected, step, row)) return;
+  savePattern();
   if (step === sequencer.stepIndex) sequencer.skipOnce(step, row);
   renderer.flash({ instrument: selected, col: step, row });
   updateHud();
@@ -552,6 +682,10 @@ for (const slider of [fxFilter, fxDelay, fxReverb, fxCrush]) {
   slider.addEventListener('input', () => setFx(readFxSliders()));
 }
 fxReset.addEventListener('click', () => setFx({ ...DEFAULT_FX }));
+shareToggle.addEventListener('click', toggleSharePanel);
+shareLinkButton.addEventListener('click', () => void copyShareLink());
+recordButton.addEventListener('click', toggleRecording);
+midiButton.addEventListener('click', exportMidi);
 
 window.addEventListener('keydown', (event) => {
   // Typing a tempo or moving an FX slider must not trigger the shortcuts.
@@ -613,6 +747,9 @@ window.addEventListener('keydown', (event) => {
     case 'c':
       clearPattern();
       break;
+    case 'e':
+      toggleSharePanel();
+      break;
     case 'l':
       setLength(sequencer.length === 16 ? 32 : 16);
       break;
@@ -621,6 +758,9 @@ window.addEventListener('keydown', (event) => {
       break;
     case 'p':
       if (sequencer.length === 32) setPage(page === 0 ? 1 : 0);
+      break;
+    case 'r':
+      toggleRecording();
       break;
     case 't':
       cycleTheme();
@@ -684,15 +824,46 @@ for (let i = 0; i < 16; i += 1) {
   stepLeds.push(step);
 }
 
-setLength(16);
+const shared = (() => {
+  try {
+    return decodeShare(decodeURIComponent(location.hash.replace(/^#/, '')));
+  } catch {
+    return null;
+  }
+})();
+if (shared) {
+  loadCells(shared.cells);
+  setLength(shared.length);
+  setBpm(shared.bpm);
+  theme = themeById(shared.themeId);
+  try {
+    localStorage.setItem(THEME_KEY, theme.id);
+  } catch {
+    // The theme still applies for this visit.
+  }
+  history.replaceState(null, '', location.pathname + location.search);
+  infoEl.textContent = 'Loaded a shared beat.';
+} else {
+  const saved = (() => {
+    try {
+      return parsePattern(localStorage.getItem(PATTERN_KEY));
+    } catch {
+      return null;
+    }
+  })();
+  if (saved) loadCells(saved.cells);
+  setLength(saved?.length ?? 16);
+}
 updateHud();
 updateSelection();
 setLiveMode('paint');
 liveButton.hidden = !LIVE_TOOLS;
 stepsEl.classList.toggle('loopable', LIVE_TOOLS);
-infoEl.textContent = LIVE_TOOLS
-  ? 'Click or drag to paint. Click a note to remove it. Drag the step lights to loop.'
-  : 'Click or drag to paint. Click a note to remove it. Higher rows play higher.';
+if (!shared) {
+  infoEl.textContent = LIVE_TOOLS
+    ? 'Click or drag to paint. Click a note to remove it. Drag the step lights to loop.'
+    : 'Click or drag to paint. Click a note to remove it. Higher rows play higher.';
+}
 for (const name of INSTRUMENTS) {
   const button = byId<HTMLButtonElement>(`tool-${name}`);
   button.title = `${INSTRUMENT_INFO[name].name}: ${INSTRUMENT_INFO[name].description}`;
@@ -702,4 +873,7 @@ bpmInput.value = String(bpm);
 updateBackingButton();
 volumeSlider.value = String(volume);
 showFx();
+recordButton.disabled = true;
+if (!recordingType) recordButton.hidden = true;
+updateRecordLabel();
 requestAnimationFrame(frame);

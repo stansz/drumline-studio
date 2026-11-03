@@ -22,6 +22,10 @@ Commands: `npm run dev`, `npm test`, `npm run test:sandbox`, `npm run typecheck`
   git history.
 - Keep `src/fx.ts` free of the DOM and audio. FX are applied on top of the theme and never change
   a theme's own values.
+- Keep `src/pattern.ts`, `src/midi.ts`, and `src/recording.ts` free of the DOM, audio, and
+  `localStorage`.
+- Share links use the `v1.` format in `src/pattern.ts`. Add a new version instead of changing
+  `v1`, so old links keep working.
 - Themes change the sound only, never the pattern or the tempo.
 - Wrap every `localStorage` call in `try`/`catch`, and make the game work without it.
 - Keep Neon's `space.trim` at 1. It is the loudness reference.
