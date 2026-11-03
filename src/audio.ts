@@ -406,9 +406,39 @@ export class Audio_ {
       this.playSnare(row, time, level);
     } else if (instrument === 'sample') {
       this.playSample(row, time, level, sample);
+    } else if (instrument === 'bass') {
+      this.playBassNote(row, time, level);
     } else {
       this.playSynth(row, time, level);
     }
+  }
+
+  // The playable bass: the theme's synth scale two octaves down, with the backing bass's tone.
+  private playBassNote(row: number, time: number, level: number): void {
+    const bass = this.theme.bass;
+    const note = (this.theme.synth.scale[7 - clampRow(row)] ?? 45) - 24;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    this.setWave(osc, bass.wave);
+    osc.frequency.setValueAtTime(midiToHz(note), time);
+    const decay = Math.max(bass.decay, 0.25);
+    gain.gain.setValueAtTime(0.0001, time);
+    gain.gain.exponentialRampToValueAtTime(Math.max(MIX.bassNote * bass.level * level, 0.0001), time + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, time + decay);
+    if (bass.filter) {
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.Q.value = bass.filter.q;
+      filter.frequency.setValueAtTime(bass.filter.startHz, time);
+      filter.frequency.exponentialRampToValueAtTime(bass.filter.endHz, time + decay);
+      osc.connect(filter);
+      filter.connect(gain);
+    } else {
+      osc.connect(gain);
+    }
+    gain.connect(this.instrumentLevels.bass);
+    osc.start(time);
+    osc.stop(time + decay + 0.02);
   }
 
   private playSample(row: number, time: number, level: number, sample?: string): void {
@@ -559,6 +589,7 @@ export class Audio_ {
     duration: number,
     levels: ReturnType<typeof layerLevels>,
     section: Section,
+    options: { backingBass?: boolean } = {},
   ): void {
     const theme = this.theme;
     const local = musicStep % STEPS_PER_BAR;
@@ -575,7 +606,7 @@ export class Audio_ {
       }
     }
 
-    if (layers.bass > 0 && theme.bass.steps.includes(local)) {
+    if (layers.bass > 0 && theme.bass.steps.includes(local) && options.backingBass !== false) {
       const note = chord.bass + (theme.bass.octaveSteps.includes(local) ? 12 : 0);
       const ghost = theme.bass.ghostSteps.includes(local) ? 0.45 : 1;
       const sweepSteps = theme.bass.sweepBars * STEPS_PER_BAR;

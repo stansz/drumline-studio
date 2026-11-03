@@ -10,10 +10,15 @@ https://stansz.github.io/drumline-studio/
 ### Painting a pattern
 
 The grid shows 16 steps at a time: each column is one step, and each cell holds at most one
-note. The five instruments are Kick, Hat, Synth, Snare, and Sample. Click or drag on the grid to
-paint the selected instrument. Rows are pitch: higher rows tune a kick up, brighten a hat, tighten
-a snare, play higher notes on the synth, and pitch the sample up. Clicking or dragging over a note
-removes it, and right-click also removes.
+note. The six instruments are Kick, Hat, Synth, Snare, Sample, and Bass. Click or drag on the grid
+to paint the selected instrument. Rows are pitch: higher rows tune a kick up, brighten a hat,
+tighten a snare, play higher notes on the synth, pitch the sample up, and play higher bass notes.
+Clicking or dragging over a note removes it, and right-click also removes.
+
+**Bass** plays the theme's synth scale two octaves lower, with the theme's own bass sound: the
+bottom row is the lowest note, and each higher row plays higher. It plays one note at a time, so a
+step with several Bass notes keeps one. While the pattern holds any Bass notes, the backing's own
+bass line is muted so the two bass lines don't clash.
 
 ### Sampler
 
@@ -65,16 +70,16 @@ and playback keeps going while it is open.
 
 ### Mixer
 
-The slot under the board shows the selected instrument's volume slider: Kick, Hat, Synth, or
-Snare. Picking another instrument swaps which slider shows. Each slider also scales the reverb
+The slot under the board shows the selected instrument's volume slider: Kick, Hat, Synth, Snare,
+or Bass. Picking another instrument swaps which slider shows. Each slider also scales the reverb
 that its part feeds, and the synth's delay, so turning a part down turns its tail down too, and
 the levels are remembered between visits. Selecting Sample, or opening FX or Share, uses the same
 slot. Sample's volume is in the sampler panel. The Backing volume sits under the main volume
 slider in the header. On a phone held sideways, the per-instrument slider is hidden, but Backing
-and the main volume are not. **Mix** in the header shows all six volumes at once, each labeled in
-its color: Kick, Hat, Synth, Snare, Sample, and Backing. Picking an instrument, or pressing Mix
-again, goes back to the single slider. It also works on a phone held sideways. All sliders for a
-part stay in sync.
+and the main volume are not. **Mix** in the header shows all seven volumes at once, each labeled in
+its color: Kick, Hat, Synth, Snare, Sample, Bass, and Backing. Picking an instrument, or pressing
+Mix again, goes back to the single slider. It also works on a phone held sideways. All sliders for
+a part stay in sync.
 
 ### FX
 
@@ -89,8 +94,8 @@ adds bit-crush on top of the theme's own. **Reset** sets them all back to off.
 The pattern and its length are saved automatically and come back on your next visit. **Share**
 (key **E**) opens a panel with three ways to keep a beat. Opening Share closes the other dock
 panels. **Copy link** gives anyone who opens the link the same pattern, length, tempo, theme,
-picked sample sound, and per-note sample sounds. Links in the older `v1` and `v2` formats still
-open; they fall back to the default Clap sound where they carry no per-note sound. **Record**
+picked sample sound, and per-note sample sounds. Links in the older `v1`, `v2`, and `v3` formats
+still open; they fall back to the default Clap sound where they carry no per-note sound. **Record**
 (key **R**) records everything you hear, starting playback if needed; press it again to download
 the audio file, in whatever format the browser records, usually WebM, or M4A on Safari.
 Recordings are taken at full level, before the volume slider, so the slider does not change a
@@ -106,7 +111,7 @@ over the bottom of the board.
 
 ## Controls
 
-- **1** Kick, **2** Hat, **3** Synth, **4** Snare, **5** Sample
+- **1** Kick, **2** Hat, **3** Synth, **4** Snare, **5** Sample, **6** Bass
 - **Space** play or pause
 - **Esc** stop and go back to step 1
 - **I** show or hide the backing info screen

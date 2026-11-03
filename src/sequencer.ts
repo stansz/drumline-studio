@@ -1,7 +1,7 @@
 import { GRID_ROWS, MAX_STEPS } from './config';
 
-export type Instrument = 'kick' | 'hat' | 'synth' | 'snare' | 'sample';
-export const INSTRUMENTS: readonly Instrument[] = ['kick', 'hat', 'synth', 'snare', 'sample'];
+export type Instrument = 'kick' | 'hat' | 'synth' | 'snare' | 'sample' | 'bass';
+export const INSTRUMENTS: readonly Instrument[] = ['kick', 'hat', 'synth', 'snare', 'sample', 'bass'];
 export type PatternLength = 16 | 32;
 
 export interface Cell {

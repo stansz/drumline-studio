@@ -103,6 +103,8 @@ function fromBase64Url(text: string): Uint8Array | null {
 // v3.<length>.<bpm>.<theme id>.<picked sample id>.<sample table>.<cells>, where the sample table
 // lists the distinct sample ids the sample cells use, in first-use order, joined with '_'. Each
 // cell is three bytes: the step, then row * 5 + instrument index, then the sample-table index.
+// v4 is the same as v3, except the instrument index is one of six, so the second byte is
+// row * 6 + instrument index.
 const MAX_SAMPLE_TABLE = 16;
 
 export function encodeShare(beat: SharedBeat): string {
@@ -120,11 +122,11 @@ export function encodeShare(beat: SharedBeat): string {
       }
     }
     bytes[i * 3] = cell.col;
-    bytes[i * 3 + 1] = cell.row * 5 + INSTRUMENTS.indexOf(cell.instrument);
+    bytes[i * 3 + 1] = cell.row * 6 + INSTRUMENTS.indexOf(cell.instrument);
     bytes[i * 3 + 2] = sampleIndex;
   });
   return [
-    'v3',
+    'v4',
     beat.length,
     parseBpm(String(beat.bpm)),
     beat.themeId,
@@ -149,15 +151,19 @@ function decodeCells(bytes: Uint8Array, instrumentCount: number): Cell[] {
   return cleanCells(cells);
 }
 
-function decodeV3Cells(bytes: Uint8Array, sampleTable: readonly string[]): Cell[] {
+function decodeV3Cells(
+  bytes: Uint8Array,
+  instrumentCount: number,
+  sampleTable: readonly string[],
+): Cell[] {
   const cells: Array<Cell | null> = [];
   for (let i = 0; i < bytes.length; i += 3) {
     const packed = bytes[i + 1] ?? 0;
     cells.push(
       validCell(
-        INSTRUMENTS[packed % 5],
+        INSTRUMENTS[packed % instrumentCount],
         bytes[i],
-        Math.floor(packed / 5),
+        Math.floor(packed / instrumentCount),
         sampleTable[bytes[i + 2] ?? 0],
       ),
     );
@@ -214,7 +220,8 @@ export function decodeShare(text: string): SharedBeat | null {
       cells,
     };
   }
-  if (parts[0] !== 'v3') return null;
+  if (parts[0] !== 'v3' && parts[0] !== 'v4') return null;
+  const instrumentCount = parts[0] === 'v4' ? 6 : 5;
   if (parts.length !== 7) return null;
   const [, lengthText, bpmText, themeId, sampleId, tableText, cellText] = parts as [
     string,
@@ -239,6 +246,6 @@ export function decodeShare(text: string): SharedBeat | null {
     bpm: parseBpm(bpmText),
     themeId,
     sampleId,
-    cells: decodeV3Cells(bytes, sampleTable),
+    cells: decodeV3Cells(bytes, instrumentCount, sampleTable),
   };
 }

@@ -17,6 +17,7 @@ describe('parseMix', () => {
       synth: 1,
       snare: 1,
       sample: 1,
+      bass: 1,
       backing: 1,
     });
   });
@@ -25,6 +26,10 @@ describe('parseMix', () => {
 describe('MIX_CHANNELS', () => {
   it('lists the instruments in order, then the backing', () => {
     expect(MIX_CHANNELS).toEqual([...INSTRUMENTS, 'backing']);
+  });
+
+  it('starts Bass at full volume', () => {
+    expect(DEFAULT_MIX.bass).toBe(1);
   });
 });
 

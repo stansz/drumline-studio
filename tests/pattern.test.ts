@@ -106,10 +106,33 @@ describe('encodeShare / decodeShare', () => {
     expect(decodeShare(encodeShare(beat))).toEqual(beat);
   });
 
-  it('produces a v3 link', () => {
+  it('produces a v4 link', () => {
     expect(
       encodeShare({ length: 16, bpm: 120, themeId: 'lofi', sampleId: 'clap', cells: [] }),
-    ).toMatch(/^v3\.(16|32)\.\d+\.[a-z0-9-]+\.[a-z0-9-]+\.[a-z0-9_-]*\.[A-Za-z0-9_-]*$/);
+    ).toMatch(/^v4\.(16|32)\.\d+\.[a-z0-9-]+\.[a-z0-9-]+\.[a-z0-9_-]*\.[A-Za-z0-9_-]*$/);
+  });
+
+  it('round-trips a bass cell alongside sample cells with different sounds', () => {
+    const beat: SharedBeat = {
+      length: 32,
+      bpm: 120,
+      themeId: 'neon',
+      sampleId: 'clap',
+      cells: [
+        { instrument: 'sample', col: 0, row: 1, sample: 'clap' },
+        { instrument: 'sample', col: 2, row: 2, sample: 'tom' },
+        { instrument: 'bass', col: 31, row: 7 },
+      ],
+    };
+    expect(decodeShare(encodeShare(beat))).toEqual(beat);
+  });
+
+  it('decodes a v3 link with the old five-instrument encoding', () => {
+    // Three bytes per cell: the step, row * 5 + instrument index (sample is index 4), and the
+    // sample-table index.
+    const cells = base64url([2, 3 * 5 + 4, 0]);
+    const beat = decodeShare(`v3.16.120.neon.cowbell.clap.${cells}`);
+    expect(beat?.cells).toEqual([{ instrument: 'sample', col: 2, row: 3, sample: 'clap' }]);
   });
 
   it('round-trips each sample cell sound in a link', () => {

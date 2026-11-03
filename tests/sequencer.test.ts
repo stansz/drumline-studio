@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Sequencer } from '../src/sequencer';
+import { INSTRUMENTS, Sequencer } from '../src/sequencer';
 
 describe('Sequencer', () => {
   it('adds a note to an empty cell', () => {
@@ -215,5 +215,16 @@ describe('Sequencer', () => {
     expect(sequencer.step()).toEqual([
       { instrument: 'sample', col: 0, row: 0, sample: 'tom' },
     ]);
+  });
+
+  it('lists Bass as the last instrument', () => {
+    expect(INSTRUMENTS[INSTRUMENTS.length - 1]).toBe('bass');
+  });
+
+  it('plays a bass note on its own step', () => {
+    const sequencer = new Sequencer();
+    sequencer.set('bass', 6, 2);
+    for (let i = 0; i < 6; i += 1) sequencer.step();
+    expect(sequencer.step()).toEqual([{ instrument: 'bass', col: 6, row: 2 }]);
   });
 });

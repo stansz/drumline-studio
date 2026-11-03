@@ -50,4 +50,9 @@ describe('pickVoices', () => {
   it('handles an empty step', () => {
     expect(pickVoices([])).toEqual([]);
   });
+
+  it('keeps one bass note, because a bass line plays one note at a time', () => {
+    expect(VOICE_LIMITS.bass).toBe(1);
+    expect(pickVoices(notes('bass', 3))).toHaveLength(1);
+  });
 });

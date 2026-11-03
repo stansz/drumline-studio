@@ -92,6 +92,11 @@ describe('patternToMidi', () => {
     expect(find(bytes, [0x99, 39, 100])).toBeGreaterThanOrEqual(0);
   });
 
+  it('writes the bass note two octaves below the synth scale on channel 2', () => {
+    const bytes = bytesOf([{ instrument: 'bass', col: 0, row: 7 }], 16);
+    expect(find(bytes, [0x91, 36, 100])).toBeGreaterThanOrEqual(0);
+  });
+
   it('writes a track length that matches the track bytes', () => {
     const bytes = bytesOf([{ instrument: 'snare', col: 7, row: 3 }], 16);
     const size =

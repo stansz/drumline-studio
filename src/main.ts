@@ -59,6 +59,7 @@ const hatButton = byId<HTMLButtonElement>('tool-hat');
 const synthButton = byId<HTMLButtonElement>('tool-synth');
 const snareButton = byId<HTMLButtonElement>('tool-snare');
 const sampleButton = byId<HTMLButtonElement>('tool-sample');
+const bassButton = byId<HTMLButtonElement>('tool-bass');
 const samplerPanel = byId<HTMLDivElement>('sampler');
 const sampleList = byId<HTMLDivElement>('sample-list');
 const micButton = byId<HTMLButtonElement>('sample-mic');
@@ -235,6 +236,7 @@ function updateSelection(): void {
   synthButton.classList.toggle('selected', selected === 'synth');
   snareButton.classList.toggle('selected', selected === 'snare');
   sampleButton.classList.toggle('selected', selected === 'sample');
+  bassButton.classList.toggle('selected', selected === 'bass');
   updateSampler();
   updateMixView();
 }
@@ -380,6 +382,7 @@ function heardTime(): number {
 
 function onStep(time: number, duration: number): void {
   if (!audio) return;
+  const userBass = sequencer.activeCells().some((cell) => cell.instrument === 'bass');
   if (backing) {
     audio.playMusicStep(
       musicStep,
@@ -387,6 +390,7 @@ function onStep(time: number, duration: number): void {
       duration,
       layerLevels(intensity(sequencer.activeCells().length, 5)),
       sectionAt(musicStep, sections),
+      { backingBass: !userBass },
     );
   }
   if (sequencer.activeCells().length === 0 && sequencer.stepIndex % 4 === 0) {
@@ -1044,6 +1048,7 @@ hatButton.addEventListener('click', () => selectTool('hat'));
 synthButton.addEventListener('click', () => selectTool('synth'));
 snareButton.addEventListener('click', () => selectTool('snare'));
 sampleButton.addEventListener('click', () => selectTool('sample'));
+bassButton.addEventListener('click', () => selectTool('bass'));
 lengthButton.addEventListener('click', () => setLength(sequencer.length === 16 ? 32 : 16));
 pageButton.addEventListener('click', () => setPage(page === 0 ? 1 : 0));
 
@@ -1145,6 +1150,9 @@ window.addEventListener('keydown', (event) => {
       break;
     case '5':
       selectTool('sample');
+      break;
+    case '6':
+      selectTool('bass');
       break;
     case 'b':
       cycleBacking();

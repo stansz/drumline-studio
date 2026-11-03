@@ -22,6 +22,7 @@ const NOTE_OUTLINE: Record<Instrument, string> = {
   synth: PIXEL_COLORS.c,
   snare: PIXEL_COLORS.g,
   sample: PIXEL_COLORS['9'],
+  bass: PIXEL_COLORS.p,
 };
 
 export interface RenderState {

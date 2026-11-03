@@ -25,7 +25,7 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
   the backing layers, and the pure helpers the backing info screen uses (`songMap`,
   `sectionIndexAt`, `describeSwing`, `SECTION_NAMES`).
 - `src/themes.ts`: one entry for each music theme.
-- `src/pattern.ts`: autosave JSON and the `v1.`/`v2.`/`v3.` share-link formats.
+- `src/pattern.ts`: autosave JSON and the `v1.`/`v2.`/`v3.`/`v4.` share-link formats.
 - `src/midi.ts`: MIDI file writer.
 - `src/recording.ts`: recording type, file names, and timer text.
 - `src/render.ts`: draws the board into a 256×128 buffer, then scales it onto the canvas.
@@ -118,6 +118,10 @@ analyser → recording stream
 - Each instrument's level gain feeds `towerBus`; the mixer scales those gains and the backing
   level. The delay send is per instrument (`instrumentDelaySends`), and only the synth connects to
   it, so the mixer covers every voice.
+- The playable Bass uses the theme's backing-bass wave, decay, and filter, with `MIX.bassNote`
+  scaled by the theme's bass level, and connects to `instrumentLevels.bass`. When the pattern holds
+  a Bass note, `onStep` passes `{ backingBass: false }` to `playMusicStep`, which skips the backing
+  bass part so the two bass lines don't clash.
 - `musicTrim` is set to `musicTrim / trim`, because the master `trim` scales the backing too. The
   backing therefore ends up at `space.musicTrim` whatever the instruments' trim is.
 - The FX panel's sends are taken from `towerBus`, so they shape the instruments and not the backing
@@ -159,7 +163,7 @@ measured in headless Edge at phone sizes, not on a real phone.
 
 The mixer, sampler, FX, and Share panels share one dock slot under the board and show one view
 at a time. `updateDock()` in `main.ts` picks the view: an open panel (FX, Share, or the `mixall`
-view of all six volume sliders), else the sampler while Sample is selected, else the mixer. The
+view of all seven volume sliders), else the sampler while Sample is selected, else the mixer. The
 mixer shows one slider, for the selected instrument, and `updateMixView()` swaps which one is
 visible. Sample's volume slider lives in the sampler panel, and the Backing volume slider sits
 under the main volume slider in the header.
@@ -198,7 +202,7 @@ These values are saved to `localStorage` when they change, and come back on the 
 - `drumline-volume`: the volume percent, from 0 to 100.
 - `drumline-bpm`: the tempo.
 - `drumline-fx`: the FX settings as JSON.
-- `drumline-mix`: the mixer levels as JSON.
+- `drumline-mix`: the mixer levels as JSON, including `bass`.
 - `drumline-sample`: the chosen sample id.
 - `drumline-pattern`: JSON `{ v: 1, length, cells }`, where each cell is
   `[instrument, col, row]` plus an optional fourth element, the `sample` id, on sample cells.
@@ -211,23 +215,27 @@ The recorded or loaded user sample lives in IndexedDB: database `drumline`, stor
 never selects `mine`: decoding falls back to the default Clap sound.
 
 Share links put the beat in the URL hash: `v1.<length>.<bpm>.<theme id>.<cells>`,
-`v2.<length>.<bpm>.<theme id>.<sample id>.<cells>`, or
-`v3.<length>.<bpm>.<theme id>.<picked sample id>.<sample table>.<cells>`. In v1 and v2 each cell is
+`v2.<length>.<bpm>.<theme id>.<sample id>.<cells>`,
+`v3.<length>.<bpm>.<theme id>.<picked sample id>.<sample table>.<cells>`, or
+`v4.<length>.<bpm>.<theme id>.<picked sample id>.<sample table>.<cells>`. In v1 and v2 each cell is
 two bytes, the step and then the row and instrument index, in base64url: `row × 4 + index` in v1 and
 `row × 5 + index` in v2. v2 adds the chosen sample id and gives every sample cell that sound. v3
 adds a sample table: the distinct sample ids used by the pattern's sample cells, in first-use order,
 joined with `_`. Each v3 cell is three bytes: the step, `row × 5 + index`, and the sample-table
-index (0 for non-sample cells and for sample cells with no `sample`). v1 and v2 links still load;
-v1 uses the default Clap sound. A link loads over the autosave, is then autosaved, and is removed
-from the address bar. Invalid links are ignored.
+index (0 for non-sample cells and for sample cells with no `sample`). v4 is the same as v3, except
+there are six instruments, so the second byte is `row × 6 + index`. Old links still load: v1 and v2
+links still load, v1 uses the default Clap sound, and v3 keeps its five-instrument encoding. A link
+loads over the autosave, is then autosaved, and is removed from the address bar. Invalid links are
+ignored.
 
 Recording uses `MediaRecorder` on a stream from `Audio_.createRecordingStream()`. The format is the
 first supported in `pickRecordingType`'s list. The Record button is disabled until audio starts, and
 hidden where `MediaRecorder` is missing.
 
 MIDI files are type 0, with 96 ticks per quarter and one step at 24 ticks. Drums and the sample are
-on channel 10 (kick 36, snare 38, hat 42, and each sample cell's own preset note), and the synth
-uses the theme's scale on channel 1. The track ends at the pattern length.
+on channel 10 (kick 36, snare 38, hat 42, and each sample cell's own preset note), the synth uses
+the theme's scale on channel 1, and Bass uses the theme's scale two octaves down on channel 2. The
+track ends at the pattern length.
 
 ## Browser testing
 

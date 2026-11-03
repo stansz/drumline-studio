@@ -1,7 +1,7 @@
 // Every sprite is a pair of frames: idle, then strike.
 // Each character is a key in PIXEL_COLORS, and '.' is transparent.
 
-export type SpriteName = 'kick' | 'hat' | 'synth' | 'snare' | 'sample';
+export type SpriteName = 'kick' | 'hat' | 'synth' | 'snare' | 'sample' | 'bass';
 export type SpriteFrames = readonly [readonly string[], readonly string[]];
 
 export const PIXEL_COLORS: Readonly<Record<string, string>> = {
@@ -23,6 +23,7 @@ export const PIXEL_COLORS: Readonly<Record<string, string>> = {
   i: '#dcf59a',
   m: '#4a4655',
   r: '#ff5a45',
+  p: '#9b6cff',
 };
 
 // The four beat groups, as on a hardware step sequencer: red, orange, amber, cream.
@@ -216,6 +217,44 @@ export const SPRITES: Readonly<Record<SpriteName, SpriteFrames>> = {
       '.09696999999990.',
       '.00000000000000.',
       '................',
+      '................',
+    ],
+  ],
+  bass: [
+    [
+      '................',
+      '.00000000000000.',
+      '.0pppppppppppp0.',
+      '.0ppp000000ppp0.',
+      '.0pp04444440pp0.',
+      '.0p0443333440p0.',
+      '.0p0433003340p0.',
+      '.0p0430660340p0.',
+      '.0p0430660340p0.',
+      '.0p0433003340p0.',
+      '.0p0443333440p0.',
+      '.0pp04444440pp0.',
+      '.0ppp000000ppp0.',
+      '.0pppppppppppp0.',
+      '.00000000000000.',
+      '................',
+    ],
+    [
+      '................',
+      '.00000000000000.',
+      '.0pppppppppppp0.',
+      '.0ppp000000ppp0.',
+      '.0pp04444440pp0.',
+      '.0p0444444440p0.',
+      '.0p0446666440p0.',
+      '.0p0466666640p0.',
+      '.0p0466666640p0.',
+      '.0p0446666440p0.',
+      '.0p0444444440p0.',
+      '.0pp04444440pp0.',
+      '.0ppp000000ppp0.',
+      '.0pppppppppppp0.',
+      '.00000000000000.',
       '................',
     ],
   ],

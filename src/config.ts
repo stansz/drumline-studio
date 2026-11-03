@@ -30,6 +30,7 @@ export const VOICE_LIMITS: Record<Instrument, number> = {
   snare: 2,
   synth: 3,
   sample: 2,
+  bass: 1,
 };
 
 export const INSTRUMENT_INFO: Record<Instrument, { name: string; description: string }> = {
@@ -40,6 +41,11 @@ export const INSTRUMENT_INFO: Record<Instrument, { name: string; description: st
   sample: {
     name: 'Sample',
     description: 'Plays the sound picked in the sampler panel. Higher rows play it higher.',
+  },
+  bass: {
+    name: 'Bass',
+    description:
+      "Deep notes in the theme's key. Higher rows play higher. Bass notes mute the backing bass.",
   },
 };
 
@@ -62,6 +68,7 @@ export const MIX = {
   snare: 0.32,
   sample: 0.5,
   synth: 0.2,
+  bassNote: 0.3,
   metronome: 0.04,
   reverbSend: 0.3,
   delaySend: 0.22,

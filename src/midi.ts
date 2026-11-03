@@ -5,6 +5,7 @@ export const TICKS_PER_STEP = MIDI_PPQ / 4;
 const DRUM_NOTES = { kick: 36, snare: 38, hat: 42 } as const;
 const DRUM_CHANNEL = 9;
 const SYNTH_CHANNEL = 0;
+const BASS_CHANNEL = 1;
 const VELOCITY = 100;
 
 function variableLength(value: number): number[] {
@@ -34,10 +35,17 @@ export function patternToMidi(
     if (cell.col >= length) continue;
     const start = cell.col * TICKS_PER_STEP;
     const end = start + TICKS_PER_STEP;
-    const channel = cell.instrument === 'synth' ? SYNTH_CHANNEL : DRUM_CHANNEL;
+    const channel =
+      cell.instrument === 'synth'
+        ? SYNTH_CHANNEL
+        : cell.instrument === 'bass'
+          ? BASS_CHANNEL
+          : DRUM_CHANNEL;
     let note: number;
     if (cell.instrument === 'synth') {
       note = synthScale[7 - cell.row] ?? 60;
+    } else if (cell.instrument === 'bass') {
+      note = (synthScale[7 - cell.row] ?? 60) - 24;
     } else if (cell.instrument === 'sample') {
       note = sampleNoteFor(cell.sample);
     } else {

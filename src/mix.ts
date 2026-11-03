@@ -1,11 +1,13 @@
 import type { Instrument } from './sequencer';
 
 export type MixChannel = Instrument | 'backing';
-export const MIX_CHANNELS: readonly MixChannel[] = ['kick', 'hat', 'synth', 'snare', 'sample', 'backing'];
+export const MIX_CHANNELS: readonly MixChannel[] = [
+  'kick', 'hat', 'synth', 'snare', 'sample', 'bass', 'backing',
+];
 export type MixSettings = Record<MixChannel, number>; // each 0 to 1
 
 export const DEFAULT_MIX: Readonly<MixSettings> = {
-  kick: 1, hat: 1, synth: 1, snare: 1, sample: 1, backing: 1,
+  kick: 1, hat: 1, synth: 1, snare: 1, sample: 1, bass: 1, backing: 1,
 };
 
 // Reads saved settings. Missing or unreadable values fall back to full volume.

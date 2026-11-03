@@ -243,7 +243,7 @@ body {
 }
 
 .mix-all-panel {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -450,7 +450,7 @@ body {
 
 .pads {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 6px;
 }
 
@@ -617,6 +617,10 @@ body {
 
 #tool-sample {
   --c: var(--orange);
+}
+
+#tool-bass {
+  --c: #9b6cff;
 }
 
 /* ---- Backing info ---- */
