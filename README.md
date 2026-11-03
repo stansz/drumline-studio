@@ -13,8 +13,8 @@ pick a backing band, and share it with a link. There's nothing to install and no
   each row is a pitch.
 - **Backing music in five themes:** Neon, Chiptune, Lo-fi, Techno, and Funk, each with its own
   chords, bass, arpeggio, and drums. Play it as a full song, a loop, or not at all.
-- **Presets and Random:** seven ready-made grooves, from Four on the Floor to the Tetris tune, plus
-  a random groove maker with undo.
+- **Grooves and tunes:** six ready-made grooves and five public-domain tunes, from the Tetris
+  tune to Ode to Joy, plus a random groove maker with undo.
 - **Sampler:** six built-in sounds, or record your own from the microphone or a file.
 - **Mixer and FX:** a volume for every part, plus filter, delay, reverb, and bit-crush.
 - **Share and export:** copy a link, record the audio, or download MIDI for your music app.
@@ -67,4 +67,6 @@ The code is under the [MIT License](LICENSE). The fonts keep their own license, 
 ## Credits
 
 The Silkscreen and VT323 fonts are used under the SIL Open Font License. Their licenses are in
-`src/fonts/`. Korobeiniki is a 19th-century Russian folk song in the public domain.
+`src/fonts/`. Korobeiniki (1861), In the Hall of the Mountain King (Grieg, 1875), Ode to Joy
+(Beethoven, 1824), Für Elise (Beethoven, 1810), and the Can-Can (Offenbach, 1858) are in the
+public domain.

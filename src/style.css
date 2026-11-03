@@ -301,11 +301,6 @@ body {
   gap: 6px;
 }
 
-.beats-panel {
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 6px;
-}
-
 .sampler-volume {
   display: flex;
   align-items: center;
@@ -763,6 +758,94 @@ body {
 
 .info-facts dt { color: var(--mute); }
 .info-facts dd { margin: 0; color: var(--cream); }
+
+/* ---- Beats screen ---- */
+.beats-panel {
+  width: min(560px, 100%);
+}
+
+.beats-lcd {
+  background: #101a14;
+  box-shadow: inset 0 2px 0 #000, inset 0 -1px 0 #3a3743;
+  padding: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.beats-list {
+  display: flex;
+  flex-direction: column;
+  max-height: min(220px, calc(100dvh - 230px));
+  min-height: 72px;
+  overflow-y: auto;
+}
+
+.beats-group {
+  flex: none;
+  font: 400 0.55rem/1 var(--label);
+  color: var(--mute);
+  padding: 8px 6px 4px;
+}
+
+.beats-item {
+  all: unset;
+  flex: none;
+  cursor: pointer;
+  font: 400 1.2rem/1.2 var(--lcd);
+  color: #cfe8c8;
+  padding: 2px 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.beats-item.active {
+  background: var(--amber);
+  color: #1d1a10;
+}
+
+.beats-item:focus-visible {
+  outline: 2px solid var(--cream);
+  outline-offset: -2px;
+}
+
+.beats-item.loaded::after {
+  content: ' ♪';
+}
+
+.beats-detail {
+  border-top: 1px solid #2c3a30;
+  padding: 6px 6px 0;
+  display: grid;
+  gap: 2px;
+}
+
+.beats-name,
+.beats-meta,
+.beats-blurb {
+  margin: 0;
+  font: 400 1.1rem/1.2 var(--lcd);
+}
+
+.beats-name { color: var(--amber); }
+.beats-meta { color: var(--mute); }
+.beats-blurb { color: #cfe8c8; }
+
+/* Load is a .go button, which phone layouts make span two transport columns. */
+#beats-load {
+  grid-column: auto;
+}
+
+.beats-controls {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+  gap: 6px;
+}
+
+.beats-controls .hw {
+  min-height: 40px;
+  padding-inline: 12px;
+}
 
 /* ---- Overlay ---- */
 #overlay {
@@ -1233,6 +1316,24 @@ body {
     right: 206px;
     bottom: 8px;
     z-index: 5;
+  }
+
+  .beats-panel {
+    padding-block: 8px;
+    gap: 6px;
+  }
+
+  .beats-list {
+    max-height: calc(100dvh - 220px);
+    min-height: 0;
+  }
+
+  .beats-blurb {
+    display: none;
+  }
+
+  .beats-controls .hw {
+    min-height: 34px;
   }
 }
 

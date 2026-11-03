@@ -66,11 +66,49 @@ describe('presets', () => {
     }
   });
 
-  it('gives the a-minor scale eight rising notes', () => {
-    const scale = SCALES['a-minor'] ?? [];
-    expect(scale).toHaveLength(8);
-    for (let i = 1; i < scale.length; i += 1) {
-      expect(scale[i] ?? 0).toBeGreaterThan(scale[i - 1] ?? 0);
+  it('gives every scale eight rising notes', () => {
+    for (const scale of Object.values(SCALES)) {
+      expect(scale).toHaveLength(8);
+      for (let i = 1; i < scale.length; i += 1) {
+        expect(scale[i] ?? 0).toBeGreaterThan(scale[i - 1] ?? 0);
+      }
+    }
+  });
+
+  it('gives every preset a kind and a short blurb', () => {
+    for (const preset of PRESETS) {
+      expect(['groove', 'tune']).toContain(preset.kind);
+      expect(typeof preset.blurb).toBe('string');
+      expect(preset.blurb.length).toBeGreaterThan(0);
+      expect(preset.blurb.length).toBeLessThanOrEqual(80);
+    }
+  });
+
+  it('lists the grooves before the tunes', () => {
+    let seenTune = false;
+    for (const preset of PRESETS) {
+      if (preset.kind === 'tune') seenTune = true;
+      if (preset.kind === 'groove') expect(seenTune).toBe(false);
+    }
+  });
+
+  it('writes the four new tunes', () => {
+    const expected = [
+      ['mountain-king', 7],
+      ['ode-to-joy', 5],
+      ['fur-elise', 0],
+      ['can-can', 7],
+    ] as const;
+    for (const [id, row] of expected) {
+      const preset = PRESETS.find((entry) => entry.id === id);
+      expect(preset).toBeDefined();
+      expect(preset?.kind).toBe('tune');
+      expect(preset?.scale).toBeDefined();
+      expect(SCALES[preset?.scale ?? '']).toBeDefined();
+      expect(preset?.length).toBe(32);
+      const synth = (preset?.cells ?? []).filter((cell) => cell.instrument === 'synth');
+      const first = synth.reduce((best, cell) => (cell.col < best.col ? cell : best), synth[0]!);
+      expect(first).toEqual({ instrument: 'synth', col: 0, row });
     }
   });
 

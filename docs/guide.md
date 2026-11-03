@@ -8,7 +8,7 @@ a time. For a quick overview, see the [README](../README.md).
 - [Painting a pattern](#painting-a-pattern)
 - [Playing](#playing)
 - [Backing music](#backing-music)
-- [Beats: presets and Random](#beats-presets-and-random)
+- [Beats: grooves, tunes, and Random](#beats-grooves-tunes-and-random)
 - [Sampler](#sampler)
 - [Mixer](#mixer)
 - [FX](#fx)
@@ -33,8 +33,8 @@ Or open **Beats** and pick a preset to hear a full groove right away, then chang
 - **Board:** the grid. Each column is one step (a sixteenth note), and each row is a pitch.
 - **Tab row:** **Mix**, **Beats**, **FX**, **♪ Theme**, **Backing**, and **ⓘ**.
 - **Dock:** the slot under the tab row. It shows one panel at a time: the selected instrument's
-  volume, the sampler, or whichever of Mix, Beats, FX, or Share is open. Opening a panel never
-  moves the board.
+  volume, the sampler, or whichever of Mix, FX, or Share is open. Opening a panel never moves the
+  board.
 - **Instruments:** Kick, Hat, Synth, Snare, Bass, and Sample.
 - **Transport:** Play, Stop, BPM, Mute, and Clear.
 
@@ -91,24 +91,29 @@ The music keeps playing while it is open.
 
 ![The backing info panel](images/info.png)
 
-## Beats: presets and Random
+## Beats: grooves, tunes, and Random
 
-![The Beats panel](images/beats.png)
+![The Beats screen](images/beats.png)
 
-**Beats** opens a row of preset grooves: Four on the Floor, Boom Bap, Breakbeat, Trap, Dembow, Funk
-Groove, and Korobeiniki (the Tetris tune). A preset sets the pattern, its length, the tempo, the
-theme, and the Backing mode, and some set a scale for the synth. The music keeps playing, and the
-new beat takes over on the next step.
+**Beats** opens the Beats screen, with two lists: **Grooves** (Four on the Floor, Boom Bap,
+Breakbeat, Trap, Dembow, Funk Groove) and **Tunes** (Korobeiniki, In the Hall of the Mountain King,
+Ode to Joy, Für Elise, Can-Can). A preset sets the pattern, its length, the tempo, the theme, and
+the Backing mode, and some set a scale for the synth. The music keeps playing, and the new beat
+takes over on the next step.
+
+The screen shows the highlighted preset's tempo, theme, length, Backing mode, and a one-line
+description. Tap a preset to load it; the screen stays open so you can try others. **▲** and **▼**
+(or the arrow keys) move the highlight without loading, and **Load** (or **Enter**) loads it.
+**Space** plays or pauses while the screen is open. The loaded preset is marked with ♪. **Random**
+and **Undo** work as before and are on the screen. Close it with **✕**, **Esc**, or a click outside
+it.
 
 **Random** makes a fresh 16-step groove: kick on the one, snare on 2 and 4, a hat pattern, a bass
 line that follows the kick, and a few synth notes in key. It keeps your theme, tempo, length, and
 scale. **Undo** brings back what you had before the last preset or Random.
 
-Beats stays open while you pick instruments; opening another panel or pressing Beats again closes
-it.
-
-Korobeiniki is a 19th-century Russian folk song in the public domain. Its preset sets an A-minor
-scale; **Clear** goes back to the theme's own scale.
+The tunes are public-domain melodies, each with its own scale. **Clear** goes back to the theme's
+own scale.
 
 ## Sampler
 

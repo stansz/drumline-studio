@@ -3,6 +3,9 @@ import type { Cell, Instrument, PatternLength } from './sequencer';
 // Named synth scales, low to high, one MIDI note per board row (index 0 is the bottom row).
 export const SCALES: Readonly<Record<string, readonly number[]>> = {
   'a-minor': [69, 71, 72, 74, 76, 77, 79, 81], // A4 B4 C5 D5 E5 F5 G5 A5
+  'mountain-king': [69, 70, 71, 72, 74, 75, 76, 79], // A4 A#4 B4 C5 D5 D#5 E5 G5
+  'c-major': [72, 74, 76, 77, 79, 81, 83, 84], // C5 D5 E5 F5 G5 A5 B5 C6
+  'fur-elise': [64, 68, 69, 71, 72, 74, 75, 76], // E4 G#4 A4 B4 C5 D5 D#5 E5
 };
 
 export function scaleNotes(id: string | null | undefined): readonly number[] | null {
@@ -14,6 +17,8 @@ export type BackingMode = 'song' | 'loop' | 'off';
 export interface Preset {
   id: string;
   name: string;
+  kind: 'groove' | 'tune';
+  blurb: string;
   themeId: string;
   bpm: number;
   length: PatternLength;
@@ -32,12 +37,15 @@ function melody(instrument: Instrument, notes: ReadonlyArray<readonly [number, n
   return notes.map(([col, row]) => ({ instrument, col, row }));
 }
 
-// Genre presets are original grooves named by style. Korobeiniki is a 19th-century folk song in
-// the public domain. Do not name presets after copyrighted songs.
+// Grooves are original beats named by style. Tunes are public-domain melodies: Korobeiniki
+// (1861), Grieg (1875), Beethoven (1810, 1824), and Offenbach (1858). Do not add copyrighted
+// songs.
 export const PRESETS: readonly Preset[] = [
   {
     id: 'four-floor',
     name: 'Four on the Floor',
+    kind: 'groove',
+    blurb: 'A kick on every beat, offbeat hats, and a clap. Club basics.',
     themeId: 'techno',
     bpm: 124,
     length: 16,
@@ -53,6 +61,8 @@ export const PRESETS: readonly Preset[] = [
   {
     id: 'boom-bap',
     name: 'Boom Bap',
+    kind: 'groove',
+    blurb: 'A laid-back hip-hop beat with a heavy kick and a crisp snare.',
     themeId: 'lofi',
     bpm: 90,
     length: 16,
@@ -71,6 +81,8 @@ export const PRESETS: readonly Preset[] = [
   {
     id: 'breakbeat',
     name: 'Breakbeat',
+    kind: 'groove',
+    blurb: 'A busy, broken drum pattern with ghost snares.',
     themeId: 'funk',
     bpm: 112,
     length: 16,
@@ -90,6 +102,8 @@ export const PRESETS: readonly Preset[] = [
   {
     id: 'trap',
     name: 'Trap',
+    kind: 'groove',
+    blurb: 'Rolling hi-hats, a sparse kick, and a deep bass.',
     themeId: 'neon',
     bpm: 140,
     length: 16,
@@ -109,6 +123,8 @@ export const PRESETS: readonly Preset[] = [
   {
     id: 'dembow',
     name: 'Dembow',
+    kind: 'groove',
+    blurb: 'The bouncing reggaeton rhythm: steady kick, off-kilter snare.',
     themeId: 'funk',
     bpm: 96,
     length: 16,
@@ -123,6 +139,8 @@ export const PRESETS: readonly Preset[] = [
   {
     id: 'funk',
     name: 'Funk Groove',
+    kind: 'groove',
+    blurb: 'A syncopated kick, a ghost snare, and a walking bass.',
     themeId: 'funk',
     bpm: 104,
     length: 16,
@@ -145,6 +163,8 @@ export const PRESETS: readonly Preset[] = [
   {
     id: 'korobeiniki',
     name: 'Korobeiniki (Tetris tune)',
+    kind: 'tune',
+    blurb: 'Russian folk song, 1861. The Tetris tune.',
     themeId: 'chiptune',
     bpm: 80,
     length: 32,
@@ -184,6 +204,190 @@ export const PRESETS: readonly Preset[] = [
       ]),
       ...line('kick', 1, [0, 8, 16, 24]),
       ...line('snare', 2, [4, 12, 20, 28]),
+    ],
+  },
+  {
+    id: 'mountain-king',
+    name: 'In the Hall of the Mountain King',
+    kind: 'tune',
+    blurb: 'Grieg, 1875. A sneaky minor riff from Peer Gynt.',
+    themeId: 'techno',
+    bpm: 64,
+    length: 32,
+    backing: 'off',
+    scale: 'mountain-king',
+    cells: [
+      ...melody('synth', [
+        [0, 7],
+        [1, 5],
+        [2, 4],
+        [3, 3],
+        [4, 1],
+        [5, 4],
+        [6, 1],
+        [8, 2],
+        [9, 5],
+        [10, 2],
+        [12, 3],
+        [13, 6],
+        [14, 3],
+        [16, 7],
+        [17, 5],
+        [18, 4],
+        [19, 3],
+        [20, 1],
+        [21, 4],
+        [22, 1],
+        [24, 0],
+        [25, 1],
+        [26, 4],
+        [27, 1],
+        [28, 0],
+      ]),
+      ...line('bass', 7, [2, 6, 10, 14, 18, 22, 26, 30]),
+      ...line('kick', 6, [0, 8, 16, 24]),
+      ...line('snare', 5, [4, 12, 20, 28]),
+    ],
+  },
+  {
+    id: 'ode-to-joy',
+    name: 'Ode to Joy',
+    kind: 'tune',
+    blurb: 'Beethoven, 1824. The big tune from the Ninth Symphony.',
+    themeId: 'neon',
+    bpm: 60,
+    length: 32,
+    backing: 'off',
+    scale: 'c-major',
+    cells: [
+      ...melody('synth', [
+        [0, 5],
+        [2, 5],
+        [4, 4],
+        [6, 3],
+        [8, 3],
+        [10, 4],
+        [12, 5],
+        [14, 6],
+        [16, 7],
+        [18, 7],
+        [20, 6],
+        [22, 5],
+        [24, 5],
+        [27, 6],
+        [28, 6],
+      ]),
+      ...melody('bass', [
+        [0, 7],
+        [4, 7],
+        [8, 6],
+        [12, 3],
+        [16, 5],
+        [20, 7],
+        [24, 3],
+        [28, 3],
+      ]),
+      ...line('kick', 1, [0, 8, 16, 24]),
+      ...line('snare', 2, [4, 12, 20, 28]),
+    ],
+  },
+  {
+    id: 'fur-elise',
+    name: 'Für Elise',
+    kind: 'tune',
+    blurb: 'Beethoven, 1810. The piano piece everyone learns first.',
+    themeId: 'lofi',
+    bpm: 96,
+    length: 32,
+    backing: 'off',
+    scale: 'fur-elise',
+    cells: [
+      ...melody('synth', [
+        [0, 0],
+        [1, 1],
+        [2, 0],
+        [3, 1],
+        [4, 0],
+        [5, 4],
+        [6, 2],
+        [7, 3],
+        [8, 5],
+        [12, 7],
+        [13, 5],
+        [14, 4],
+        [17, 7],
+        [18, 6],
+        [19, 4],
+        [20, 3],
+        [23, 7],
+        [24, 0],
+        [25, 1],
+        [26, 0],
+        [27, 1],
+        [28, 0],
+        [29, 4],
+        [30, 2],
+        [31, 3],
+      ]),
+      ...melody('bass', [
+        [10, 5],
+        [16, 7],
+        [22, 5],
+      ]),
+      ...line('kick', 6, [2, 8, 14, 20, 26]),
+    ],
+  },
+  {
+    id: 'can-can',
+    name: 'Can-Can',
+    kind: 'tune',
+    blurb: 'Offenbach, 1858. The galop from Orpheus in the Underworld.',
+    themeId: 'chiptune',
+    bpm: 90,
+    length: 32,
+    backing: 'off',
+    scale: 'c-major',
+    cells: [
+      ...melody('synth', [
+        [0, 7],
+        [2, 6],
+        [3, 4],
+        [4, 5],
+        [5, 6],
+        [6, 3],
+        [8, 3],
+        [10, 3],
+        [11, 2],
+        [12, 5],
+        [13, 4],
+        [14, 6],
+        [16, 6],
+        [18, 6],
+        [19, 4],
+        [20, 5],
+        [21, 6],
+        [22, 7],
+        [23, 0],
+        [24, 1],
+        [25, 2],
+        [26, 3],
+        [27, 4],
+        [28, 5],
+        [29, 6],
+        [30, 7],
+      ]),
+      ...melody('bass', [
+        [1, 7],
+        [5, 7],
+        [9, 3],
+        [13, 3],
+        [17, 3],
+        [21, 3],
+        [25, 7],
+        [29, 3],
+      ]),
+      ...line('kick', 4, [0, 4, 8, 12, 16, 20, 24, 28]),
+      ...line('snare', 2, [2, 6, 10, 14, 18, 22, 26, 30]),
     ],
   },
 ];

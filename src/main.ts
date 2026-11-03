@@ -111,8 +111,15 @@ const midiButton = byId<HTMLButtonElement>('midi');
 const shareStatus = byId<HTMLSpanElement>('share-status');
 const mixPanel = byId<HTMLDivElement>('mix');
 const mixAllPanel = byId<HTMLDivElement>('mix-all');
-const beatsPanel = byId<HTMLDivElement>('beats');
-const presetList = byId<HTMLDivElement>('preset-list');
+const beatsScreen = byId<HTMLDivElement>('beats-screen');
+const beatsClose = byId<HTMLButtonElement>('beats-close');
+const beatsList = byId<HTMLDivElement>('beats-list');
+const beatsName = byId<HTMLParagraphElement>('beats-name');
+const beatsMeta = byId<HTMLParagraphElement>('beats-meta');
+const beatsBlurb = byId<HTMLParagraphElement>('beats-blurb');
+const beatsUp = byId<HTMLButtonElement>('beats-up');
+const beatsDown = byId<HTMLButtonElement>('beats-down');
+const beatsLoad = byId<HTMLButtonElement>('beats-load');
 const beatRandom = byId<HTMLButtonElement>('beat-random');
 const beatUndo = byId<HTMLButtonElement>('beat-undo');
 const mixToggle = byId<HTMLButtonElement>('mix-toggle');
@@ -173,9 +180,11 @@ let paint: 'add' | 'erase' | null = null;
 let liveMode: LiveMode = 'paint';
 let playheadAt = 0;
 let loopDrag: number | null = null;
-let openPanel: 'fx' | 'share' | 'mixall' | 'beats' | null = null;
+let openPanel: 'fx' | 'share' | 'mixall' | null = null;
 const infoSections: HTMLSpanElement[] = [];
 let infoShownKey = '';
+let beatsCursor = 0;
+let loadedPresetId: string | null = null;
 
 // One level of undo: the pattern and the settings the last preset or Random changed.
 interface Snapshot {
@@ -297,19 +306,69 @@ function renderSampleButtons(): void {
   updateSampler();
 }
 
-function addPresetButton(preset: Preset): void {
-  const button = document.createElement('button');
-  button.className = 'hw';
-  button.type = 'button';
-  button.dataset.preset = preset.id;
-  button.textContent = preset.name;
-  button.addEventListener('click', () => loadPreset(preset));
-  presetList.append(button);
+function renderBeatsList(): void {
+  beatsList.replaceChildren();
+  for (const [kind, label] of [
+    ['groove', 'Grooves'],
+    ['tune', 'Tunes'],
+  ] as const) {
+    const group = document.createElement('div');
+    group.className = 'beats-group';
+    group.setAttribute('role', 'presentation');
+    group.textContent = label;
+    beatsList.append(group);
+    PRESETS.forEach((preset, index) => {
+      if (preset.kind !== kind) return;
+      const button = document.createElement('button');
+      button.className = 'beats-item';
+      button.type = 'button';
+      button.setAttribute('role', 'option');
+      button.dataset.index = String(index);
+      button.textContent = preset.name;
+      button.addEventListener('click', () => {
+        beatsCursor = index;
+        loadPreset(preset);
+        updateBeatsScreen();
+      });
+      beatsList.append(button);
+    });
+  }
 }
 
-function renderPresetButtons(): void {
-  presetList.replaceChildren();
-  for (const preset of PRESETS) addPresetButton(preset);
+function updateBeatsScreen(): void {
+  const BACKING_LABEL = { song: 'Song', loop: 'Loop', off: 'Off' } as const;
+  beatsList.querySelectorAll<HTMLElement>('.beats-item').forEach((item) => {
+    const index = Number(item.dataset.index);
+    item.classList.toggle('active', index === beatsCursor);
+    item.setAttribute('aria-selected', String(index === beatsCursor));
+    item.classList.toggle('loaded', PRESETS[index]?.id === loadedPresetId);
+  });
+  const preset = PRESETS[beatsCursor];
+  if (!preset) return;
+  beatsName.textContent = preset.name;
+  beatsMeta.textContent = `${preset.bpm} BPM · ${themeById(preset.themeId).name} · ${preset.length} steps · Backing ${BACKING_LABEL[preset.backing]}`;
+  beatsBlurb.textContent = preset.blurb;
+  beatsList
+    .querySelector<HTMLElement>(`.beats-item[data-index="${beatsCursor}"]`)
+    ?.scrollIntoView({ block: 'nearest' });
+}
+
+function moveBeatsCursor(delta: number): void {
+  beatsCursor = (beatsCursor + delta + PRESETS.length) % PRESETS.length;
+  updateBeatsScreen();
+}
+
+function openBeats(): void {
+  const index = PRESETS.findIndex((preset) => preset.id === loadedPresetId);
+  if (index >= 0) beatsCursor = index;
+  updateBeatsScreen();
+  beatsScreen.hidden = false;
+  beatsList.querySelector<HTMLElement>(`.beats-item[data-index="${beatsCursor}"]`)?.focus();
+}
+
+function closeBeats(): void {
+  beatsScreen.hidden = true;
+  beatsToggle.focus();
 }
 
 // The dock shows one view at a time: an opened panel, else the sampler while Sample is
@@ -320,14 +379,11 @@ function updateDock(): void {
   fxPanel.hidden = view !== 'fx';
   sharePanel.hidden = view !== 'share';
   mixAllPanel.hidden = view !== 'mixall';
-  beatsPanel.hidden = view !== 'beats';
   samplerPanel.hidden = view !== 'sampler';
   fxToggle.setAttribute('aria-expanded', String(view === 'fx'));
   shareToggle.setAttribute('aria-expanded', String(view === 'share'));
   mixToggle.setAttribute('aria-expanded', String(view === 'mixall'));
   mixToggle.classList.toggle('selected', view === 'mixall');
-  beatsToggle.setAttribute('aria-expanded', String(view === 'beats'));
-  beatsToggle.classList.toggle('selected', view === 'beats');
 }
 
 // Only scales the app knows can be saved or restored.
@@ -364,8 +420,7 @@ function updateSampleLook(): void {
 function selectTool(tool: Instrument): void {
   selected = tool;
   if (openPanel === 'mixall') openPanel = null;
-  // Picking an instrument keeps Beats open so you can audition presets.
-  if (tool === 'sample' && openPanel !== 'beats') openPanel = null;
+  if (tool === 'sample') openPanel = null;
   updateSelection();
   updateDock();
 }
@@ -769,11 +824,6 @@ function toggleMixAll(): void {
   updateDock();
 }
 
-function toggleBeats(): void {
-  openPanel = openPanel === 'beats' ? null : 'beats';
-  updateDock();
-}
-
 function shareUrl(): string {
   const code = encodeShare({
     length: sequencer.length,
@@ -1047,6 +1097,8 @@ function loadPreset(preset: Preset): void {
   updateHud();
   updateStepHints();
   beatUndo.disabled = false;
+  loadedPresetId = preset.id;
+  if (!beatsScreen.hidden) updateBeatsScreen();
   if (!infoBackdrop.hidden) renderInfo();
 }
 
@@ -1058,6 +1110,8 @@ function randomize(): void {
   updateHud();
   updateStepHints();
   beatUndo.disabled = false;
+  loadedPresetId = null;
+  if (!beatsScreen.hidden) updateBeatsScreen();
 }
 
 function undo(): void {
@@ -1066,6 +1120,8 @@ function undo(): void {
   undoSnapshot = null;
   restoreSnapshot(snapshot);
   beatUndo.disabled = true;
+  loadedPresetId = null;
+  if (!beatsScreen.hidden) updateBeatsScreen();
 }
 
 function cellAt(event: PointerEvent | MouseEvent): { col: number; row: number } | null {
@@ -1259,7 +1315,18 @@ for (const input of mixInputs) {
 }
 shareToggle.addEventListener('click', toggleSharePanel);
 mixToggle.addEventListener('click', toggleMixAll);
-beatsToggle.addEventListener('click', toggleBeats);
+beatsToggle.addEventListener('click', openBeats);
+beatsClose.addEventListener('click', closeBeats);
+beatsScreen.addEventListener('click', (event) => {
+  if (event.target === beatsScreen) closeBeats();
+});
+beatsUp.addEventListener('click', () => moveBeatsCursor(-1));
+beatsDown.addEventListener('click', () => moveBeatsCursor(1));
+beatsLoad.addEventListener('click', () => {
+  const preset = PRESETS[beatsCursor];
+  if (preset) loadPreset(preset);
+  updateBeatsScreen();
+});
 beatRandom.addEventListener('click', randomize);
 beatUndo.addEventListener('click', undo);
 shareLinkButton.addEventListener('click', () => void copyShareLink());
@@ -1270,6 +1337,27 @@ fileButton.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', loadSampleFile);
 
 window.addEventListener('keydown', (event) => {
+  // The Beats screen takes the keyboard while it is open.
+  if (!beatsScreen.hidden) {
+    if (event.key === 'Escape') {
+      closeBeats();
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveBeatsCursor(-1);
+    } else if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      moveBeatsCursor(1);
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      const preset = PRESETS[beatsCursor];
+      if (preset) loadPreset(preset);
+      updateBeatsScreen();
+    } else if (event.code === 'Space' && !event.repeat) {
+      event.preventDefault();
+      togglePlay();
+    }
+    return;
+  }
   // The backing info screen takes the keyboard while it is open.
   if (!infoBackdrop.hidden) {
     if (event.key === 'Escape' || event.key.toLowerCase() === 'i') closeInfo();
@@ -1435,7 +1523,7 @@ for (let i = 0; i < 16; i += 1) {
 }
 
 renderSampleButtons();
-renderPresetButtons();
+renderBeatsList();
 buildInfoMap();
 
 const shared = (() => {

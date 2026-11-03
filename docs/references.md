@@ -179,9 +179,9 @@ header holds the logo, the Notes and Step readouts, the Share button, and the Le
 buttons; the transport holds Play, Stop, BPM, Mute, and Clear. The Master volume is the first
 slider in the `mixall` view of the dock. The Theme button cycles to the next theme.
 
-The mixer, sampler, FX, Share, and Beats panels share one dock slot under the board and
+The mixer, sampler, FX, and Share panels share one dock slot under the board and
 show one view at a time. `updateDock()` in `main.ts` picks the view: an open panel (FX, Share,
-Beats, or the `mixall` view of the Master and all seven channel volume sliders), else the
+or the `mixall` view of the Master and all seven channel volume sliders), else the
 sampler while Sample is selected, else the mixer. The mixer shows one slider, for the selected
 instrument, and `updateMixView()` swaps which one is visible. Sample's volume slider lives in the
 sampler panel, and the Master and Backing volume sliders are in the `mixall` view of the dock.
@@ -196,6 +196,11 @@ and only then touches the DOM: the map's `current` class and the `Now:` line fol
 the map dims with a short message when the backing is a loop or off. Opening moves focus to the
 close button, closing returns it to `ⓘ`, and the keyboard closes the screen on **Esc** or **I**
 while ignoring other keys.
+
+The Beats screen (`#beats-screen`) is a pop-up like the backing info screen. `renderBeatsList()`
+builds it from `PRESETS` grouped by `kind`, `updateBeatsScreen()` shows the highlighted preset
+(`beatsCursor`) and marks the loaded one (`loadedPresetId`), and the screen takes the keyboard
+while open.
 
 ## Audio load
 

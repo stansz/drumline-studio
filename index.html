@@ -29,7 +29,7 @@
       </main>
       <nav id="tabs" class="tabs" aria-label="Panels">
         <button id="mix-toggle" class="hw tab" type="button" aria-expanded="false" aria-controls="mix-all">Mix</button>
-        <button id="beats-toggle" class="hw tab" type="button" aria-expanded="false" aria-controls="beats">Beats</button>
+        <button id="beats-toggle" class="hw tab" type="button" aria-haspopup="dialog" aria-controls="beats-screen">Beats</button>
         <button id="fx-toggle" class="hw tab" type="button" aria-expanded="false" aria-controls="fx">FX</button>
         <button id="theme" class="hw tab" type="button" aria-label="Next music theme" title="Tap for the next theme (T)">♪ Neon</button>
         <button id="backing" class="hw tab" type="button"><small>Backing</small><span id="backing-value">Song</span></button>
@@ -52,11 +52,6 @@
           <label class="fx-knob mix-all-sample" style="--c: var(--orange)"><small>Sample</small><input type="range" min="0" max="100" step="1" value="100" data-mix-channel="sample" aria-label="Sample volume" /></label>
           <label class="fx-knob" style="--c: #9b6cff"><small>Bass</small><input type="range" min="0" max="100" step="1" value="100" data-mix-channel="bass" aria-label="Bass volume" /></label>
           <label class="fx-knob" style="--c: var(--cream)"><small>Backing</small><input type="range" min="0" max="100" step="1" value="100" data-mix-channel="backing" aria-label="Backing volume" /></label>
-        </div>
-        <div id="beats" class="fx-panel beats-panel" hidden>
-          <div id="preset-list" class="sample-list"></div>
-          <button id="beat-random" class="hw" type="button" title="Random groove">Random</button>
-          <button id="beat-undo" class="hw" type="button" disabled>Undo</button>
         </div>
         <div id="fx" class="fx-panel" hidden>
           <label class="fx-knob"><small>Filter</small><input id="fx-filter" type="range" min="-100" max="100" step="1" value="0" aria-label="Filter: left is low-pass, right is high-pass" /></label>
@@ -124,6 +119,29 @@
           <dt>Feel</dt><dd id="info-feel"></dd>
           <dt>Tempo</dt><dd id="info-tempo"></dd>
         </dl>
+      </div>
+    </div>
+    <div id="beats-screen" class="info-backdrop" hidden>
+      <div class="info-panel beats-panel" role="dialog" aria-modal="true" aria-labelledby="beats-title">
+        <div class="info-head">
+          <h2 id="beats-title">Beats</h2>
+          <button id="beats-close" class="hw" type="button" aria-label="Close">✕</button>
+        </div>
+        <div class="beats-lcd">
+          <div id="beats-list" class="beats-list" role="listbox" aria-label="Presets"></div>
+          <div class="beats-detail">
+            <p id="beats-name" class="beats-name"></p>
+            <p id="beats-meta" class="beats-meta"></p>
+            <p id="beats-blurb" class="beats-blurb"></p>
+          </div>
+        </div>
+        <div class="beats-controls">
+          <button id="beats-up" class="hw" type="button" aria-label="Previous preset">▲</button>
+          <button id="beats-down" class="hw" type="button" aria-label="Next preset">▼</button>
+          <button id="beats-load" class="hw go" type="button">Load</button>
+          <button id="beat-random" class="hw" type="button" title="Random groove">Random</button>
+          <button id="beat-undo" class="hw" type="button" disabled>Undo</button>
+        </div>
       </div>
     </div>
     <div id="overlay">
