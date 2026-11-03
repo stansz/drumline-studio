@@ -1320,10 +1320,10 @@ window.addEventListener('keydown', (event) => {
       selectTool('snare');
       break;
     case '5':
-      selectTool('sample');
+      selectTool('bass');
       break;
     case '6':
-      selectTool('bass');
+      selectTool('sample');
       break;
     case 'b':
       cycleBacking();

@@ -10,7 +10,7 @@ https://stansz.github.io/drumline-studio/
 ### Painting a pattern
 
 The grid shows 16 steps at a time: each column is one step, and each cell holds at most one
-note. The six instruments are Kick, Hat, Synth, Snare, Sample, and Bass. Click or drag on the grid
+note. The six instruments are Kick, Hat, Synth, Snare, Bass, and Sample. Click or drag on the grid
 to paint the selected instrument. Rows are pitch: higher rows tune a kick up, brighten a hat,
 tighten a snare, play higher notes on the synth, pitch the sample up, and play higher bass notes.
 Clicking or dragging over a note removes it, and right-click also removes.
@@ -117,7 +117,7 @@ adds bit-crush on top of the theme's own. **Reset** sets them all back to off.
 ### Saving and sharing
 
 The pattern, its length, and any preset scale are saved automatically and come back on your next
-visit. **Share** in the transport (key **E**) opens a panel with three ways to keep a beat.
+visit. **Share** in the header (key **E**) opens a panel with three ways to keep a beat.
 Opening Share closes the other dock panels. **Copy link** gives anyone who opens the link the same
 pattern, length, tempo, theme, picked sample sound, per-note sample sounds, and preset scale. Links
 in the older `v1`, `v2`, `v3`, and `v4` formats still open; they fall back to the default Clap sound
@@ -133,8 +133,8 @@ scale, or else the theme's).
 ### The dock
 
 The tab row directly above the dock holds Mix, Beats, FX, Backing, and ⓘ. The header holds the
-logo, the Notes and Step readouts, Theme, the Vol slider, and the Length and Follow buttons. The
-transport holds Play, Stop, BPM, Share, Mute, and Clear.
+logo, the Notes and Step readouts, Share, the Vol slider, and the Length and Follow buttons. The
+transport holds Play, Stop, BPM, Theme, Mute, and Clear.
 
 The mixer, sampler, FX, Share, and Beats panels share one slot under the board, and only one of
 them shows at a time, so opening one never moves the board. On a phone held sideways, that slot
@@ -142,7 +142,7 @@ floats over the bottom of the board.
 
 ## Controls
 
-- **1** Kick, **2** Hat, **3** Synth, **4** Snare, **5** Sample, **6** Bass
+- **1** Kick, **2** Hat, **3** Synth, **4** Snare, **5** Bass, **6** Sample
 - **Space** play or pause
 - **Esc** stop and go back to step 1
 - **I** show or hide the backing info screen

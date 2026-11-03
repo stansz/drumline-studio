@@ -175,8 +175,8 @@ screen. `#rotate-hint` on the start screen points players to that layout. These 
 measured in headless Edge at phone sizes, not on a real phone.
 
 The tab row directly above the dock holds the Mix, Beats, FX, Backing, and ⓘ buttons. The header
-holds the logo, the Notes and Step readouts, the Theme button, the Vol slider, and the Length and
-Follow buttons; the transport holds Play, Stop, BPM, Share, Mute, and Clear.
+holds the logo, the Notes and Step readouts, the Share button, the Vol slider, and the Length and
+Follow buttons; the transport holds Play, Stop, BPM, Theme, Mute, and Clear.
 
 The mixer, sampler, FX, Share, and Beats panels share one dock slot under the board and show one
 view at a time. `updateDock()` in `main.ts` picks the view: an open panel (FX, Share, Beats, or the

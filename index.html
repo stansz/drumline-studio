@@ -20,7 +20,7 @@
           <button id="follow" class="hw" type="button" hidden aria-pressed="true" title="Follow the playhead across pages (F)">Follow</button>
         </div>
         <div class="sys">
-          <button id="theme" class="hw" type="button" aria-label="Change music theme">♪ Neon</button>
+          <button id="share-toggle" class="hw" type="button" aria-expanded="false" aria-controls="share">Share</button>
           <div class="levels">
             <label class="level"><small>Vol</small><input id="volume" type="range" min="0" max="100" step="1" value="100" aria-label="Volume" title="Volume" /></label>
           </div>
@@ -88,8 +88,8 @@
             <button id="tool-hat" class="pad" type="button"><span class="led"></span><canvas data-sprite="hat" width="16" height="16"></canvas><b>Hat</b><kbd>2</kbd></button>
             <button id="tool-synth" class="pad" type="button"><span class="led"></span><canvas data-sprite="synth" width="16" height="16"></canvas><b>Synth</b><kbd>3</kbd></button>
             <button id="tool-snare" class="pad" type="button"><span class="led"></span><canvas data-sprite="snare" width="16" height="16"></canvas><b>Snare</b><kbd>4</kbd></button>
-            <button id="tool-sample" class="pad" type="button"><span class="led"></span><canvas data-sprite="sample" width="16" height="16"></canvas><b>Sample</b><kbd>5</kbd></button>
-            <button id="tool-bass" class="pad" type="button"><span class="led"></span><canvas data-sprite="bass" width="16" height="16"></canvas><b>Bass</b><kbd>6</kbd></button>
+            <button id="tool-bass" class="pad" type="button"><span class="led"></span><canvas data-sprite="bass" width="16" height="16"></canvas><b>Bass</b><kbd>5</kbd></button>
+            <button id="tool-sample" class="pad" type="button"><span class="led"></span><canvas data-sprite="sample" width="16" height="16"></canvas><b>Sample</b><kbd>6</kbd></button>
           </div>
         </div>
         <div class="bank">
@@ -103,7 +103,7 @@
               <button id="bpm-up" class="hw" type="button" aria-label="Faster" title="Faster (Shift: 10 BPM)">+</button>
             </div>
             <button id="live" class="hw" type="button" title="Paint, Live, or Rec (V)">Paint</button>
-            <button id="share-toggle" class="hw" type="button" aria-expanded="false" aria-controls="share">Share</button>
+            <button id="theme" class="hw" type="button" aria-label="Change music theme">♪ Neon</button>
             <button id="mute" class="hw" type="button">Mute</button>
             <button id="clear" class="hw" type="button">Clear</button>
           </div>
