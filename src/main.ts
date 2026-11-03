@@ -3,6 +3,7 @@ import { LIVE_TOOLS, GRID_COLS, GRID_ROWS, INSTRUMENT_INFO, parseBpm } from './c
 import { DEFAULT_FX, parseFx, type FxSettings } from './fx';
 import { liveRowForCode, nearestStep, nextLiveMode, type LiveMode } from './live';
 import { patternToMidi } from './midi';
+import { DEFAULT_MIX, MIX_CHANNELS, parseMix, type MixSettings } from './mix';
 import { intensity, layerLevels, pickVoices } from './music';
 import { decodeShare, encodeShare, parsePattern, serializePattern } from './pattern';
 import { extensionFor, fileStamp, formatElapsed, pickRecordingType } from './recording';
@@ -42,7 +43,6 @@ function byId<T extends HTMLElement>(id: string): T {
 const canvas = byId<HTMLCanvasElement>('game');
 const notesEl = byId<HTMLSpanElement>('notes');
 const stepEl = byId<HTMLSpanElement>('step');
-const infoEl = byId<HTMLParagraphElement>('info');
 const overlay = byId<HTMLDivElement>('overlay');
 const overlayText = byId<HTMLDivElement>('overlay-text');
 const overlayDetail = byId<HTMLDivElement>('overlay-detail');
@@ -84,12 +84,18 @@ const shareLinkButton = byId<HTMLButtonElement>('share-link');
 const recordButton = byId<HTMLButtonElement>('record');
 const midiButton = byId<HTMLButtonElement>('midi');
 const shareStatus = byId<HTMLSpanElement>('share-status');
+const mixPanel = byId<HTMLDivElement>('mix');
+const mixSliders: Record<string, HTMLInputElement> = {};
+for (const channel of MIX_CHANNELS) {
+  mixSliders[channel] = byId<HTMLInputElement>(`mix-${channel}`);
+}
 
 const THEME_KEY = 'drumline-theme';
 const BACKING_KEY = 'drumline-backing';
 const VOLUME_KEY = 'drumline-volume';
 const BPM_KEY = 'drumline-bpm';
 const FX_KEY = 'drumline-fx';
+const MIX_KEY = 'drumline-mix';
 const PATTERN_KEY = 'drumline-pattern';
 const SAMPLE_KEY = 'drumline-sample';
 const renderer = new Renderer(canvas);
@@ -112,6 +118,7 @@ let volume = loadVolume();
 let backing = loadBacking();
 let bpm = loadBpm();
 let fx: FxSettings = loadFx();
+let mix: MixSettings = loadMix();
 let sample: SamplePreset = loadSample();
 let hasUserSample = false;
 // Whether the player picked a sound since the page loaded; the saved user sample only takes
@@ -223,10 +230,10 @@ function renderSampleButtons(): void {
 }
 
 // The dock shows one view at a time: an opened panel, else the sampler while Sample is
-// selected, else the info line.
+// selected, else the mixer.
 function updateDock(): void {
-  const view = openPanel ?? (selected === 'sample' ? 'sampler' : 'info');
-  infoEl.hidden = view !== 'info';
+  const view = openPanel ?? (selected === 'sample' ? 'sampler' : 'mix');
+  mixPanel.hidden = view !== 'mix';
   fxPanel.hidden = view !== 'fx';
   sharePanel.hidden = view !== 'share';
   samplerPanel.hidden = view !== 'sampler';
@@ -342,6 +349,7 @@ async function startAudio(): Promise<void> {
     audio.setMuted(muted);
     audio.setVolume(volume);
     audio.setFx(fx);
+    audio.setMix(mix);
     audio.setSample(sample.id);
     void audio.loadSamples();
     void loadUserSample().then((stored) => {
@@ -453,6 +461,30 @@ function loadFx(): FxSettings {
     return parseFx(localStorage.getItem(FX_KEY));
   } catch {
     return parseFx(null);
+  }
+}
+
+function loadMix(): MixSettings {
+  try {
+    return parseMix(localStorage.getItem(MIX_KEY));
+  } catch {
+    return { ...DEFAULT_MIX };
+  }
+}
+
+function showMix(): void {
+  for (const channel of MIX_CHANNELS) {
+    mixSliders[channel].value = String(Math.round(mix[channel] * 100));
+  }
+}
+
+function setMix(next: MixSettings): void {
+  mix = next;
+  audio?.setMix(mix);
+  try {
+    localStorage.setItem(MIX_KEY, JSON.stringify(mix));
+  } catch {
+    // The settings still apply for this visit.
   }
 }
 
@@ -884,6 +916,13 @@ for (const slider of [fxFilter, fxDelay, fxReverb, fxCrush]) {
   slider.addEventListener('input', () => setFx(readFxSliders()));
 }
 fxReset.addEventListener('click', () => setFx({ ...DEFAULT_FX }));
+for (const channel of MIX_CHANNELS) {
+  mixSliders[channel].addEventListener('input', () => {
+    const next: MixSettings = { ...mix };
+    next[channel] = Number(mixSliders[channel].value) / 100;
+    setMix(next);
+  });
+}
 shareToggle.addEventListener('click', toggleSharePanel);
 shareLinkButton.addEventListener('click', () => void copyShareLink());
 recordButton.addEventListener('click', toggleRecording);
@@ -893,16 +932,8 @@ fileButton.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', loadSampleFile);
 
 window.addEventListener('keydown', (event) => {
-  // Typing a tempo or moving an FX slider must not trigger the shortcuts.
-  if (
-    event.target === bpmInput ||
-    event.target === fxFilter ||
-    event.target === fxDelay ||
-    event.target === fxReverb ||
-    event.target === fxCrush
-  ) {
-    return;
-  }
+  // Typing a tempo or moving a slider must not trigger the shortcuts.
+  if (event.target instanceof HTMLInputElement) return;
   if (event.code === 'Minus' || event.code === 'NumpadSubtract') {
     nudgeBpm(-1, event.shiftKey);
     return;
@@ -1069,7 +1100,7 @@ if (shared) {
   sampleChosenThisVisit = true;
   updateSampleLook();
   history.replaceState(null, '', location.pathname + location.search);
-  infoEl.textContent = 'Loaded a shared beat.';
+  overlayDetail.textContent = 'Loaded a shared beat.';
 } else {
   const saved = (() => {
     try {
@@ -1088,11 +1119,6 @@ updateDock();
 setLiveMode('paint');
 liveButton.hidden = !LIVE_TOOLS;
 stepsEl.classList.toggle('loopable', LIVE_TOOLS);
-if (!shared) {
-  infoEl.textContent = LIVE_TOOLS
-    ? 'Click or drag to paint. Click a note to remove it. Drag the step lights to loop.'
-    : 'Click or drag to paint. Click a note to remove it. Higher rows play higher.';
-}
 for (const name of INSTRUMENTS) {
   const button = byId<HTMLButtonElement>(`tool-${name}`);
   button.title = `${INSTRUMENT_INFO[name].name}: ${INSTRUMENT_INFO[name].description}`;
@@ -1102,6 +1128,7 @@ bpmInput.value = String(bpm);
 updateBackingButton();
 volumeSlider.value = String(volume);
 showFx();
+showMix();
 recordButton.disabled = true;
 if (!recordingType) recordButton.hidden = true;
 micButton.disabled = true;

@@ -29,7 +29,14 @@
         <canvas id="game" width="256" height="128" aria-label="Pattern grid"></canvas>
       </main>
       <div id="dock" class="dock">
-        <p id="info" class="readout"></p>
+        <div id="mix" class="fx-panel mix-panel">
+          <label class="fx-knob" style="--c: var(--red)"><small>Kick</small><input id="mix-kick" type="range" min="0" max="100" step="1" value="100" aria-label="Kick volume" /></label>
+          <label class="fx-knob" style="--c: var(--amber)"><small>Hat</small><input id="mix-hat" type="range" min="0" max="100" step="1" value="100" aria-label="Hat volume" /></label>
+          <label class="fx-knob" style="--c: var(--teal)"><small>Synth</small><input id="mix-synth" type="range" min="0" max="100" step="1" value="100" aria-label="Synth volume" /></label>
+          <label class="fx-knob" style="--c: #a6d94a"><small>Snare</small><input id="mix-snare" type="range" min="0" max="100" step="1" value="100" aria-label="Snare volume" /></label>
+          <label class="fx-knob" style="--c: var(--orange)"><small>Sample</small><input id="mix-sample" type="range" min="0" max="100" step="1" value="100" aria-label="Sample volume" /></label>
+          <label class="fx-knob" style="--c: var(--cream)"><small>Backing</small><input id="mix-backing" type="range" min="0" max="100" step="1" value="100" aria-label="Backing volume" /></label>
+        </div>
         <div id="fx" class="fx-panel" hidden>
           <label class="fx-knob"><small>Filter</small><input id="fx-filter" type="range" min="-100" max="100" step="1" value="0" aria-label="Filter: left is low-pass, right is high-pass" /></label>
           <label class="fx-knob"><small>Delay</small><input id="fx-delay" type="range" min="0" max="100" step="1" value="0" aria-label="Delay amount" /></label>

@@ -17,14 +17,16 @@ Commands: `npm run dev`, `npm test`, `npm run test:sandbox`, `npm run typecheck`
 
 ## Rules
 
-- Keep `src/sequencer.ts`, `src/live.ts`, `src/fx.ts`, `src/pattern.ts`, `src/midi.ts`,
-  `src/recording.ts`, `src/sampleEdit.ts`, and `src/samples.ts` free of the DOM, audio, and
-  `localStorage`. `src/sequencer.ts` also stays free of randomness.
+- Keep `src/sequencer.ts`, `src/live.ts`, `src/fx.ts`, `src/mix.ts`, `src/pattern.ts`,
+  `src/midi.ts`, `src/recording.ts`, `src/sampleEdit.ts`, and `src/samples.ts` free of the DOM,
+  audio, and `localStorage`. `src/sequencer.ts` also stays free of randomness.
 - Each note plays only on its own step, and only while that step is within the pattern
   length and the loop. A note recorded live skips its next pass because it already sounded.
 - Live play and the loop are hidden behind `LIVE_TOOLS` in `src/config.ts`; when turning them
   on, restore their README sections from git history.
 - FX are applied on top of the theme and never change a theme's own values.
+- Voices connect to their instrument's level and send gains in `audio.ts`, never straight to
+  `towerBus` or `delaySend`, so the mixer covers everything.
 - Share links are versioned (`v1.`, `v2.`) in `src/pattern.ts`. Add a new version instead of
   changing an old one, and keep decoding every old version.
 - The order of `INSTRUMENTS` is part of the share-link format; append new instruments, never

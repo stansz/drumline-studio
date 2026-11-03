@@ -16,6 +16,7 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
 - `src/sampler.ts`: renders each sample preset into an `AudioBuffer` with an
   `OfflineAudioContext`.
 - `src/fx.ts`: FX settings, parsing, and filter cutoffs.
+- `src/mix.ts`: mixer channels, saving, parsing, and the slider-to-gain curve.
 - `src/live.ts`: live-play modes, key rows, and nearest-step quantizing; hidden by `LIVE_TOOLS`.
 - `src/music.ts`: chords, arpeggios, and how the backing music builds up.
 - `src/themes.ts`: one entry for each music theme.
@@ -58,8 +59,8 @@ audio time, not against the sequencer's current state.
 ## Audio chain
 
 ```text
-instrument and fx buses → master → trim → crusher → theme filter → FX low-pass → FX high-pass → limiter → soft clip → analyser → volume → output
-music bus → musicTrim → master
+instrument level gains → instrument and fx buses → master → trim → crusher → theme filter → FX low-pass → FX high-pass → limiter → soft clip → analyser → volume → output
+music bus → musicTrim → backing level → master
 ```
 
 The recording stream is tapped from the analyser. The FX delay and reverb sends are taken from the
@@ -97,13 +98,12 @@ icon.
 On phones held upright, the board's size is limited by the screen width, so it runs edge to edge.
 On phones held sideways, the controls sit in a column beside the board, which gives it most of the
 screen. `#rotate-hint` on the start screen points players to that layout. These layouts were
-measured in headless Edge at phone sizes, not on a real phone. The info line under the board is one
-fixed line and truncates when its text is too long.
+measured in headless Edge at phone sizes, not on a real phone.
 
-The info line, sampler, FX, and Share panels share one dock slot under the board and show one view
-at a time. `updateDock()` in `main.ts` picks the view: an open panel (FX or Share), else the sampler
-while Sample is selected, else the info line. The dock's height comes from the `--dock-h` custom
-property, so swapping views never moves the board or the controls.
+The mixer, sampler, FX, and Share panels share one dock slot under the board and show one view
+at a time. `updateDock()` in `main.ts` picks the view: an open panel (FX or Share), else the
+sampler while Sample is selected, else the mixer. The dock's height comes from the `--dock-h`
+custom property, so swapping views never moves the board or the controls.
 
 ## Audio load
 
@@ -126,6 +126,7 @@ These values are saved to `localStorage` when they change, and come back on the 
 - `drumline-volume`: the volume percent, from 0 to 100.
 - `drumline-bpm`: the tempo.
 - `drumline-fx`: the FX settings as JSON.
+- `drumline-mix`: the mixer levels as JSON.
 - `drumline-sample`: the chosen sample id.
 - `drumline-pattern`: JSON `{ v: 1, length, cells }`.
 

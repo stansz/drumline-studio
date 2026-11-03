@@ -7,10 +7,11 @@ import {
   FX_REVERB_SEND,
   type FxSettings,
 } from './fx';
+import { mixGain, MIX_CHANNELS, type MixChannel, type MixSettings } from './mix';
 import { arpNote, chordForStep, midiToHz, type layerLevels } from './music';
 import { renderSamples } from './sampler';
 import { DEFAULT_SAMPLE, USER_SAMPLE, rateForRow } from './samples';
-import type { Instrument } from './sequencer';
+import { INSTRUMENTS, type Instrument } from './sequencer';
 import {
   DEFAULT_THEME,
   DRUM_PARTS,
@@ -92,6 +93,10 @@ export class Audio_ {
   private readonly towerBus: GainNode;
   private readonly musicBus: GainNode;
   private readonly musicTrim: GainNode;
+  private readonly instrumentLevels: Record<Instrument, GainNode>;
+  private readonly instrumentDelaySends: Record<Instrument, GainNode>;
+  private readonly backingLevel: GainNode;
+  private readonly backingDelaySend: GainNode;
   private readonly fxBus: GainNode;
   private readonly delay: DelayNode;
   private readonly delaySend: GainNode;
@@ -189,7 +194,6 @@ export class Audio_ {
     this.fxBus.gain.value = 1;
     this.towerBus.connect(this.master);
     this.musicBus.connect(this.musicTrim);
-    this.musicTrim.connect(this.master);
     this.fxBus.connect(this.master);
 
     this.reverb = ctx.createConvolver();
@@ -199,7 +203,6 @@ export class Audio_ {
     this.towerReverbSend = ctx.createGain();
     this.musicReverbSend.gain.value = MIX.reverbSend;
     this.towerReverbSend.gain.value = MIX.reverbSend;
-    this.musicTrim.connect(this.musicReverbSend);
     this.musicReverbSend.connect(this.reverb);
     this.towerBus.connect(this.towerReverbSend);
     this.towerReverbSend.connect(this.reverb);
@@ -214,6 +217,29 @@ export class Audio_ {
     this.delaySend = ctx.createGain();
     this.delaySend.gain.value = MIX.delaySend;
     this.delaySend.connect(this.delay);
+
+    // The mixer scales each instrument and the backing before their buses, and each part's
+    // delay send by the same amount, so turning a part down turns its echo down too.
+    this.instrumentLevels = {} as Record<Instrument, GainNode>;
+    this.instrumentDelaySends = {} as Record<Instrument, GainNode>;
+    for (const instrument of INSTRUMENTS) {
+      const level = ctx.createGain();
+      level.gain.value = 1;
+      level.connect(this.towerBus);
+      this.instrumentLevels[instrument] = level;
+      const send = ctx.createGain();
+      send.gain.value = 1;
+      send.connect(this.delaySend);
+      this.instrumentDelaySends[instrument] = send;
+    }
+    this.backingLevel = ctx.createGain();
+    this.backingLevel.gain.value = 1;
+    this.musicTrim.connect(this.backingLevel);
+    this.backingLevel.connect(this.master);
+    this.backingLevel.connect(this.musicReverbSend);
+    this.backingDelaySend = ctx.createGain();
+    this.backingDelaySend.gain.value = 1;
+    this.backingDelaySend.connect(this.delaySend);
 
     this.fxDelaySend = ctx.createGain();
     this.fxDelaySend.gain.value = 0;
@@ -387,7 +413,7 @@ export class Audio_ {
     const gain = this.ctx.createGain();
     gain.gain.value = Math.max(MIX.sample * level, 0.0001);
     source.connect(gain);
-    gain.connect(this.towerBus);
+    gain.connect(this.instrumentLevels.sample);
     source.start(time);
   }
 
@@ -403,7 +429,7 @@ export class Audio_ {
     gain.gain.exponentialRampToValueAtTime(Math.max(MIX.kick * level, 0.0001), time + kick.attack);
     gain.gain.exponentialRampToValueAtTime(0.0001, time + kick.decay);
     osc.connect(gain);
-    gain.connect(this.towerBus);
+    gain.connect(this.instrumentLevels.kick);
     osc.start(time);
     osc.stop(time + kick.decay + 0.02);
     if (kick.click > 0) this.playClick(time, kick.click * level);
@@ -420,7 +446,7 @@ export class Audio_ {
     gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.012);
     source.connect(highpass);
     highpass.connect(gain);
-    gain.connect(this.towerBus);
+    gain.connect(this.instrumentLevels.kick);
     source.start(time);
     source.stop(time + 0.02);
   }
@@ -438,7 +464,7 @@ export class Audio_ {
     gain.gain.exponentialRampToValueAtTime(0.0001, time + hat.decay);
     source.connect(filter);
     filter.connect(gain);
-    gain.connect(this.towerBus);
+    gain.connect(this.instrumentLevels.hat);
     source.start(time);
     source.stop(time + hat.decay + 0.01);
   }
@@ -458,7 +484,7 @@ export class Audio_ {
     noiseGain.gain.exponentialRampToValueAtTime(0.0001, time + decay);
     source.connect(filter);
     filter.connect(noiseGain);
-    noiseGain.connect(this.towerBus);
+    noiseGain.connect(this.instrumentLevels.snare);
     source.start(time);
     source.stop(time + decay + 0.01);
 
@@ -470,7 +496,7 @@ export class Audio_ {
     bodyGain.gain.setValueAtTime(Math.max(MIX.snare * 0.7 * level, 0.0001), time);
     bodyGain.gain.exponentialRampToValueAtTime(0.0001, time + 0.08);
     body.connect(bodyGain);
-    bodyGain.connect(this.towerBus);
+    bodyGain.connect(this.instrumentLevels.snare);
     body.start(time);
     body.stop(time + 0.1);
   }
@@ -498,8 +524,8 @@ export class Audio_ {
     first.connect(filter);
     second.connect(filter);
     filter.connect(gain);
-    gain.connect(this.towerBus);
-    gain.connect(this.delaySend);
+    gain.connect(this.instrumentLevels.synth);
+    gain.connect(this.instrumentDelaySends.synth);
     first.start(time);
     second.start(time);
     first.stop(time + synth.decay + 0.02);
@@ -596,7 +622,7 @@ export class Audio_ {
     filter.type = 'lowpass';
     filter.frequency.value = chord.cutoffHz;
     filter.connect(this.musicBus);
-    filter.connect(this.delaySend);
+    filter.connect(this.backingDelaySend);
 
     const peak = Math.max((MIX.pad * chord.level * level) / Math.sqrt(notes.length), 0.0001);
     const end = time + chord.decay;
@@ -658,7 +684,7 @@ export class Audio_ {
     gain.gain.exponentialRampToValueAtTime(0.0001, time + arp.decay);
     osc.connect(gain);
     gain.connect(this.musicBus);
-    gain.connect(this.delaySend);
+    gain.connect(this.backingDelaySend);
     osc.start(time);
     osc.stop(time + arp.decay + 0.02);
   }
@@ -728,6 +754,20 @@ export class Audio_ {
     this.fxDelaySend.gain.setTargetAtTime(fx.delay * FX_DELAY_SEND, now, 0.03);
     this.fxReverbSend.gain.setTargetAtTime(fx.reverb * FX_REVERB_SEND, now, 0.03);
     this.applyCrush(now);
+  }
+
+  setMix(mix: MixSettings): void {
+    const now = this.ctx.currentTime;
+    for (const channel of MIX_CHANNELS) {
+      const gain = mixGain(mix[channel]);
+      if (channel === 'backing') {
+        this.backingLevel.gain.setTargetAtTime(gain, now, 0.03);
+        this.backingDelaySend.gain.setTargetAtTime(gain, now, 0.03);
+      } else {
+        this.instrumentLevels[channel].gain.setTargetAtTime(gain, now, 0.03);
+        this.instrumentDelaySends[channel].gain.setTargetAtTime(gain, now, 0.03);
+      }
+    }
   }
 
   private applyCrush(now: number): void {
