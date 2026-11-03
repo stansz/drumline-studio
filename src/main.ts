@@ -194,6 +194,13 @@ function setPage(next: number): void {
   updateLoopLeds();
 }
 
+// The mixer view shows only the selected instrument's slider.
+function updateMixView(): void {
+  mixPanel.querySelectorAll<HTMLElement>('.mix-channel').forEach((label) => {
+    label.hidden = label.dataset.channel !== selected;
+  });
+}
+
 function updateSelection(): void {
   kickButton.classList.toggle('selected', selected === 'kick');
   hatButton.classList.toggle('selected', selected === 'hat');
@@ -201,6 +208,7 @@ function updateSelection(): void {
   snareButton.classList.toggle('selected', selected === 'snare');
   sampleButton.classList.toggle('selected', selected === 'sample');
   updateSampler();
+  updateMixView();
 }
 
 function updateSampler(): void {
@@ -256,6 +264,7 @@ function pickSample(id: string, audition = true): void {
 
 function updateSampleLook(): void {
   sampleButton.style.setProperty('--c', PIXEL_COLORS[sample.color] ?? '');
+  samplerPanel.querySelector<HTMLElement>('.sampler-volume')?.style.setProperty('--c', PIXEL_COLORS[sample.color] ?? '');
   const icon = sampleButton.querySelector('canvas');
   if (icon) drawIcon(icon, 'sample', sample.color);
 }

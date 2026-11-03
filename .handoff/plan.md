@@ -1,232 +1,210 @@
-# Plan: Per-instrument and backing volume mixer, replacing the info line
+# Plan: One volume slider for the selected instrument; Sample and Backing volumes move
 
 ## Goal
 
-In Drumline Studio (`C:\Users\sz\Documents\Code\drumline-studio`), add a mixer with six
-volume sliders: **Kick, Hat, Synth, Snare, Sample, Backing**. The mixer becomes the dock's
-default view, replacing the "Click or drag to paint…" info line, which is removed. The dock
-then shows:
+In Drumline Studio (`C:\Users\sz\Documents\Code\drumline-studio`), the mixer in the dock
+shows six sliders at once. Change it so:
 
-- the sampler while Sample is selected
-- FX or Share while one of them is open
-- otherwise the mixer
+1. **The mixer view shows one slider**: the selected instrument's volume (Kick, Hat, Synth,
+   or Snare), with a label like "Kick volume" in that instrument's color. Picking another
+   instrument swaps which slider shows.
+2. **Sample's volume lives in the sampler panel**, as a compact slider after Mic and File,
+   colored like the chosen sample sound. Selecting Sample already shows that panel.
+3. **Backing's volume moves to the header**, as a second thin slider stacked under the main
+   volume slider. Label them "Vol" and "Backing".
 
-Mixer settings are saved. Each slider also scales the delay and reverb that its sound feeds,
-so turning a part down turns its echo down too.
+The audio side, saved settings (`drumline-mix`), and slider ids (`mix-kick` … `mix-backing`)
+don't change. Only where the sliders appear changes.
 
 ## Files to touch
 
-- `src/mix.ts` (new)
-- `src/audio.ts`
+- `index.html`
 - `src/main.ts`
 - `src/style.css`
-- `index.html`
-- `tests/mix.test.ts` (new)
 - `README.md`
-- `AGENTS.md`
 - `docs/references.md`
 - `.handoff/report.md`
 
 ## Steps
 
-### 1. `src/mix.ts` (new; no DOM, no audio, no storage)
+### 1. `index.html`
 
-```ts
-import type { Instrument } from './sequencer';
-
-export type MixChannel = Instrument | 'backing';
-export const MIX_CHANNELS: readonly MixChannel[] = ['kick', 'hat', 'synth', 'snare', 'sample', 'backing'];
-export type MixSettings = Record<MixChannel, number>; // each 0 to 1
-
-export const DEFAULT_MIX: Readonly<MixSettings> = {
-  kick: 1, hat: 1, synth: 1, snare: 1, sample: 1, backing: 1,
-};
-
-// Reads saved settings. Missing or unreadable values fall back to full volume.
-export function parseMix(stored: string | null): MixSettings {
-  let data: unknown = null;
-  try {
-    data = stored === null ? null : JSON.parse(stored);
-  } catch {
-    data = null;
-  }
-  const source = (typeof data === 'object' && data !== null && !Array.isArray(data) ? data : {}) as Record<string, unknown>;
-  const result = { ...DEFAULT_MIX };
-  for (const channel of MIX_CHANNELS) {
-    const value = source[channel];
-    if (typeof value === 'number' && Number.isFinite(value)) result[channel] = Math.max(0, Math.min(1, value));
-  }
-  return result;
-}
-
-// Slider position to gain. Squared, so the slider feels even to the ear; 1 stays 1.
-export function mixGain(level: number): number {
-  const clamped = Math.max(0, Math.min(1, level));
-  return clamped * clamped;
-}
-```
-
-### 2. `src/audio.ts`
-
-- Import `mixGain, MIX_CHANNELS, type MixChannel, type MixSettings` from `./mix`, and
-  `INSTRUMENTS` from `./sequencer` if needed.
-- Add private fields:
-  - `instrumentLevels: Record<Instrument, GainNode>`
-  - `instrumentDelaySends: Record<Instrument, GainNode>`
-  - `backingLevel: GainNode`
-  - `backingDelaySend: GainNode`
-- Constructor:
-  - For each instrument, create a level gain (value 1) connected to `this.towerBus`, and a
-    delay-send gain (value 1) connected to `this.delaySend`.
-  - Create `backingLevel` (value 1). Change the music wiring from
-    `musicTrim → master` and `musicTrim → musicReverbSend` to `musicTrim → backingLevel`,
-    `backingLevel → master`, and `backingLevel → musicReverbSend`.
-  - Create `backingDelaySend` (value 1), connected to `this.delaySend`.
-  - These nodes must exist before anything connects to them, so create them right after
-    `towerBus`, `musicBus`, `delaySend`, and `musicTrim` exist.
-- Rewire voices. Search `audio.ts` for every `connect(this.towerBus)` and
-  `connect(this.delaySend)`:
-  - In `playKick` and `playClick` (the kick's click): connect to
-    `this.instrumentLevels.kick` instead of `this.towerBus`.
-  - In `playHat`, `playSnare`, `playSynth`, and `playSample`: connect to their own level
-    gain instead of `this.towerBus`.
-  - In `playSynth`: replace `connect(this.delaySend)` with
-    `connect(this.instrumentDelaySends.synth)`.
-  - In music voices (`playStab`, `playArp`, and any other music voice that connects to
-    `this.delaySend`): replace it with `connect(this.backingDelaySend)`.
-  - After this, nothing in a voice may connect straight to `this.delaySend`. Only the send
-    gains created in the constructor do. Leave the FX delay and reverb sends from
-    `towerBus` as they are: they sit after the instrument levels, so they already follow
-    the sliders.
-- Add a public method:
-
-  ```ts
-  setMix(mix: MixSettings): void {
-    const now = this.ctx.currentTime;
-    for (const channel of MIX_CHANNELS) {
-      const gain = mixGain(mix[channel]);
-      if (channel === 'backing') {
-        this.backingLevel.gain.setTargetAtTime(gain, now, 0.03);
-        this.backingDelaySend.gain.setTargetAtTime(gain, now, 0.03);
-      } else {
-        this.instrumentLevels[channel].gain.setTargetAtTime(gain, now, 0.03);
-        this.instrumentDelaySends[channel].gain.setTargetAtTime(gain, now, 0.03);
-      }
-    }
-  }
-  ```
-
-- The metronome is not on any slider. Leave its wiring unchanged.
-
-### 3. `index.html`
-
-- Remove `<p id="info" class="readout"></p>` from the dock.
-- Add as the **first** child of `#dock`:
+- `#mix`: keep only the four instrument labels (kick, hat, synth, snare). Give each label
+  `class="fx-knob mix-channel"` and `data-channel="<instrument>"`. Change each label's
+  `<small>` text to `"<Name> volume"` (e.g. `Kick volume`). Remove the Sample and Backing
+  labels from `#mix`.
+- `#sampler`: after the `#sample-file-input` element, add:
 
   ```html
-  <div id="mix" class="fx-panel mix-panel">
-    <label class="fx-knob" style="--c: var(--red)"><small>Kick</small><input id="mix-kick" type="range" min="0" max="100" step="1" value="100" aria-label="Kick volume" /></label>
-    <label class="fx-knob" style="--c: var(--amber)"><small>Hat</small><input id="mix-hat" type="range" min="0" max="100" step="1" value="100" aria-label="Hat volume" /></label>
-    <label class="fx-knob" style="--c: var(--teal)"><small>Synth</small><input id="mix-synth" type="range" min="0" max="100" step="1" value="100" aria-label="Synth volume" /></label>
-    <label class="fx-knob" style="--c: #a6d94a"><small>Snare</small><input id="mix-snare" type="range" min="0" max="100" step="1" value="100" aria-label="Snare volume" /></label>
-    <label class="fx-knob" style="--c: var(--orange)"><small>Sample</small><input id="mix-sample" type="range" min="0" max="100" step="1" value="100" aria-label="Sample volume" /></label>
-    <label class="fx-knob" style="--c: var(--cream)"><small>Backing</small><input id="mix-backing" type="range" min="0" max="100" step="1" value="100" aria-label="Backing volume" /></label>
+  <label class="sampler-volume" title="Sample volume"><small>Vol</small><input id="mix-sample" type="range" min="0" max="100" step="1" value="100" aria-label="Sample volume" /></label>
+  ```
+
+- Header `.sys`: replace the `<input id="volume" …>` element with:
+
+  ```html
+  <div class="levels">
+    <label class="level"><small>Vol</small><input id="volume" type="range" min="0" max="100" step="1" value="100" aria-label="Volume" title="Volume" /></label>
+    <label class="level"><small>Backing</small><input id="mix-backing" type="range" min="0" max="100" step="1" value="100" aria-label="Backing volume" title="Backing volume" /></label>
   </div>
   ```
 
-  Check that `--red`, `--amber`, `--teal`, `--orange`, and `--cream` exist in `:root` in
-  `style.css`. If one is missing, use the hex value from the matching `#tool-*` rule.
+  Keep the `#volume` id and attributes exactly as they are.
 
-### 4. `src/main.ts`
+### 2. `src/main.ts`
 
-- Remove `infoEl`, and every line that sets its text or `hidden`, including the startup text
-  and the `LIVE_TOOLS` variants.
-- When a shared beat loads, set
-  `overlayDetail.textContent = 'Loaded a shared beat.'` instead. The start overlay is
-  showing at that point. `showStartOverlay` already clears it later. Check that nothing else
-  clears it before the player presses Start. If something does, report it.
-- Imports: `DEFAULT_MIX, MIX_CHANNELS, parseMix, type MixSettings` from `./mix`.
-- Add `const MIX_KEY = 'drumline-mix';`, elements `mixPanel` (`#mix`), and a map of the six
-  sliders (`mix-${channel}`).
-- Add `let mix: MixSettings = loadMix();`, where `loadMix` reads `MIX_KEY` through `parseMix`
-  inside `try`/`catch`, like `loadFx`.
-- Add `showMix()` to set each slider's value to `Math.round(mix[channel] * 100)`.
-- Add `setMix(next)` to store `mix`, call `audio?.setMix(mix)`, and save JSON to `MIX_KEY` in
-  `try`/`catch`.
-- Each slider's `input` event calls `setMix` with that channel updated to `value / 100`.
-- In `startAudio`, after `audio.setFx(fx);`, add `audio.setMix(mix);`.
-- `updateDock`: the default view is `'mix'` instead of `'info'`:
-  `const view = openPanel ?? (selected === 'sample' ? 'sampler' : 'mix');`. Set
-  `mixPanel.hidden = view !== 'mix';` instead of the `infoEl` line.
-- Keyboard: the `keydown` handler currently skips events from `bpmInput` and the FX sliders.
-  Replace that check with `if (event.target instanceof HTMLInputElement) return;`, so every
-  slider and the tempo box are covered, including the mixer and volume.
-- Call `showMix()` at startup.
+- The mixer slider wiring looks sliders up by id (`mix-${channel}`), so it keeps working.
+  Check that it still finds all six.
+- Add:
 
-### 5. `src/style.css`
+  ```ts
+  // The mixer view shows only the selected instrument's slider.
+  function updateMixView(): void {
+    mixPanel.querySelectorAll<HTMLElement>('.mix-channel').forEach((label) => {
+      label.hidden = label.dataset.channel !== selected;
+    });
+  }
+  ```
 
-- `.mix-panel`: `grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px;`.
-- `.mix-panel small { color: var(--c); }`.
-- `.mix-panel input { accent-color: var(--c); }`.
-- Inside `@media (max-width: 760px)`: `.mix-panel { gap: 6px; }`.
-- Remove the `.readout` rule and any `#info` rules (base, small phones, short screens,
-  landscape `margin-inline` list). If a selector list contains `#info`, remove just that
-  entry.
-- Short screens (`@media (max-height: 520px)`): the rule that hides the dock while it shows
-  the info view changes to `#dock:has(> #mix:not([hidden]))`. In this layout the dock only
-  appears for the sampler, FX, or Share.
-- Keep the dock heights as they are.
+  Call it from `updateSelection()` (or wherever `updateDock()` is called after a selection
+  change) and once at startup.
+- In `updateSampleLook()`, also set the sample volume label's color: find
+  `.sampler-volume` and set `--c` to `PIXEL_COLORS[sample.color] ?? ''`.
+- No other behavior changes.
 
-### 6. Tests: `tests/mix.test.ts` (new)
+### 3. `src/style.css`
 
-- `parseMix(null)`, `parseMix('')`, `parseMix('x')`, and `parseMix('[1]')` equal
-  `DEFAULT_MIX`.
-- `parseMix('{"kick":0.5,"hat":-1,"synth":3,"snare":"x"}')` gives kick 0.5, hat 0, synth 1,
-  snare 1, sample 1, and backing 1.
-- `MIX_CHANNELS` lists the five instruments in `INSTRUMENTS` order, then `'backing'`.
-- `mixGain(1)` is 1, `mixGain(0)` is 0, and `mixGain(0.5)` is 0.25. Values outside 0–1 are
-  clamped.
+- **Mixer view (one slider)**:
 
-### 7. Docs
+  ```css
+  .mix-panel {
+    grid-template-columns: 1fr;
+  }
 
-- `README.md`:
-  - Remove mentions of the info line.
-  - Add a `### Mixer` subsection: the slot under the board shows six volume sliders by
-    default (Kick, Hat, Synth, Snare, Sample, Backing). Each also scales that part's echo.
-    They are remembered.
-  - Selecting Sample, or opening FX or Share, uses the same slot.
-  - On a phone held sideways, the mixer is hidden.
-  - Update the dock sentence to name the mixer instead of the info line.
-- `AGENTS.md`:
-  - Add `src/mix.ts` to the list of files kept free of the DOM, audio, and `localStorage`.
-  - Add: "Voices connect to their instrument's level and send gains in `audio.ts`, never
-    straight to `towerBus` or `delaySend`, so the mixer covers everything."
-- `docs/references.md`:
-  - Add `src/mix.ts` to Files.
-  - Add `drumline-mix` to the storage keys.
-  - Update the audio chain: per-instrument level gains before the instrument bus, and a
-    backing level after the music trim.
-  - Update the dock paragraph (default view is the mixer).
-  - Remove the info line sentences.
+  .mix-panel .mix-channel {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .mix-panel .mix-channel[hidden] {
+    display: none;
+  }
+
+  .mix-panel .mix-channel small {
+    flex: none;
+    min-width: 7.5em;
+  }
+  ```
+
+  Keep the existing `.mix-panel small { color: var(--c); }` and `.mix-panel input { accent-color: var(--c); }`.
+  The slider input should fill the remaining width (`flex: 1; width: auto;`). Remove the
+  six-column rule and its narrow-screen `gap` override if they no longer apply.
+- **Sampler volume**:
+  - `.sampler-panel`: `grid-template-columns: minmax(0, 1fr) auto auto auto;`.
+  - Add:
+
+    ```css
+    .sampler-volume {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      width: 110px;
+      --c: var(--orange);
+    }
+
+    .sampler-volume small {
+      font: 400 0.6rem/1 var(--label);
+      color: var(--mute);
+    }
+
+    .sampler-volume input {
+      flex: 1;
+      min-width: 0;
+      accent-color: var(--c);
+    }
+    ```
+
+  - Inside `@media (max-width: 760px)`: `.sampler-volume { width: 72px; }` and
+    `.sampler-volume small { display: none; }`.
+- **Header levels**:
+  - Add:
+
+    ```css
+    .levels {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      width: 120px;
+      min-width: 0;
+    }
+
+    .level {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .level small {
+      font: 400 0.55rem/1 var(--label);
+      color: var(--mute);
+      width: 4.4em;
+      flex: none;
+    }
+
+    .level input {
+      flex: 1;
+      min-width: 0;
+      accent-color: var(--amber);
+    }
+
+    #mix-backing {
+      accent-color: var(--cream);
+    }
+    ```
+
+  - Move each existing `#volume` sizing rule to `.levels`, keeping the same values in each
+    media query:
+    - Base: change `#volume { width: 84px; … }` to just
+      `#volume { min-width: 0; accent-color: var(--amber); }`. `.levels` sets the width.
+    - `@media (max-width: 760px)`: `#volume { flex: 1; }` → `.levels { flex: 1; width: auto; }`.
+    - `@media (max-height: 520px)`: `#volume { width: 56px; flex: none; }` →
+      `.levels { width: 72px; flex: none; }`.
+    - Landscape block: `#volume { flex: 1; width: auto; }` → `.levels { flex: 1; width: auto; }`.
+  - The header must not grow taller than its buttons on desktop. The `.sys` buttons are 32px
+    on desktop and 44px on phones, so two stacked 12px-tall sliders with a 3px gap fit. If a
+    range input's default height makes it taller, set `.level input { height: 12px; }`.
+- In the short-screen rule that hides the dock while it shows the mixer
+  (`#dock:has(> #mix:not([hidden]))`), keep it as it is.
+
+### 4. Docs
+
+- `README.md`, `### Mixer`:
+  - The slot under the board shows the selected instrument's volume slider.
+  - Sample's volume is in the sampler panel.
+  - The Backing volume sits under the main volume slider in the header, which also works on
+    a phone held sideways.
+  - Update the sentence that says the mixer is hidden sideways: the per-instrument slider is
+    hidden there, but Backing and the main volume are not.
+- `docs/references.md`: update the dock/mixer paragraph to match.
 
 ## Acceptance
 
 - `npm run typecheck` exits 0.
 - `npm run test:sandbox` exits 0.
-- `git ls-files --others --exclude-standard -- src/mix.ts tests/mix.test.ts` prints both
-  paths.
-- PowerShell: `Select-String -Path src/mix.ts -Pattern 'document|window|localStorage|AudioContext'`
-  prints nothing.
-- PowerShell: `Select-String -Path index.html,src/main.ts -Pattern 'id="info"|infoEl'` prints
-  nothing.
-- PowerShell: `Select-String -Path src/audio.ts -Pattern 'connect\(this\.delaySend\)'` prints
-  only lines inside the constructor (the send gains). List them in the report.
+- PowerShell: `(Select-String -Path index.html -Pattern 'class="fx-knob mix-channel"').Count`
+  prints 4.
+- `git grep -n -F 'id="mix-sample"' -- index.html` prints one line, and it is inside
+  `#sampler`.
+- `git grep -n -F 'id="mix-backing"' -- index.html` prints one line, and it is inside
+  `.levels`.
+- `git grep -n -F 'function updateMixView' -- src/main.ts` prints one line.
 
 Verifier only:
 
 - `npm test` exits 0.
 - `npm run build` exits 0.
-- Browser check that each slider changes only its own part.
+- A browser check of all four layouts.
 
 ## Parallel work
 
@@ -236,7 +214,8 @@ None — do it sequentially.
 
 - Do not commit, push, or switch branches.
 - Do not touch files outside **Files to touch**, except `.handoff/report.md`.
-- Do not change sounds, theme values, FX, the sampler, mic, sharing, or the dock height.
+- Do not change audio, `src/mix.ts`, saved keys, slider ids, the dock height, or other
+  panels.
 - Do not run the `Verifier only:` commands. If any command fails with `spawn EPERM`, stop and
   report it. Do not request wider sandbox access, set `NODE_OPTIONS`, or stub modules to get
   past it.
@@ -246,9 +225,8 @@ None — do it sequentially.
 
 ## Out of scope
 
-- Mute or solo buttons.
-- Volume in MIDI export.
-- A mixer view on a phone held sideways.
+- Mute or solo.
+- Showing a numeric percentage.
 
 ## If blocked
 

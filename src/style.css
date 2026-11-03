@@ -124,9 +124,41 @@ body {
 }
 
 #volume {
-  width: 84px;
   min-width: 0;
   accent-color: var(--amber);
+}
+
+.levels {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 120px;
+  min-width: 0;
+}
+
+.level {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.level small {
+  font: 400 0.55rem/1 var(--label);
+  color: var(--mute);
+  width: 4.4em;
+  flex: none;
+}
+
+.level input {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--amber);
+  height: 12px;
+}
+
+#mix-backing {
+  accent-color: var(--cream);
 }
 
 /* ---- Dock ---- */
@@ -181,8 +213,23 @@ body {
 }
 
 .mix-panel {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 10px;
+}
+
+.mix-panel .mix-channel {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.mix-panel .mix-channel[hidden] {
+  display: none;
+}
+
+.mix-panel .mix-channel small {
+  flex: none;
+  min-width: 7.5em;
 }
 
 .mix-panel small {
@@ -190,6 +237,8 @@ body {
 }
 
 .mix-panel input {
+  flex: 1;
+  width: auto;
   accent-color: var(--c);
 }
 
@@ -221,8 +270,27 @@ body {
 }
 
 .sampler-panel {
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   gap: 6px;
+}
+
+.sampler-volume {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 110px;
+  --c: var(--orange);
+}
+
+.sampler-volume small {
+  font: 400 0.6rem/1 var(--label);
+  color: var(--mute);
+}
+
+.sampler-volume input {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--c);
 }
 
 .sample-list {
@@ -682,8 +750,9 @@ body {
     min-height: 44px;
   }
 
-  #volume {
+  .levels {
     flex: 1;
+    width: auto;
   }
 
   #stage {
@@ -699,8 +768,12 @@ body {
     padding: 4px 6px;
   }
 
-  .mix-panel {
-    gap: 6px;
+  .sampler-volume {
+    width: 72px;
+  }
+
+  .sampler-volume small {
+    display: none;
   }
 
   .sample-list {
@@ -769,8 +842,8 @@ body {
     flex: none;
   }
 
-  #volume {
-    width: 56px;
+  .levels {
+    width: 72px;
     flex: none;
   }
 
@@ -893,7 +966,7 @@ body {
     width: 100%;
   }
 
-  #volume {
+  .levels {
     flex: 1;
     width: auto;
   }

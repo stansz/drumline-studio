@@ -58,11 +58,13 @@ top of the theme's own. **Reset** sets them all back to off.
 
 ### Mixer
 
-The slot under the board shows six volume sliders by default: Kick, Hat, Synth, Snare, Sample,
-and Backing. Each one also scales the delay and reverb that its sound feeds, so turning a part
-down turns its echo and reverb down too. The levels are remembered between visits. Selecting
-Sample, or opening FX or Share, uses the same slot. On a phone held sideways, the mixer is
-hidden.
+The slot under the board shows the selected instrument's volume slider: Kick, Hat, Synth, or
+Snare. Picking another instrument swaps which slider shows. Each one also scales the delay and
+reverb that its sound feeds, so turning a part down turns its echo and reverb down too, and the
+levels are remembered between visits. Selecting Sample, or opening FX or Share, uses the same
+slot. Sample's volume is in the sampler panel. The Backing volume sits under the main volume
+slider in the header. On a phone held sideways, the per-instrument slider is hidden, but Backing
+and the main volume are not.
 
 ### Saving and sharing
 

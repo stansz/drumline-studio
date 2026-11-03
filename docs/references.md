@@ -102,8 +102,11 @@ measured in headless Edge at phone sizes, not on a real phone.
 
 The mixer, sampler, FX, and Share panels share one dock slot under the board and show one view
 at a time. `updateDock()` in `main.ts` picks the view: an open panel (FX or Share), else the
-sampler while Sample is selected, else the mixer. The dock's height comes from the `--dock-h`
-custom property, so swapping views never moves the board or the controls.
+sampler while Sample is selected, else the mixer. The mixer shows one slider, for the selected
+instrument, and `updateMixView()` swaps which one is visible. Sample's volume slider lives in the
+sampler panel, and the Backing volume slider sits under the main volume slider in the header.
+The dock's height comes from the `--dock-h` custom property, so swapping views never moves the
+board or the controls.
 
 ## Audio load
 
