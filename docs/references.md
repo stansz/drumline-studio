@@ -19,6 +19,8 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
 - `src/mix.ts`: mixer channels, saving, parsing, and the slider-to-gain curve.
 - `src/live.ts`: live-play modes, key rows, and nearest-step quantizing; hidden by `LIVE_TOOLS`.
 - `src/music.ts`: chords, arpeggios, and how the backing music builds up.
+- `src/song.ts`: the song form's sections, the section a step falls in, and how each section
+  changes the backing layers.
 - `src/themes.ts`: one entry for each music theme.
 - `src/pattern.ts`: autosave JSON and the `v1.`/`v2.`/`v3.` share-link formats.
 - `src/midi.ts`: MIDI file writer.
@@ -46,8 +48,10 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
 1. `Scheduler` calls `onStep` in `src/main.ts` slightly before the step is due to play. That lead is
    `LOOKAHEAD_SECONDS`.
 2. `onStep` schedules the backing music and the metronome, calls `sequencer.step()`, and schedules
-   each voice at the step's audio time. `sequencer.step()` returns only notes on steps inside the
-   pattern length (and inside the loop when one is set), then moves the playhead to `stepAfter()`.
+   each voice at the step's audio time. It passes the current section to `playMusicStep`, so the
+   backing follows the song form in `src/song.ts` when sections are on, or the steady verse loop
+   when they are off. `sequencer.step()` returns only notes on steps inside the pattern length (and
+   inside the loop when one is set), then moves the playhead to `stepAfter()`.
 3. Notes wait in `queued`, and `frame()` flashes them on the board once audio time reaches them.
 
 Pause stops the scheduler and keeps the step. Stop also rewinds. Notes already scheduled within
@@ -127,6 +131,8 @@ These values are saved to `localStorage` when they change, and come back on the 
 
 - `drumline-theme`: the theme id.
 - `drumline-backing`: `1` or `0`.
+- `drumline-sections`: `1` when the backing plays the song's sections, `0` when it plays the steady
+  loop. Only used while the backing is on.
 - `drumline-volume`: the volume percent, from 0 to 100.
 - `drumline-bpm`: the tempo.
 - `drumline-fx`: the FX settings as JSON.

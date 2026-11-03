@@ -12,6 +12,7 @@ import { arpNote, chordForStep, midiToHz, type layerLevels } from './music';
 import { renderSamples } from './sampler';
 import { DEFAULT_SAMPLE, USER_SAMPLE, rateForRow } from './samples';
 import { INSTRUMENTS, type Instrument } from './sequencer';
+import { FILL_STEPS, sectionLevels, type Section } from './song';
 import {
   DEFAULT_THEME,
   DRUM_PARTS,
@@ -557,35 +558,47 @@ export class Audio_ {
     time: number,
     duration: number,
     levels: ReturnType<typeof layerLevels>,
+    section: Section,
   ): void {
     const theme = this.theme;
     const local = musicStep % STEPS_PER_BAR;
     const swung = time + (local % 2 === 1 ? duration * theme.swing : 0);
-    const chord = chordForStep(musicStep, theme.chords);
+    const chords = section.kind === 'chorus' ? theme.chorusChords : theme.chords;
+    const chord = chordForStep(musicStep, chords);
+    const layers = sectionLevels(levels, section.kind);
 
     if (theme.chord.steps.includes(local)) {
       if (theme.chord.style === 'hold') {
-        this.playPad(chord.pad, time, duration * STEPS_PER_BAR, levels.pad);
+        this.playPad(chord.pad, time, duration * STEPS_PER_BAR, layers.pad);
       } else if (theme.chord.style === 'stab') {
-        this.playStab(chord.pad, swung, levels.pad);
+        this.playStab(chord.pad, swung, layers.pad);
       }
     }
 
-    if (levels.bass > 0 && theme.bass.steps.includes(local)) {
+    if (layers.bass > 0 && theme.bass.steps.includes(local)) {
       const note = chord.bass + (theme.bass.octaveSteps.includes(local) ? 12 : 0);
       const ghost = theme.bass.ghostSteps.includes(local) ? 0.45 : 1;
       const sweepSteps = theme.bass.sweepBars * STEPS_PER_BAR;
       const sweep = sweepSteps > 0 ? (musicStep % sweepSteps) / sweepSteps : 0;
-      this.playBass(note, swung, levels.bass * ghost, sweep);
+      this.playBass(note, swung, layers.bass * ghost, sweep);
     }
 
-    const arpLevel = Math.max(levels.arp, theme.arp.minLevel);
+    // The break is the pad alone, even for themes whose arp always plays.
+    const arpLevel = section.kind === 'break' ? 0 : Math.max(layers.arp, theme.arp.minLevel);
     if (arpLevel > 0 && theme.arp.steps.includes(local)) {
-      this.playArp(arpNote(musicStep, theme.chords, theme.arp.rate), swung, arpLevel);
+      this.playArp(arpNote(musicStep, chords, theme.arp.rate), swung, arpLevel);
     }
 
-    for (const part of DRUM_PARTS) {
-      if (theme.drums[part].includes(local)) this.playBackingDrum(part, swung, levels.pad);
+    if (section.kind !== 'break') {
+      const fillIndex = section.fill ? FILL_STEPS.indexOf(local) : -1;
+      for (const part of DRUM_PARTS) {
+        if (!theme.drums[part].includes(local)) continue;
+        if (part === 'snare' && fillIndex >= 0) continue;
+        this.playBackingDrum(part, swung, layers.pad);
+      }
+      if (fillIndex >= 0) {
+        this.playBackingDrum('snare', swung, layers.pad * (0.55 + 0.15 * fillIndex));
+      }
     }
   }
 

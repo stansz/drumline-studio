@@ -32,6 +32,20 @@ describe('themes', () => {
     }
   });
 
+  it('gives every theme four chorus chords inside the loudness range', () => {
+    for (const theme of THEMES) {
+      expect(theme.chorusChords).toHaveLength(4);
+      for (const chord of theme.chorusChords) {
+        for (const note of chord.pad) {
+          expect(note).toBeGreaterThanOrEqual(36);
+          expect(note).toBeLessThanOrEqual(84);
+        }
+        expect(chord.bass).toBeGreaterThanOrEqual(28);
+        expect(chord.bass).toBeLessThanOrEqual(60);
+      }
+    }
+  });
+
   it('places every pattern inside one bar', () => {
     for (const theme of THEMES) {
       const steps = [

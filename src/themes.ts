@@ -10,6 +10,7 @@ export interface Theme {
   id: string;
   name: string;
   chords: ReadonlyArray<{ name: string; pad: number[]; bass: number }>;
+  chorusChords: ReadonlyArray<{ name: string; pad: number[]; bass: number }>;
   swing: number;
   crackle: number;
   space: {
@@ -87,6 +88,12 @@ const NEON: Theme = {
   id: 'neon',
   name: 'Neon',
   chords: MUSIC_CHORDS,
+  chorusChords: [
+    { name: 'Fmaj7', pad: [53, 57, 60, 64], bass: 41 },
+    { name: 'G', pad: [55, 59, 62, 67], bass: 43 },
+    { name: 'Em7', pad: [52, 55, 59, 62], bass: 40 },
+    { name: 'Am', pad: [57, 60, 64, 69], bass: 45 },
+  ],
   swing: 0,
   crackle: 0,
   space: {
@@ -145,6 +152,12 @@ const CHIPTUNE: Theme = {
     { name: 'G', pad: [59, 62, 67, 71], bass: 43 },
     { name: 'Am', pad: [57, 60, 64, 69], bass: 45 },
     { name: 'F', pad: [57, 60, 65, 69], bass: 41 },
+  ],
+  chorusChords: [
+    { name: 'F', pad: [57, 60, 65, 69], bass: 41 },
+    { name: 'C', pad: [60, 64, 67, 72], bass: 48 },
+    { name: 'Dm', pad: [57, 62, 65, 69], bass: 38 },
+    { name: 'G', pad: [59, 62, 67, 71], bass: 43 },
   ],
   swing: 0,
   crackle: 0,
@@ -212,6 +225,12 @@ const LOFI: Theme = {
     { name: 'Cmaj9', pad: [52, 59, 62, 67], bass: 48 },
     { name: 'Am9', pad: [55, 60, 64, 71], bass: 45 },
   ],
+  chorusChords: [
+    { name: 'Fmaj9', pad: [57, 60, 64, 67], bass: 41 },
+    { name: 'Em7', pad: [55, 59, 62, 64], bass: 40 },
+    { name: 'Dm9', pad: [53, 57, 60, 64], bass: 38 },
+    { name: 'G13', pad: [53, 59, 64, 69], bass: 43 },
+  ],
   swing: 0.22,
   crackle: 0.12,
   space: {
@@ -271,6 +290,12 @@ const TECHNO: Theme = {
     { name: 'F', pad: [57, 60, 65], bass: 41 },
     { name: 'Em', pad: [55, 59, 64], bass: 40 },
   ],
+  chorusChords: [
+    { name: 'Dm', pad: [57, 62, 65], bass: 38 },
+    { name: 'Dm', pad: [57, 62, 65], bass: 38 },
+    { name: 'Am', pad: [57, 60, 64], bass: 45 },
+    { name: 'G', pad: [55, 59, 62], bass: 43 },
+  ],
   swing: 0,
   crackle: 0,
   space: {
@@ -329,6 +354,12 @@ const FUNK: Theme = {
     { name: 'A13', pad: [55, 61, 66, 71], bass: 45 },
     { name: 'E9', pad: [56, 62, 66, 71], bass: 40 },
     { name: 'B9', pad: [57, 61, 63, 66], bass: 47 },
+  ],
+  chorusChords: [
+    { name: 'A13', pad: [55, 61, 66, 71], bass: 45 },
+    { name: 'A13', pad: [55, 61, 66, 71], bass: 45 },
+    { name: 'B9', pad: [57, 61, 63, 66], bass: 47 },
+    { name: 'E9', pad: [56, 62, 66, 71], bass: 40 },
   ],
   swing: 0.14,
   crackle: 0,

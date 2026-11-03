@@ -44,12 +44,14 @@ steps 1–16 and 17–32. Notes on steps 17–32 are kept but silent while the l
 ### Playing
 
 Press **Play** to start the loop and **Pause** to hold it where it is; **Play** then carries on
-from the same step. **Stop** halts and goes back to step 1. Set the tempo from 40 to 300 BPM by
-typing it into the **BPM** box or with the **−** and **+** buttons (hold Shift to move by 10).
-**Backing** turns the backing music on or off; with it off, only your pattern plays, plus a
-metronome click while the grid is empty. **Mute** silences everything, and **Clear** empties
-the pattern. **Theme** switches between the Neon, Chiptune, Lo-fi, Techno, and Funk soundtracks
-at any time; themes change the sound only, never the pattern or the tempo.
+from the same step. **Stop** halts and goes back to step 1, restarting the song from the top. Set
+the tempo from 40 to 300 BPM by typing it into the **BPM** box or with the **−** and **+** buttons
+(hold Shift to move by 10). **Backing** cycles through **Song**, **Loop**, and **Off** (key **B**).
+Song moves through verse, chorus, and a break, with a short snare fill before each change; the
+chorus uses a second chord progression. Loop plays the theme's steady 4-bar loop. Off plays only
+your pattern, plus a metronome click while the grid is empty. **Mute** silences everything, and
+**Clear** empties the pattern. **Theme** switches between the Neon, Chiptune, Lo-fi, Techno, and
+Funk soundtracks at any time; themes change the sound only, never the pattern or the tempo.
 
 ### FX
 
@@ -90,7 +92,7 @@ theme's scale.
 - **1** Kick, **2** Hat, **3** Synth, **4** Snare, **5** Sample
 - **Space** play or pause
 - **Esc** stop and go back to step 1
-- **B** turn backing music on or off
+- **B** cycle backing music between Song, Loop, and Off
 - **C** clear the pattern
 - **L** switch the pattern length between 16 and 32 steps
 - **P** flip between the two pages while the length is 32

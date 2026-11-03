@@ -18,8 +18,8 @@ Commands: `npm run dev`, `npm test`, `npm run test:sandbox`, `npm run typecheck`
 ## Rules
 
 - Keep `src/sequencer.ts`, `src/live.ts`, `src/fx.ts`, `src/mix.ts`, `src/pattern.ts`,
-  `src/midi.ts`, `src/recording.ts`, `src/sampleEdit.ts`, and `src/samples.ts` free of the DOM,
-  audio, and `localStorage`. `src/sequencer.ts` also stays free of randomness.
+  `src/midi.ts`, `src/recording.ts`, `src/sampleEdit.ts`, `src/samples.ts`, and `src/song.ts` free
+  of the DOM, audio, and `localStorage`. `src/sequencer.ts` also stays free of randomness.
 - Each note plays only on its own step, and only while that step is within the pattern
   length and the loop. A note recorded live skips its next pass because it already sounded.
 - Live play and the loop are hidden behind `LIVE_TOOLS` in `src/config.ts`; when turning them
@@ -37,6 +37,8 @@ Commands: `npm run dev`, `npm test`, `npm run test:sandbox`, `npm run typecheck`
 - The user sample lives in IndexedDB (`src/sampleStore.ts`). Every call there must work without
   IndexedDB.
 - Keep Neon's `space.trim` and `space.musicTrim` at 1. Neon is the loudness reference.
+- Loudness is measured with sections off (`sectionAt(step, false)`), which is the verse
+  arrangement.
 - Draw the board in whole art pixels. In `src/render.ts`, don't use `arc`, `shadowBlur`,
   `globalAlpha`, `setLineDash`, `fillText`, or `ctx.scale`.
 - Keep sprites as data in `src/sprites.ts`, and keep `src/pixel.ts` free of the DOM.

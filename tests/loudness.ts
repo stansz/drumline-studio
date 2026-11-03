@@ -7,6 +7,7 @@ import { Audio_ } from '../src/audio';
 import { GRID_COLS, GRID_ROWS, STEPS_PER_BAR, stepSeconds } from '../src/config';
 import { intensity, layerLevels, pickVoices } from '../src/music';
 import { Sequencer, type Instrument } from '../src/sequencer';
+import { sectionAt } from '../src/song';
 import { DEFAULT_THEME, THEMES, type Theme } from '../src/themes';
 import { NEON_BASELINE } from './loudness-baseline';
 
@@ -127,7 +128,7 @@ async function renderBoard(
   for (let musicStep = 0; musicStep < STEPS_PER_BAR * BARS; musicStep += 1) {
     const time = musicStep * duration;
     if (mode === 'backing') {
-      audio.playMusicStep(musicStep, time, duration, levels);
+      audio.playMusicStep(musicStep, time, duration, levels, sectionAt(musicStep, false));
       continue;
     }
     const notes = sequencer.step();

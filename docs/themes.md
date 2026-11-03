@@ -1,8 +1,9 @@
 # Music themes
 
 Each theme is one entry in `src/themes.ts`. It sets the arrangement, instrument sounds, space, and
-tone. Themes never change the tempo or the pattern. The playable snare uses each theme's
-`drumKit.snareHz` and `drumKit.snareDecay`.
+tone. Themes never change the tempo or the pattern. Its `chords` are the verse and loop progression,
+and its `chorusChords` are the chorus progression; the section form that uses them is in
+`src/song.ts`. The playable snare uses each theme's `drumKit.snareHz` and `drumKit.snareDecay`.
 
 ## Keeping volume consistent
 
@@ -16,9 +17,10 @@ for each board. Each theme should land within 1 dB of Neon.
 `space.musicTrim` sets the backing music's level on its own: the music bus goes through its own
 trim, and `setTheme` divides the master trim back out, so the backing ends up at `musicTrim`
 whatever `trim` is. The "backing quiet" and "backing full" boards render backing music only, with
-no notes. Each theme's backing is compared with Neon's backing rendered in the same run, so
-backing levels need no baseline. Read `musicOffsets` and `suggestedMusicTrims` on the loudness
-page; the target is again within 1 dB of Neon.
+no notes, with sections off (`sectionAt(step, false)`), so they measure the verse arrangement.
+Each theme's backing is compared with Neon's backing rendered in the same run, so backing levels
+need no baseline. Read `musicOffsets` and `suggestedMusicTrims` on the loudness page; the target is
+again within 1 dB of Neon.
 
 The target is an average level, not peak level, because short sounds can peak high and still sound
 quiet. The limiter also absorbs part of any boost, so a trim of 2 adds less than 6 dB in practice.

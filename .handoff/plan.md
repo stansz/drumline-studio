@@ -1,116 +1,219 @@
-# Plan: Mix button that shows every volume at once
+# Plan: Song sections and a second chord progression for the backing
 
 ## Goal
 
-In Drumline Studio (`C:\Users\sz\Documents\Code\drumline-studio`), add a **Mix** button to
-the header, after **Share**. It opens a dock view with all six volume sliders in one row:
-Kick, Hat, Synth, Snare, Sample, and Backing, each labeled in its color.
+In Drumline Studio (`C:\Users\sz\Documents\Code\drumline-studio`), each theme's backing is
+one 4-bar loop forever. Make it a song:
 
-It works like FX and Share:
+- **Sections**: the backing cycles through **verse** (8 bars), **chorus** (8), **verse** (8),
+  **chorus** (8), and **break** (4), then repeats. That's 36 bars.
+  - **Verse** is exactly today's arrangement.
+  - **Chorus** uses the theme's new second chord progression, with more energy: fuller pad,
+    bass always in, and the arpeggio on where the theme has one.
+  - **Break** is the pad alone: no bass, arpeggio, or drums.
+  - The last bar of each section ends with a **snare fill** on its last four sixteenths.
+- **Backing button** cycles through three states: **Song** (sections on), **Loop** (sections
+  off: today's steady loop), and **Off** (no backing). The default is Song. Key **B** cycles
+  the same way.
+- Stop restarts the song at the first verse. Pause keeps its place.
 
-- Pressing the button again closes it.
-- Opening it closes FX or Share, and opening FX or Share closes it.
-- Selecting any instrument also closes it, which brings back that instrument's single
-  slider (or the sampler for Sample).
-
-The existing single sliders stay where they are: the dock mixer, the sampler panel's Vol, and
-the header's Backing. Every slider for a channel controls the same value and stays in sync.
+Your own pattern, the tempo, and the instrument sounds don't change.
 
 ## Files to touch
 
-- `index.html`
+- `src/song.ts` (new)
+- `src/themes.ts`
+- `src/audio.ts`
 - `src/main.ts`
-- `src/style.css`
+- `tests/song.test.ts` (new)
+- `tests/themes.test.ts`
+- `tests/loudness.ts`
 - `README.md`
+- `AGENTS.md`
+- `docs/themes.md`
 - `docs/references.md`
 - `.handoff/report.md`
 
 ## Steps
 
-### 1. `index.html`
+### 1. `src/song.ts` (new; no DOM, no audio, no storage)
 
-- In `.sys`, after `#share-toggle`, add
-  `<button id="mix-toggle" class="hw" type="button" aria-expanded="false" aria-controls="mix-all">Mix</button>`.
-- In `#dock`, after `#mix`, add:
+```ts
+import { STEPS_PER_BAR } from './config';
+import type { layerLevels } from './music';
 
-  ```html
-  <div id="mix-all" class="fx-panel mix-all-panel" hidden>
-    <label class="fx-knob" style="--c: var(--red)"><small>Kick</small><input type="range" min="0" max="100" step="1" value="100" data-mix-channel="kick" aria-label="Kick volume" /></label>
-    <label class="fx-knob" style="--c: var(--amber)"><small>Hat</small><input type="range" min="0" max="100" step="1" value="100" data-mix-channel="hat" aria-label="Hat volume" /></label>
-    <label class="fx-knob" style="--c: var(--teal)"><small>Synth</small><input type="range" min="0" max="100" step="1" value="100" data-mix-channel="synth" aria-label="Synth volume" /></label>
-    <label class="fx-knob" style="--c: #a6d94a"><small>Snare</small><input type="range" min="0" max="100" step="1" value="100" data-mix-channel="snare" aria-label="Snare volume" /></label>
-    <label class="fx-knob mix-all-sample" style="--c: var(--orange)"><small>Sample</small><input type="range" min="0" max="100" step="1" value="100" data-mix-channel="sample" aria-label="Sample volume" /></label>
-    <label class="fx-knob" style="--c: var(--cream)"><small>Backing</small><input type="range" min="0" max="100" step="1" value="100" data-mix-channel="backing" aria-label="Backing volume" /></label>
-  </div>
-  ```
+export type SectionKind = 'verse' | 'chorus' | 'break';
 
-- Also add `data-mix-channel="<channel>"` to the six existing mixer inputs: `#mix-kick`,
-  `#mix-hat`, `#mix-synth`, `#mix-snare`, `#mix-sample` (in the sampler), and `#mix-backing`
-  (in the header). Keep their ids.
+export interface Section {
+  kind: SectionKind;
+  bar: number; // bar within the section, from 0
+  bars: number; // length of the section in bars
+  fill: boolean; // true in the section's last bar while sections are on
+}
 
-### 2. `src/main.ts`
+export const SONG_FORM: ReadonlyArray<{ kind: SectionKind; bars: number }> = [
+  { kind: 'verse', bars: 8 },
+  { kind: 'chorus', bars: 8 },
+  { kind: 'verse', bars: 8 },
+  { kind: 'chorus', bars: 8 },
+  { kind: 'break', bars: 4 },
+];
 
-- Elements: `mixToggle` (`#mix-toggle`), `mixAllPanel` (`#mix-all`).
-- `openPanel`'s type becomes `'fx' | 'share' | 'mixall' | null`.
-- `updateDock()`:
-  - Add `mixAllPanel.hidden = view !== 'mixall';` and
-    `mixToggle.setAttribute('aria-expanded', String(view === 'mixall'));`.
-  - Mark the Mix button as open while its view shows:
-    `mixToggle.classList.toggle('selected', view === 'mixall');`.
-- Add:
+const SONG_BARS = SONG_FORM.reduce((sum, part) => sum + part.bars, 0);
 
-  ```ts
-  function toggleMixAll(): void {
-    openPanel = openPanel === 'mixall' ? null : 'mixall';
-    updateDock();
+// With sections off the backing is today's loop: always a verse, never a fill.
+export function sectionAt(musicStep: number, sectionsOn: boolean): Section {
+  if (!sectionsOn) return { kind: 'verse', bar: 0, bars: 1, fill: false };
+  let bar = Math.floor(Math.max(0, musicStep) / STEPS_PER_BAR) % SONG_BARS;
+  for (const part of SONG_FORM) {
+    if (bar < part.bars) return { kind: part.kind, bar, bars: part.bars, fill: bar === part.bars - 1 };
+    bar -= part.bars;
   }
-  ```
+  return { kind: 'verse', bar: 0, bars: 1, fill: false };
+}
 
-  Wire `mixToggle` click to it.
-- `selectTool`: close the Mix view on any instrument pick:
-  `if (openPanel === 'mixall') openPanel = null;`. Keep the existing
-  `if (tool === 'sample') openPanel = null;`.
-- **Sync every slider per channel**:
-  - Replace the `mixSliders` id map and its listeners with one query over all
-    `input[data-mix-channel]`.
-  - Each input's `input` event calls `setMix` with its channel updated to `value / 100`.
-  - `showMix()` sets every input's value from `mix[channel]`.
-  - `setMix` must call `showMix()` after storing, so the other slider for that channel
-    follows. Moving a slider sets it to the value it already shows, which is harmless.
-  - Skip invalid `data-mix-channel` values: check them against `MIX_CHANNELS`.
-- `updateSampleLook()`: also set `--c` on `.mix-all-sample` to the chosen sound's color.
-- Keyboard: no new shortcut.
+type Levels = ReturnType<typeof layerLevels>;
 
-### 3. `src/style.css`
+// How each section changes the layer levels. Verse leaves them as they are.
+export function sectionLevels(levels: Levels, kind: SectionKind): Levels {
+  if (kind === 'break') return { pad: levels.pad, bass: 0, arp: 0 };
+  if (kind === 'chorus') {
+    return {
+      pad: Math.min(1, levels.pad + 0.15),
+      bass: Math.max(levels.bass, 0.6),
+      arp: Math.max(levels.arp, 0.6),
+    };
+  }
+  return levels;
+}
 
-- `.mix-all-panel`: `grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px;`, plus
-  `.mix-all-panel small { color: var(--c); }` and
-  `.mix-all-panel input { accent-color: var(--c); width: 100%; }`.
-- Inside `@media (max-width: 760px)`: `.mix-all-panel { gap: 6px; }`.
-- The short-screen rule `#dock:has(> #mix:not([hidden]))` stays. Because `#mix-all` is a
-  different element, the dock shows it on a phone held sideways, floating like FX and
-  Share. Check that nothing else hides it there.
+export const FILL_STEPS: readonly number[] = [12, 13, 14, 15];
+```
 
-### 4. Docs
+### 2. `src/themes.ts`
 
-- `README.md`, `### Mixer`: the **Mix** button in the header shows all six volumes at once.
-  Picking an instrument, or pressing Mix again, goes back. It also works on a phone held
-  sideways. All sliders for a part stay in sync.
-- `docs/references.md`: add the `mixall` dock view to the `updateDock()` description.
+- Add `chorusChords: ReadonlyArray<{ name: string; pad: number[]; bass: number }>;` to
+  `Theme`, directly after `chords`.
+- Add `chorusChords` to each theme, after `chords`. Use exactly these values:
+  - **Neon**:
+    `[{ name: 'Fmaj7', pad: [53, 57, 60, 64], bass: 41 }, { name: 'G', pad: [55, 59, 62, 67], bass: 43 }, { name: 'Em7', pad: [52, 55, 59, 62], bass: 40 }, { name: 'Am', pad: [57, 60, 64, 69], bass: 45 }]`
+  - **Chiptune**:
+    `[{ name: 'F', pad: [57, 60, 65, 69], bass: 41 }, { name: 'C', pad: [60, 64, 67, 72], bass: 48 }, { name: 'Dm', pad: [57, 62, 65, 69], bass: 38 }, { name: 'G', pad: [59, 62, 67, 71], bass: 43 }]`
+  - **Lo-fi**:
+    `[{ name: 'Fmaj9', pad: [57, 60, 64, 67], bass: 41 }, { name: 'Em7', pad: [55, 59, 62, 64], bass: 40 }, { name: 'Dm9', pad: [53, 57, 60, 64], bass: 38 }, { name: 'G13', pad: [53, 59, 64, 69], bass: 43 }]`
+  - **Techno**:
+    `[{ name: 'Dm', pad: [57, 62, 65], bass: 38 }, { name: 'Dm', pad: [57, 62, 65], bass: 38 }, { name: 'Am', pad: [57, 60, 64], bass: 45 }, { name: 'G', pad: [55, 59, 62], bass: 43 }]`
+  - **Funk**:
+    `[{ name: 'A13', pad: [55, 61, 66, 71], bass: 45 }, { name: 'A13', pad: [55, 61, 66, 71], bass: 45 }, { name: 'B9', pad: [57, 61, 63, 66], bass: 47 }, { name: 'E9', pad: [56, 62, 66, 71], bass: 40 }]`
+- Change no other theme values.
+
+### 3. `src/audio.ts`
+
+- Import `FILL_STEPS, sectionLevels, type Section` from `./song`.
+- `playMusicStep(musicStep, time, duration, levels, section: Section)`. Inside:
+  - `const chords = section.kind === 'chorus' ? theme.chorusChords : theme.chords;`.
+    Use `chords` everywhere the function used `theme.chords`: the chord lookup and
+    `arpNote`.
+  - `const layers = sectionLevels(levels, section.kind);`. Use `layers` in place of `levels`
+    for the pad, bass, arp, and backing drums.
+  - **Arp**: keep `Math.max(layers.arp, theme.arp.minLevel)`. Themes with no arp steps stay
+    silent, because the existing `steps.includes` check covers that.
+  - **Drums**: skip all backing drums when `section.kind === 'break'`. When `section.fill`
+    and `FILL_STEPS.includes(local)`:
+    - Play the snare on that step at level `layers.pad * (0.55 + 0.15 * FILL_STEPS.indexOf(local))`,
+      so the fill rises.
+    - Skip that step's regular snare, so it isn't doubled.
+    - Kick and hat follow their normal pattern.
+  - The **hold-style pad** uses `chord.pad` from the section's chords. The verse/chorus switch
+    happens on a bar boundary, the same as chord changes today.
+- Nothing else changes.
+
+### 4. `src/main.ts`
+
+- Imports: `sectionAt` from `./song`.
+- Constant `SECTIONS_KEY = 'drumline-sections'`, and
+  `let sections = loadSections();` (`localStorage.getItem(SECTIONS_KEY) !== '0'` in
+  `try`/`catch`, default `true`).
+- In `onStep`, pass `sectionAt(musicStep, sections)` as the new last argument of
+  `audio.playMusicStep`.
+- **Backing button** (three states). Replace `toggleBacking` with `cycleBacking`:
+  - The order is Song (backing on, sections on) → Loop (backing on, sections off) → Off
+    (backing off) → Song.
+  - Save both `BACKING_KEY` (as now) and `SECTIONS_KEY` in `try`/`catch`.
+  - `updateBackingButton()`:
+    - Set the button text to `Song`, `Loop`, or `Off`, with a `title` of "Backing music:
+      song with sections", "Backing music: steady loop", or "Backing music off".
+    - Keep the `selected` class whenever the backing is on.
+    - Keep `aria-pressed` as `String(backing)`.
+  - The button click and the **B** key both call `cycleBacking()`.
+- Nothing else changes: Stop already resets `musicStep` to 0, and Pause keeps it.
+
+### 5. `tests/loudness.ts`
+
+- In `renderBoard`, pass `sectionAt(musicStep, false)` to `audio.playMusicStep` for both
+  modes, so loudness is measured on the verse/loop arrangement as before. Import
+  `sectionAt` from `../src/song`.
+
+### 6. Tests
+
+- `tests/song.test.ts` (new):
+  - With sections on, the bars map like this (check the first step of each bar):
+    - bars 0–7: verse
+    - bars 8–15: chorus
+    - bars 16–23: verse
+    - bars 24–31: chorus
+    - bars 32–35: break
+    - bar 36: verse again, with `bar` 0
+  - `fill` is true only for bars 7, 15, 23, 31, and 35.
+  - `bar` and `bars` are right for bar 10: chorus, `bar` 2, `bars` 8.
+  - With sections off, `sectionAt(anything, false)` is
+    `{ kind: 'verse', bar: 0, bars: 1, fill: false }`.
+  - `sectionAt(-5, true)` is a verse at `bar` 0.
+  - `sectionLevels`:
+    - verse returns the input unchanged
+    - break keeps `pad` and zeroes `bass` and `arp`
+    - chorus raises each layer as specified, stays at most 1, and never lowers a layer
+  - `FILL_STEPS` equals `[12, 13, 14, 15]`.
+- `tests/themes.test.ts`: every theme has 4 `chorusChords`. Every pad note is between 36 and
+  84, and every bass note is between 28 and 60.
+
+### 7. Docs
+
+- `README.md`, `### Playing`:
+  - Replace the Backing sentence. **Backing** cycles through **Song**, **Loop**, and **Off**
+    (key **B**).
+  - Song moves through verse, chorus, and a break, with a short snare fill before each
+    change; the chorus uses a second chord progression.
+  - Loop plays the theme's steady 4-bar loop.
+  - Stop restarts the song from the top.
+  - Update the Controls line for **B**.
+- `AGENTS.md`: add `src/song.ts` to the list of files kept free of the DOM, audio, and
+  `localStorage`. Add: "Loudness is measured with sections off (`sectionAt(step, false)`),
+  which is the verse arrangement."
+- `docs/themes.md`:
+  - Each theme has `chords` (verse and loop) and `chorusChords` (chorus).
+  - The section form is in `src/song.ts`.
+  - Loudness is checked with sections off.
+- `docs/references.md`:
+  - Add `src/song.ts` to Files.
+  - Add `drumline-sections` to the storage keys.
+  - In "How a step works", note that `onStep` passes the current section to `playMusicStep`.
 
 ## Acceptance
 
 - `npm run typecheck` exits 0.
 - `npm run test:sandbox` exits 0.
-- PowerShell: `(Select-String -Path index.html -Pattern 'data-mix-channel=').Count` prints 12.
-- `git grep -n -F 'id="mix-toggle"' -- index.html` prints one line.
-- `git grep -n -F 'function toggleMixAll' -- src/main.ts` prints one line.
+- `git ls-files --others --exclude-standard -- src/song.ts tests/song.test.ts` prints both
+  paths.
+- PowerShell: `(Select-String -Path src/themes.ts -Pattern 'chorusChords').Count` prints 6.
+- PowerShell: `Select-String -Path src/song.ts -Pattern 'document|window|localStorage|AudioContext'`
+  prints nothing.
 
 Verifier only:
 
 - `npm test` exits 0.
 - `npm run build` exits 0.
-- A browser check of sync and of every layout.
+- The loudness page still passes, and a browser check of the button states and sections.
 
 ## Parallel work
 
@@ -120,7 +223,8 @@ None — do it sequentially.
 
 - Do not commit, push, or switch branches.
 - Do not touch files outside **Files to touch**, except `.handoff/report.md`.
-- Do not change audio, `src/mix.ts`, saved keys, existing slider ids, or the dock height.
+- Do not change existing theme values, instrument sounds, the mixer, FX, the sampler, or the
+  share-link format.
 - Do not run the `Verifier only:` commands. If any command fails with `spawn EPERM`, stop and
   report it. Do not request wider sandbox access, set `NODE_OPTIONS`, or stub modules to get
   past it.
@@ -130,8 +234,10 @@ None — do it sequentially.
 
 ## Out of scope
 
-- Mute or solo.
-- A keyboard shortcut for Mix.
+- New themes or genres.
+- A key or transpose control.
+- Showing the current section on screen.
+- Jumping to a section by hand.
 
 ## If blocked
 

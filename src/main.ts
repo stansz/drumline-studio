@@ -18,6 +18,7 @@ import {
 } from './samples';
 import { loadUserSample, saveUserSample } from './sampleStore';
 import { Scheduler } from './scheduler';
+import { sectionAt } from './song';
 import {
   Sequencer,
   INSTRUMENTS,
@@ -97,6 +98,7 @@ const mixInputs = Array.from(document.querySelectorAll<HTMLInputElement>('input[
 
 const THEME_KEY = 'drumline-theme';
 const BACKING_KEY = 'drumline-backing';
+const SECTIONS_KEY = 'drumline-sections';
 const VOLUME_KEY = 'drumline-volume';
 const BPM_KEY = 'drumline-bpm';
 const FX_KEY = 'drumline-fx';
@@ -121,6 +123,7 @@ let playhead = 0;
 let theme = loadTheme();
 let volume = loadVolume();
 let backing = loadBacking();
+let sections = loadSections();
 let bpm = loadBpm();
 let fx: FxSettings = loadFx();
 let mix: MixSettings = loadMix();
@@ -292,6 +295,14 @@ function selectTool(tool: Instrument): void {
 }
 
 function updateBackingButton(): void {
+  const label = !backing ? 'Off' : sections ? 'Song' : 'Loop';
+  const title = !backing
+    ? 'Backing music off'
+    : sections
+      ? 'Backing music: song with sections'
+      : 'Backing music: steady loop';
+  backingButton.textContent = label;
+  backingButton.title = title;
   backingButton.classList.toggle('selected', backing);
   backingButton.setAttribute('aria-pressed', String(backing));
 }
@@ -304,11 +315,27 @@ function loadBacking(): boolean {
   }
 }
 
-function toggleBacking(): void {
-  backing = !backing;
+function loadSections(): boolean {
+  try {
+    return localStorage.getItem(SECTIONS_KEY) !== '0';
+  } catch {
+    return true;
+  }
+}
+
+function cycleBacking(): void {
+  if (!backing) {
+    backing = true;
+    sections = true;
+  } else if (sections) {
+    sections = false;
+  } else {
+    backing = false;
+  }
   updateBackingButton();
   try {
     localStorage.setItem(BACKING_KEY, backing ? '1' : '0');
+    localStorage.setItem(SECTIONS_KEY, sections ? '1' : '0');
   } catch {
     // The choice just lasts for this visit when storage is unavailable.
   }
@@ -343,6 +370,7 @@ function onStep(time: number, duration: number): void {
       time,
       duration,
       layerLevels(intensity(sequencer.activeCells().length, 5)),
+      sectionAt(musicStep, sections),
     );
   }
   if (sequencer.activeCells().length === 0 && sequencer.stepIndex % 4 === 0) {
@@ -936,7 +964,7 @@ pageButton.addEventListener('click', () => setPage(page === 0 ? 1 : 0));
 
 playButton.addEventListener('click', togglePlay);
 stopButton.addEventListener('click', stop);
-backingButton.addEventListener('click', toggleBacking);
+backingButton.addEventListener('click', cycleBacking);
 bpmDownButton.addEventListener('click', (event) => nudgeBpm(-1, event.shiftKey));
 bpmUpButton.addEventListener('click', (event) => nudgeBpm(1, event.shiftKey));
 bpmInput.addEventListener('change', () => setBpm(parseBpm(bpmInput.value)));
@@ -1022,7 +1050,7 @@ window.addEventListener('keydown', (event) => {
       selectTool('sample');
       break;
     case 'b':
-      toggleBacking();
+      cycleBacking();
       break;
     case 'c':
       clearPattern();
