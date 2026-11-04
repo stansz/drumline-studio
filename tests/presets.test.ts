@@ -23,15 +23,15 @@ describe('presets', () => {
       expect(THEME_IDS.has(preset.themeId)).toBe(true);
       expect(preset.bpm).toBeGreaterThanOrEqual(40);
       expect(preset.bpm).toBeLessThanOrEqual(300);
-      expect([16, 32, 64]).toContain(preset.length);
+      expect([16, 32, 48, 64]).toContain(preset.length);
       expect(['song', 'loop', 'off']).toContain(preset.backing);
     }
   });
 
-  it('makes every groove 32 steps and every tune 32 or 64 steps', () => {
+  it('makes every groove 32 steps and every tune 32, 48, or 64 steps', () => {
     for (const preset of PRESETS) {
       if (preset.kind === 'groove') expect(preset.length).toBe(32);
-      else expect([32, 64]).toContain(preset.length);
+      else expect([32, 48, 64]).toContain(preset.length);
     }
   });
 
@@ -113,7 +113,7 @@ describe('presets', () => {
       expect(preset?.kind).toBe('tune');
       expect(preset?.scale).toBeDefined();
       expect(SCALES[preset?.scale ?? '']).toBeDefined();
-      expect([32, 64]).toContain(preset?.length);
+      expect([32, 48, 64]).toContain(preset?.length);
       const synth = (preset?.cells ?? []).filter((cell) => cell.instrument === 'synth');
       const first = synth.reduce((best, cell) => (cell.col < best.col ? cell : best), synth[0]!);
       expect(first).toEqual({ instrument: 'synth', col: 0, row });
@@ -132,7 +132,7 @@ describe('presets', () => {
       expect(preset).toBeDefined();
       expect(preset?.kind).toBe('holiday');
       expect(SCALES[preset?.scale ?? '']).toBeDefined();
-      expect([32, 64]).toContain(preset?.length);
+      expect([32, 48, 64]).toContain(preset?.length);
       expect(THEME_IDS.has(preset?.themeId ?? '')).toBe(true);
       const synth = (preset?.cells ?? []).filter((cell) => cell.instrument === 'synth');
       const first = synth.reduce((best, cell) => (cell.col < best.col ? cell : best), synth[0]!);
@@ -153,6 +153,25 @@ describe('presets', () => {
       const preset = PRESETS.find((entry) => entry.id === id);
       expect(preset).toBeDefined();
       expect(preset?.kind).toBe(kind);
+      expect(SCALES[preset?.scale ?? '']).toBeDefined();
+      const synth = (preset?.cells ?? []).filter((cell) => cell.instrument === 'synth');
+      const first = synth.reduce((best, cell) => (cell.col < best.col ? cell : best), synth[0]!);
+      expect(first).toEqual({ instrument: 'synth', col: 0, row });
+    }
+  });
+
+  it('adds Ride of the Valkyries and three waltz carols', () => {
+    const expected = [
+      ['valkyries', 'tune', 64, 5],
+      ['we-wish', 'holiday', 48, 3],
+      ['o-christmas-tree', 'holiday', 48, 4],
+      ['silent-night', 'holiday', 48, 4],
+    ] as const;
+    for (const [id, kind, length, row] of expected) {
+      const preset = PRESETS.find((entry) => entry.id === id);
+      expect(preset).toBeDefined();
+      expect(preset?.kind).toBe(kind);
+      expect(preset?.length).toBe(length);
       expect(SCALES[preset?.scale ?? '']).toBeDefined();
       const synth = (preset?.cells ?? []).filter((cell) => cell.instrument === 'synth');
       const first = synth.reduce((best, cell) => (cell.col < best.col ? cell : best), synth[0]!);

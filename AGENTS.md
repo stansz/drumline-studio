@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Drumline Studio is a browser step sequencer with a 16-, 32-, or 64-step pattern; each step is one
+Drumline Studio is a browser step sequencer with a 16-, 32-, 48-, or 64-step pattern; each step is one
 sixteenth note. It uses TypeScript, Vite, Canvas, and Web Audio, with no framework or runtime
 dependencies.
 
@@ -29,7 +29,7 @@ Commands: `npm run dev`, `npm test`, `npm run test:sandbox`, `npm run typecheck`
 - FX are applied on top of the theme and never change a theme's own values.
 - Voices connect to their instrument's level and send gains in `audio.ts`, never straight to
   `towerBus` or `delaySend`, so the mixer covers everything.
-- Share links are versioned (`v1.`, `v2.`, `v3.`, `v4.`, `v5.`, `v6.`) in `src/pattern.ts`. Add a new
+- Share links are versioned (`v1.`, `v2.`, `v3.`, `v4.`, `v5.`, `v6.`, `v7.`) in `src/pattern.ts`. Add a
   version instead of changing an old one, and keep decoding every old version.
 - Presets are original grooves named by genre, plus public-domain melodies. Don't add copyrighted
   songs.

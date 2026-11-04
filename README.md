@@ -9,12 +9,12 @@ pick a backing band, and share it with a link. There's nothing to install and no
 
 ## Features
 
-- **Six instruments:** Kick, Hat, Synth, Snare, Bass, and Sample, on a 16-, 32-, or 64-step grid
+- **Six instruments:** Kick, Hat, Synth, Snare, Bass, and Sample, on a 16-, 32-, 48-, or 64-step grid
   where each row is a pitch.
 - **Backing music in nine themes:** Neon, Chiptune, Lo-fi, Techno, Funk, Hip-hop, House,
   Synthwave, and Clean, each with its own chords, bass, arpeggio, and drums. Play it as a full
   song, a loop, or not at all.
-- **Grooves and tunes:** ten ready-made grooves, nine public-domain tunes, and six Christmas carols,
+- **Grooves and tunes:** ten ready-made grooves, ten public-domain tunes, and nine Christmas carols,
   plus a random groove maker with undo.
 - **Sampler:** six built-in sounds, or record your own from the microphone or a file.
 - **Mixer and FX:** a volume for every part, plus filter, delay, reverb, and bit-crush.
@@ -82,8 +82,9 @@ The code is under the [MIT License](LICENSE). The fonts keep their own license, 
 The Silkscreen and VT323 fonts are used under the SIL Open Font License. Their licenses are in
 `src/fonts/`. Korobeiniki (1861), In the Hall of the Mountain King (Grieg, 1875), Ode to Joy
 (Beethoven, 1824), Für Elise (Beethoven, 1810), the Can-Can (Offenbach, 1858), Canon in D
-(Pachelbel, around 1680), Swan Lake (Tchaikovsky, 1876), Eine kleine Nachtmusik (Mozart, 1787), and
-When the Saints Go Marching In (traditional) are in the public domain. Jingle Bells (Pierpont,
-1857), Joy to the World (Mason, 1839), Deck the Halls, God Rest Ye Merry Gentlemen, Hark! The
-Herald Angels Sing (Mendelssohn, 1840), and Good King Wenceslas (traditional melody, words 1853)
-are public-domain carols.
+(Pachelbel, around 1680), Swan Lake (Tchaikovsky, 1876), Eine kleine Nachtmusik (Mozart, 1787),
+When the Saints Go Marching In (traditional), and Ride of the Valkyries (Wagner, 1870) are in the
+public domain. Jingle Bells (Pierpont, 1857), Joy to the World (Mason, 1839), Deck the Halls, God
+Rest Ye Merry Gentlemen, Hark! The Herald Angels Sing (Mendelssohn, 1840), Good King Wenceslas
+(traditional melody, words 1853), We Wish You a Merry Christmas and O Christmas Tree (traditional),
+and Silent Night (Gruber, 1818) are public-domain carols.

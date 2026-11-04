@@ -22,10 +22,11 @@ function validScale(scale: unknown): string | undefined {
   return typeof scale === 'string' && /^[a-z0-9-]{1,24}$/.test(scale) ? scale : undefined;
 }
 
-function parseLength(text: string, allow64: boolean): PatternLength | null {
-  if (text === '16') return 16;
-  if (text === '32') return 32;
-  if (allow64 && text === '64') return 64;
+function parseLength(text: string, allowed: readonly PatternLength[]): PatternLength | null {
+  if (text === '16') return allowed.includes(16) ? 16 : null;
+  if (text === '32') return allowed.includes(32) ? 32 : null;
+  if (text === '48') return allowed.includes(48) ? 48 : null;
+  if (text === '64') return allowed.includes(64) ? 64 : null;
   return null;
 }
 
@@ -85,7 +86,7 @@ export function parsePattern(text: string | null): SavedPattern | null {
   const record = data as Record<string, unknown>;
   if (record.v !== 1 || !Array.isArray(record.cells)) return null;
   const length: PatternLength =
-    record.length === 64 ? 64 : record.length === 32 ? 32 : 16;
+    record.length === 64 ? 64 : record.length === 48 ? 48 : record.length === 32 ? 32 : 16;
   const cells = cleanCells(
     record.cells.map((entry) =>
       Array.isArray(entry) ? validCell(entry[0], entry[1], entry[2], entry[3]) : null,
@@ -123,7 +124,8 @@ function fromBase64Url(text: string): Uint8Array | null {
 // row * 6 + instrument index.
 // v5 is the same as v4, plus a scale id after the sample id, empty for the theme's own scale:
 // v5.<length>.<bpm>.<theme id>.<picked sample id>.<scale id>.<sample table>.<cells>.
-// v6 is the same as v5, except the length may be 64. New links are written as v6.
+// v6 is the same as v5, except the length may be 64.
+// v7 is the same as v6, except the length may be 48. New links are written as v7.
 const MAX_SAMPLE_TABLE = 16;
 
 export function encodeShare(beat: SharedBeat): string {
@@ -145,7 +147,7 @@ export function encodeShare(beat: SharedBeat): string {
     bytes[i * 3 + 2] = sampleIndex;
   });
   return [
-    'v6',
+    'v7',
     beat.length,
     parseBpm(String(beat.bpm)),
     beat.themeId,
@@ -202,7 +204,7 @@ export function decodeShare(text: string): SharedBeat | null {
       string,
       string,
     ];
-    const length = parseLength(lengthText, false);
+    const length = parseLength(lengthText, [16, 32]);
     if (length === null) return null;
     if (!/^[a-z0-9-]{1,24}$/.test(themeId)) return null;
     const bytes = fromBase64Url(cellText);
@@ -225,7 +227,7 @@ export function decodeShare(text: string): SharedBeat | null {
       string,
       string,
     ];
-    const length = parseLength(lengthText, false);
+    const length = parseLength(lengthText, [16, 32]);
     if (length === null) return null;
     if (!/^[a-z0-9-]{1,24}$/.test(themeId)) return null;
     if (!/^[a-z0-9-]{1,24}$/.test(sampleId)) return null;
@@ -242,7 +244,7 @@ export function decodeShare(text: string): SharedBeat | null {
       cells,
     };
   }
-  if (parts[0] === 'v5' || parts[0] === 'v6') {
+  if (parts[0] === 'v5' || parts[0] === 'v6' || parts[0] === 'v7') {
     if (parts.length !== 8) return null;
     const [, lengthText, bpmText, themeId, sampleId, scaleText, tableText, cellText] = parts as [
       string,
@@ -254,7 +256,10 @@ export function decodeShare(text: string): SharedBeat | null {
       string,
       string,
     ];
-    const length = parseLength(lengthText, parts[0] === 'v6');
+    const length = parseLength(
+      lengthText,
+      parts[0] === 'v5' ? [16, 32] : parts[0] === 'v6' ? [16, 32, 64] : [16, 32, 48, 64],
+    );
     if (length === null) return null;
     if (!/^[a-z0-9-]{1,24}$/.test(themeId)) return null;
     if (!/^[a-z0-9-]{1,24}$/.test(sampleId)) return null;
@@ -287,7 +292,7 @@ export function decodeShare(text: string): SharedBeat | null {
     string,
     string,
   ];
-  const length = parseLength(lengthText, false);
+  const length = parseLength(lengthText, [16, 32]);
   if (length === null) return null;
   if (!/^[a-z0-9-]{1,24}$/.test(themeId)) return null;
   if (!/^[a-z0-9-]{1,24}$/.test(sampleId)) return null;

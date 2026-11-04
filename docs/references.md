@@ -27,7 +27,7 @@ How Drumline Studio's code fits together. [AGENTS.md](../AGENTS.md) holds the ru
 - `src/themes.ts`: one entry for each music theme.
 - `src/presets.ts`: the named synth scales and the beat presets (`PRESETS`, `presetById`).
 - `src/random.ts`: the seeded `Rng` and `randomPattern`, which builds a random 16-step groove.
-- `src/pattern.ts`: autosave JSON and the `v1.`/`v2.`/`v3.`/`v4.`/`v5.`/`v6.` share-link formats.
+- `src/pattern.ts`: autosave JSON and the `v1.`/`v2.`/`v3.`/`v4.`/`v5.`/`v6.`/`v7.` share-link formats.
 - `src/midi.ts`: MIDI file writer.
 - `src/recording.ts`: recording type, file names, and timer text.
 - `src/render.ts`: draws the board into a 256×128 buffer, then scales it onto the canvas.
@@ -159,7 +159,7 @@ scales.
 The step strip above the board is DOM. `main.ts` lights the playhead's step, and outlines the step
 of the hovered cell.
 
-With 32 or 64 steps, the board shows one page of 16 at a time, up to 4 pages. The page offset is
+With 32, 48, or 64 steps, the board shows one page of 16 at a time, up to 4 pages. The page offset is
 `page * 16`: cells from another page are skipped, and the playhead only draws while it is on the
 shown page. Follow, when on, flips the shown page to the playhead's page in `frame()`; flipping the
 page by hand turns it off.
@@ -259,8 +259,9 @@ Share links put the beat in the URL hash: `v1.<length>.<bpm>.<theme id>.<cells>`
 `v2.<length>.<bpm>.<theme id>.<sample id>.<cells>`,
 `v3.<length>.<bpm>.<theme id>.<picked sample id>.<sample table>.<cells>`,
 `v4.<length>.<bpm>.<theme id>.<picked sample id>.<sample table>.<cells>`,
-`v5.<length>.<bpm>.<theme id>.<picked sample id>.<scale id>.<sample table>.<cells>`, or
-`v6.<length>.<bpm>.<theme id>.<picked sample id>.<scale id>.<sample table>.<cells>`. In v1 and v2
+`v5.<length>.<bpm>.<theme id>.<picked sample id>.<scale id>.<sample table>.<cells>`,
+`v6.<length>.<bpm>.<theme id>.<picked sample id>.<scale id>.<sample table>.<cells>`, or
+`v7.<length>.<bpm>.<theme id>.<picked sample id>.<scale id>.<sample table>.<cells>`. In v1 and v2
 each cell is two bytes, the step and then the row and instrument index, in base64url:
 `row × 4 + index` in v1 and `row × 5 + index` in v2. v2 adds the chosen sample id and gives every
 sample cell that sound. v3 adds a sample table: the distinct sample ids used by the pattern's sample
@@ -269,7 +270,8 @@ cells, in first-use order, joined with `_`. Each v3 cell is three bytes: the ste
 `sample`). v4 is the same as v3, except there are six instruments, so the second byte is
 `row × 6 + index`. v5 is the same as v4, plus a scale id after the picked sample id: empty for the
 theme's own scale, or a known id from `SCALES`. v6 is the same as v5, except the length may be 64;
-new links are written as v6. Old links still load: v1 and v2 links still load,
+v7 is the same as v6, except the length may be 48; new links are written as v7. Old links still
+load: v1 and v2 links still load,
 v1 uses the default Clap sound, v3 keeps its five-instrument encoding, and v4 has no scale so it
 falls back to the theme's. A link loads over the autosave, is then autosaved, and is removed from
 the address bar. Invalid links are ignored.

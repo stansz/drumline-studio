@@ -38,6 +38,10 @@ describe('serializePattern / parsePattern', () => {
     expect(parsePattern(serializePattern(pattern))).toEqual(pattern);
   });
 
+  it('reads a saved 48-step length', () => {
+    expect(parsePattern(JSON.stringify({ v: 1, length: 48, cells: [] }))?.length).toBe(48);
+  });
+
   it('returns null for missing or unreadable text', () => {
     expect(parsePattern(null)).toBeNull();
     expect(parsePattern('nope')).toBeNull();
@@ -125,15 +129,15 @@ describe('encodeShare / decodeShare', () => {
     expect(decodeShare(encodeShare(beat))).toEqual(beat);
   });
 
-  it('produces a v6 link', () => {
+  it('produces a v7 link', () => {
     expect(
       encodeShare({ length: 16, bpm: 120, themeId: 'lofi', sampleId: 'clap', cells: [] }),
     ).toMatch(
-      /^v6\.(16|32|64)\.\d+\.[a-z0-9-]+\.[a-z0-9-]+\.[a-z0-9-]*\.[a-z0-9_-]*\.[A-Za-z0-9_-]*$/,
+      /^v7\.(16|32|48|64)\.\d+\.[a-z0-9-]+\.[a-z0-9-]+\.[a-z0-9-]*\.[a-z0-9_-]*\.[A-Za-z0-9_-]*$/,
     );
   });
 
-  it('writes a 64-step pattern as v6.64 and reads it back', () => {
+  it('writes a 64-step pattern as v7.64 and reads it back', () => {
     const beat: SharedBeat = {
       length: 64,
       bpm: 120,
@@ -142,7 +146,7 @@ describe('encodeShare / decodeShare', () => {
       cells: [{ instrument: 'bass', col: 63, row: 0 }],
     };
     const link = encodeShare(beat);
-    expect(link.startsWith('v6.64.')).toBe(true);
+    expect(link.startsWith('v7.64.')).toBe(true);
     const decoded = decodeShare(link);
     expect(decoded?.length).toBe(64);
     expect(decoded?.cells).toEqual(beat.cells);
@@ -156,7 +160,7 @@ describe('encodeShare / decodeShare', () => {
       sampleId: 'clap',
       cells: [],
     });
-    expect(decodeShare(link.replace('v6.32.', 'v5.64.'))).toBeNull();
+    expect(decodeShare(link.replace('v7.32.', 'v5.64.'))).toBeNull();
   });
 
   it('still decodes a v5 link with length 32', () => {
@@ -167,7 +171,44 @@ describe('encodeShare / decodeShare', () => {
       sampleId: 'clap',
       cells: [],
     });
-    expect(decodeShare(link.replace('v6.32.', 'v5.32.'))?.length).toBe(32);
+    expect(decodeShare(link.replace('v7.32.', 'v5.32.'))?.length).toBe(32);
+  });
+
+  it('writes a 48-step pattern as v7.48 and reads it back', () => {
+    const beat: SharedBeat = {
+      length: 48,
+      bpm: 120,
+      themeId: 'neon',
+      sampleId: 'clap',
+      cells: [{ instrument: 'bass', col: 47, row: 0 }],
+    };
+    const link = encodeShare(beat);
+    expect(link.startsWith('v7.48.')).toBe(true);
+    const decoded = decodeShare(link);
+    expect(decoded?.length).toBe(48);
+    expect(decoded?.cells).toEqual(beat.cells);
+  });
+
+  it('returns null for a v6 link with length 48', () => {
+    const link = encodeShare({
+      length: 32,
+      bpm: 120,
+      themeId: 'neon',
+      sampleId: 'clap',
+      cells: [],
+    });
+    expect(decodeShare(link.replace('v7.32.', 'v6.48.'))).toBeNull();
+  });
+
+  it('still decodes a v6 link with length 64', () => {
+    const link = encodeShare({
+      length: 64,
+      bpm: 120,
+      themeId: 'neon',
+      sampleId: 'clap',
+      cells: [],
+    });
+    expect(decodeShare(link.replace('v7.64.', 'v6.64.'))?.length).toBe(64);
   });
 
   it('round-trips a v5 link with a scale', () => {

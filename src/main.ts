@@ -251,7 +251,7 @@ function loadCells(cells: readonly Cell[]): void {
 }
 
 function nextLength(length: PatternLength): PatternLength {
-  return length === 16 ? 32 : length === 32 ? 64 : 16;
+  return length === 16 ? 32 : length === 32 ? 48 : length === 48 ? 64 : 16;
 }
 
 function pageCount(): number {

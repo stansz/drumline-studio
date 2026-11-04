@@ -28,8 +28,8 @@ Or open **Menu** and pick a preset to hear a full groove right away, then change
 
 ![Drumline Studio on a desktop](images/hero.png)
 
-- **Header:** the logo, the **Notes** and **Step** readouts, **Length** (16, 32, or 64 steps),
-  **Page** and **Follow** (with 32 or 64 steps), and **Share**.
+- **Header:** the logo, the **Notes** and **Step** readouts, **Length** (16, 32, 48, or 64 steps),
+  **Page** and **Follow** (with 32, 48, or 64 steps), and **Share**.
 - **Board:** the grid. Each column is one step (a sixteenth note), and each row is a pitch.
 - **Tab row:** **Mix**, **FX**, **♪ Theme**, **Backing**, and **Menu**.
 - **Dock:** the slot under the tab row. It shows one panel at a time: the selected instrument's
@@ -53,11 +53,11 @@ the backing music's bass line goes quiet so the two don't clash.
 
 ### Length, pages, and Follow
 
-**Length** cycles 16 → 32 → 64 → 16 steps. With 32 steps, **Page** flips the board between steps
-1–16 and 17–32; with 64 steps it steps through four pages: 1–16, 17–32, 33–48, and 49–64.
-**Follow** appears with 32 or 64 steps. While Follow is on, the board flips to whichever page is
-playing. Flipping the page yourself turns Follow off. Follow starts on and is remembered. Notes past
-the length are kept but silent.
+**Length** cycles 16 → 32 → 48 → 64 → 16 steps. With 32 steps, **Page** flips the board between steps
+1–16 and 17–32; with 48 steps it steps through three pages (1–16, 17–32, 33–48), and with 64 steps
+through four: 1–16, 17–32, 33–48, and 49–64. **Follow** appears with 32, 48, or 64 steps. While
+Follow is on, the board flips to whichever page is playing. Flipping the page yourself turns Follow
+off. Follow starts on and is remembered. Notes past the length are kept but silent.
 
 ## Playing
 
@@ -100,12 +100,13 @@ Open **Menu** for the Menu screen, which has three pages: **Beats**, **Music**, 
 **Beats** page comes first, with three lists: **Grooves** (Four on the Floor, Boom Bap,
 Breakbeat, Trap, Dembow, Funk Groove, Disco, Lo-fi Groove, Synthwave Drive, Drum & Bass), **Tunes**
 (Korobeiniki, In the Hall of the Mountain King, Ode to Joy, Für Elise, Can-Can, Canon in D, Swan
-Lake, Eine kleine Nachtmusik, When the Saints Go Marching In), and **Holiday** (Jingle Bells, Deck
-the Halls, Joy to the World, God Rest Ye Merry Gentlemen, Hark! The Herald Angels Sing, Good King
-Wenceslas). The Holiday tunes are public-domain carols. Grooves are 32 steps, and tunes are 32 or
-64 steps. A preset sets the pattern, its length, the tempo, the theme, and the Backing mode, and
-some set a scale for the synth. The music keeps playing, and the new beat takes over on the next
-step.
+Lake, Eine kleine Nachtmusik, When the Saints Go Marching In, Ride of the Valkyries), and **Holiday**
+(Jingle Bells, Deck the Halls, Joy to the World, God Rest Ye Merry Gentlemen, Hark! The Herald
+Angels Sing, Good King Wenceslas, We Wish You a Merry Christmas, O Christmas Tree, Silent Night).
+The Holiday tunes are public-domain carols. Grooves are 32 steps, and tunes are 32, 48, or 64 steps.
+The 48-step carols are in waltz time: four bars of 3/4, or eight with one step per eighth note. A
+preset sets the pattern, its length, the tempo, the theme, and the Backing mode, and some set a
+scale for the synth. The music keeps playing, and the new beat takes over on the next step.
 
 The Beats page shows the highlighted preset's tempo, theme, length, Backing mode, and a one-line
 description. **▲** and **▼** (or the arrow keys) move the highlight without loading. **Load**
@@ -200,9 +201,9 @@ Backing mode, Follow setting, FX, and picked sample sound.
 | **R** | Start or stop recording |
 | **M** | Mute |
 | **C** | Clear the pattern |
-| **L** | 16, 32, or 64 steps |
-| **P** | Next page (32 or 64 steps) |
-| **F** | Follow on or off (32 or 64 steps) |
+| **L** | 16, 32, 48, or 64 steps |
+| **P** | Next page (32, 48, or 64 steps) |
+| **F** | Follow on or off (32, 48, or 64 steps) |
 
 On the start screen, **Enter** or **Space** turns on the sound without starting the beat, and **T**
 changes the theme. While the Menu screen is open, **Esc** closes it, **I** switches to or closes the
